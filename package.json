@@ -1,0 +1,39 @@
+{
+  "name": "brs-js",
+  "version": "1.0.0",
+  "description": "Brickadia Save Read/Writing",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meshiest/brs-js.git"
+  },
+  "keywords": [
+    "brs",
+    "brickadia",
+    "save",
+    "file",
+    "format",
+    "blockland"
+  ],
+  "author": "Meshiest <meek.mesh@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/meshiest/brs-js/issues"
+  },
+  "homepage": "https://github.com/meshiest/brs-js#readme",
+  "dependencies": {
+    "detect-node": "^2.0.4",
+    "lodash": "^4.17.15",
+    "pako": "^1.0.10",
+    "punycode": "^2.1.1",
+    "uuid-parse": "^1.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "babel-loader": "^8.0.6",
+    "webpack": "^4.40.2",
+    "webpack-cli": "^3.3.8"
+  }
+}
