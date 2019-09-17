@@ -1,9 +1,13 @@
 {
   "name": "brs-js",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack -w",
+    "dist": "webpack --env mode=production"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/meshiest/brs-js.git"

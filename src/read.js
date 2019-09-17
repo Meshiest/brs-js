@@ -24,9 +24,16 @@ export default function readBrs(brsData) {
 
   const header1 = {
     map: read.string(header1Data),
-    author_name: read.string(header1Data),
-    description: read.string(header1Data),
-    author_id: read.uuid(header1Data),
+    ...((name, description, id) => ({
+      author: {
+        id, name,
+      },
+      description,
+    }))(
+      read.string(header1Data), // read author name
+      read.string(header1Data), // read description
+      read.uuid(header1Data), // read author id
+    ),
     save_time: version >= 4 ? header1Data.splice(0, 8) : null,
     brick_count: read.i32(header1Data),
   };

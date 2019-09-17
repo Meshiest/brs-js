@@ -2,6 +2,7 @@ import pako from 'pako';
 import punycode from 'punycode';
 import chunk from 'lodash/chunk';
 import uuidParse from 'uuid-parse';
+import { MAX_INT } from './constants';
 
 /*
   Notes:
@@ -12,11 +13,22 @@ import uuidParse from 'uuid-parse';
 
  */
 
+// Determine if a string is ascii-only
+function isASCII(str) {
+    return /^[\x00-\x7F]*$/.test(str);
+}
+
 // Read a u16 from a byte array
 function read_u16(data, littleEndian=true) {
   const [a, b] = data.splice(0, 2);
 
   return littleEndian ? (b << 8 | a) : (a << 8 | b);
+}
+
+// Write a u16 into byte array
+function write_u16(num, littleEndian=true) {
+  const data = [num & 255, (num >> 8) & 255];
+  return !littleEndian ? data.reverse() : data;
 }
 
 // Read an i32 from a byte array
@@ -25,6 +37,18 @@ function read_i32(data, littleEndian=true) {
   return littleEndian
     ? (d << 24 | c << 16 | b << 8 | a)
     : (a << 24 | b << 16 | c << 8 | d);
+}
+
+// Write an i32 from a byte array
+function write_i32(num, littleEndian=true) {
+  const data = [
+    num & 255,
+    (num >> 8) & 255,
+    (num >> 16) & 255,
+    (num >> 24) & 255,
+  ];
+
+  return !littleEndian ? data.reverse() : data;
 }
 
 // Decompress a byte array of compressed data
@@ -45,6 +69,35 @@ function read_compressed(data) {
     const compressed = data.splice(0, compressedSize);
     return Array.from(pako.inflate(compressed));
   }
+}
+
+// Compress a byte array into fewer bytes
+function write_compressed(...args) {
+  // Concat the args to one massive array
+  const data = [].concat(...args);
+
+  // Do the compression
+  const compressed = Array.from(pako.deflate(data));
+  const uncompressed_size = data.length;
+  const compressed_size = compressed.length;
+
+  if (uncompressed_size > MAX_INT) {
+    throw new Error("uncompressed_size out of range");
+  }
+
+  if (compressed_size > MAX_INT) {
+    throw new Error("uncompressed_size out of range");
+  }
+
+  // Determine if compression increases size
+  const badCompress = compressed_size >= uncompressed_size;
+
+  // Build the output
+  return [].concat(
+    write_i32(uncompressed_size),
+    write_i32(badCompress ? 0 : compressed_size),
+    badCompress ? data : compressed,
+  );
 }
 
 // Read a string from a byte array
@@ -77,16 +130,48 @@ function read_string(data) {
   }
 }
 
+// Write a string to bytes
+function write_string(str) {
+  if (isASCII(str)) {
+    return [].concat(
+      write_i32(str.length + 1), // Write string length (+ null term)
+      str.split('').map(s => s.charCodeAt(0)), // Write string as bytes
+      [0], // Null terminator
+    );
+  } else {
+    // ucs2 strings denoted by negative length
+    const len = -((str.length + 1) * 2);
+    return [].concat(
+      write_i32(len), // write length
+      punycode.ucs2.decode(str), // write decoded string
+      [0], // Null terminator
+    )
+  }
+}
+
 // Read uuid from bytes
 function read_uuid(data) {
   return uuidParse.unparse(data.splice(0, 16));
 }
 
-// Read an array of things in
+// parse a uuid to bytes
+function write_uuid(uuid) {
+  return Array.from(uuidParse.parse(uuid));
+}
+
+// Read an array of things given a fn
 function read_array(data, fn) {
   const length = read_i32(data);
   return Array.from({ length })
     .map(() => fn(data));
+}
+
+// Write an array of things to bytes
+function write_array(things, fn) {
+  return [].concat(
+    write_i32(things.length),
+    ...things.map(o => fn(o))
+  );
 }
 
 // Tool for reading byte arrays 1 bit at a time
@@ -117,7 +202,7 @@ class BitReader {
     let value = 0;
     let mask = 1;
 
-    while (value + mask < max && mask != 0) {
+    while (value + mask < max && mask !== 0) {
       if (this.bit()) {
         value |= mask;
       }
@@ -148,7 +233,7 @@ class BitReader {
   // an item in a read_positive_int_vector array
   int_packed() {
     const value = this.uint_packed();
-    return (value >> 1) * (value & 1 != 0 ? 1 : -1);
+    return (value >> 1) * (value & 1 !== 0 ? 1 : -1);
   }
 
   // read some bits
@@ -168,7 +253,98 @@ class BitReader {
   }
 }
 
-const read = {
+class BitWriter {
+  constructor() {
+    this.buffer = [];
+    this.cur = 0;
+    this.bitNum = 0;
+
+  }
+
+  // Write a boolean as a bit
+  bit(val) {
+    this.cur |= (val ? 1 : 0) << this.bitNum;
+    this.bitNum++;
+    if (this.bitNum >= 8) {
+      this.align();
+    }
+  }
+
+  // Write `len` bits from `src` bytes
+  bits(src, len) {
+    for (let bit = 0; bit < len; bit++) {
+      this.bit((src[bit >> 3] & (1 << (bit & 7))) !== 0);
+    }
+  }
+
+  // Write multiple bytes
+  bytes(src) {
+    this.bits(src, 8 * src.length);
+  }
+
+  // Push the current bit into the buffer
+  align() {
+    if (this.bitNum > 0) {
+      this.buffer.push(this.cur);
+      this.cur = 0;
+      this.bitNum = 0;
+    }
+  }
+
+  // Write an int up to the potential max size
+  int(value, max) {
+    if (max < 2) {
+      throw new Error('Invalid input (BitWriter) -- max must be at least 2')
+    }
+
+    if (value >= max) {
+      throw new Error('Invalid input (BitWriter) -- value is larger than max')
+    }
+
+    let new_val = 0;
+    let mask = 1;
+
+    while ((new_val + mask) < max && mask !== 0) {
+      this.bit((value & mask) !== 0);
+      if ((value & mask) !== 0) {
+        new_val |= mask;
+      }
+
+      mask <<= 1;
+    }
+  }
+
+  // Write a packed unsigned int
+  uint_packed(value) {
+    while (true) {
+      const src = value & 0b1111111;
+      value >>= 7;
+      this.bit(value !== 0);
+      this.bits([src], 7);
+      if (value === 0) {
+        break;
+      }
+    }
+  }
+
+  // Write a packed integer 
+  int_packed(value) {
+    this.uint_packed((Math.abs(value) << 1) | (value > 0 ? 1 : 0));
+  }
+
+  // Return built buffer
+  finish() {
+    this.align();
+    return this.buffer;
+  }
+
+  each(arr, fn) {
+    arr.forEach(fn.bind(this));
+    return this;
+  }
+}
+
+export const read = {
   u16: read_u16,
   i32: read_i32,
   compressed: read_compressed,
@@ -178,6 +354,12 @@ const read = {
   bits: data => new BitReader(data),
 };
 
-export {
-  read,
+export const write = {
+  u16: write_u16,
+  i32: write_i32,
+  compressed: write_compressed,
+  string: write_string,
+  uuid: write_uuid,
+  array: write_array,
+  bits: data => new BitWriter(),
 };
