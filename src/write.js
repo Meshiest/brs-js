@@ -58,7 +58,7 @@ export default function writeBrs(save) {
     // Header 2
     write.compressed(
       write.array(get(save, 'mods', []), write.string),
-      write.array(get(save, 'brick_assets', []), write.string),
+      write.array(get(save, 'brick_assets', ['PB_DefaultBrick']), write.string),
       write.array(get(save, 'colors', []), rgba),
       write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
       write.array(get(save, 'brick_owners', [{}]), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
@@ -95,7 +95,7 @@ export default function writeBrs(save) {
           this.bit(true);
           this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
         }
-        this.int_packed(get(brick, 'owner_index', 0));
+        this.int_packed(get(brick, 'owner_index', 1));
       })
       .finish()
     ),
