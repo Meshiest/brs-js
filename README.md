@@ -24,6 +24,9 @@ Web:
 
     window.BRS
 
+### Examples
+
+Examples are available in the `examples/` directory. All `.js` examples are for node, `.html` are for web.
 
 ### Save Object
 

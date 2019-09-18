@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="../dist/dist.js"></script>
+
+<!-- Files uploaded will be  -->
+<input id="fileInput" type="file">
+
+<!-- This will be filled with the save object as JSON or the error message -->
+<pre id="jsonElem"></pre>
+
+<script>
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+      // Read the file into a byte array
+      file.arrayBuffer()
+        .then(buff => {
+          const save = BRS.read(buff);
+
+          // Log the save object
+          console.log(save);
+
+          // Render the save object as formatted JSON
+          jsonElem.innerText = JSON.stringify(save, 0, 2);
+        })
+        .catch(err => {
+          // Display the error
+          jsonElem.innerText = 'Error: ' + err.message;
+        });
+    }
+  });
+</script>
