@@ -36,6 +36,9 @@ export default function writeBrs(save) {
     throw new Error('Brick count out of range');
   }
 
+  // Convert from BGRA to RGBA
+  const rgba = ([r, g, b, a]) => [b, g, r, a];
+
   const buff = [].concat(
     // Write magic bytes
     MAGIC,
@@ -56,7 +59,7 @@ export default function writeBrs(save) {
     write.compressed(
       write.array(get(save, 'mods', []), write.string),
       write.array(get(save, 'brick_assets', []), write.string),
-      write.array(get(save, 'colors', []), d => d),
+      write.array(get(save, 'colors', []), rgba),
       write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
       write.array(get(save, 'brick_owners', [{}]), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
         write.uuid(id),
@@ -90,7 +93,7 @@ export default function writeBrs(save) {
           this.int(brick.color, Math.max(get(save, 'colors', []).length, 2));
         } else {
           this.bit(true);
-          this.bytes(get(brick, 'color', [255, 255, 255, 255]));
+          this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
         }
         this.int_packed(get(brick, 'owner_index', 0));
       })

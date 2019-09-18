@@ -16,6 +16,9 @@ export default function readBrs(brsData) {
     throw new Error('Unsupported version');
   }
 
+  // Convert from BGRA to RGBA
+  const bgra = ([b, g, r, a]) => [r, g, b, a];
+
   // Read in Headers
   const header1Data = read.compressed(brsData);
   const header2Data = read.compressed(brsData);
@@ -39,7 +42,7 @@ export default function readBrs(brsData) {
   const header2 = {
     mods: read.array(header2Data, read.string),
     brick_assets: read.array(header2Data, read.string),
-    colors: read.array(header2Data, data => data.splice(0, 4)),
+    colors: read.array(header2Data, data => bgra(data.splice(0, 4))),
     materials: version >= 2
       ? read.array(header2Data, read.string)
       : ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic'],
@@ -70,7 +73,7 @@ export default function readBrs(brsData) {
       collision: brickBits.bit(),
       visibility: brickBits.bit(),
       material_index: brickBits.bit() ? brickBits.uint_packed() : 1,
-      color: brickBits.bit() ? brickBits.bytes(4) : brickBits.int(header2.colors.length),
+      color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
       owner_index: version >= 3 ? brickBits.uint_packed() : 0,
     });
   }
