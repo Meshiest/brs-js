@@ -1,11 +1,23 @@
 import { MAGIC, LATEST_VERSION, MAX_INT } from './constants';
-import isEqual from 'lodash/isEqual';
-import get from 'lodash/get';
-import { write } from './utils';
+import { write, isEqual } from './utils';
 
+// TODO: Validate input saves
 function validate(save) {
   if (typeof save !== 'object')
     throw new Error('Expected save to be an object');
+}
+
+// looks up a value in an object or returns a defualt value
+function get(obj, path='', def) {
+  // Split the path up by .
+  path = path.split('.').filter(p => p);
+
+  // Get the child at each part of the path
+  while (path.length && typeof obj === 'object') {
+    obj = obj[path.splice(0, 1)[0]];
+  }
+
+  return obj || def;
 }
 
 export default function writeBrs(save) {

@@ -1,6 +1,5 @@
 import pako from 'pako';
 import punycode from 'punycode';
-import chunk from 'lodash/chunk';
 import uuidParse from 'uuid-parse';
 import { MAX_INT } from './constants';
 
@@ -16,6 +15,21 @@ import { MAX_INT } from './constants';
 // Determine if a string is ascii-only
 function isASCII(str) {
     return /^[\x00-\x7F]*$/.test(str);
+}
+
+// Compare equality of byte arrays
+export function isEqual(arrA, arrB) {
+  return arrA.every((a, i) => arrB[i] === a);
+}
+
+function chunk(arr, size) {
+  const out = [];
+  const clone = Array.from(arr);
+
+  while(clone.length > 0)
+    out.push(clone.splice(0, size));
+
+  return out;
 }
 
 // Read a u16 from a byte array

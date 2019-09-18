@@ -1,11 +1,9 @@
 import { MAGIC, MAX_VERSION } from './constants';
-import isEqual from 'lodash/isEqual';
-import clone from 'lodash/clone';
-import { read } from './utils';
+import { read, isEqual } from './utils';
 
 // Reads in a byte array to build a brs object
 export default function readBrs(brsData) {
-  brsData = clone(Array.from(brsData));
+  brsData = Array.from(new Uint8Array(brsData));
 
   // Determine if the first 3 bytes are equal to the Brickadia save magic bytes
   if (!isEqual(brsData.splice(0, 3), MAGIC)) {
