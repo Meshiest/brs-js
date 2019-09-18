@@ -20,6 +20,11 @@ ES6:
 
     import brs from 'brs-js';
 
+Web:
+
+    window.BRS
+
+
 ### Save Object
 
 The Save Object is the input and output of this program. It represents the decoded/decompressed contents of the save.
