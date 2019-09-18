@@ -1,12 +1,13 @@
 {
   "name": "brs-js",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
-    "watch": "webpack -w",
-    "dist": "webpack --env mode=production"
+    "build": "npx webpack",
+    "watch": "npx webpack -w",
+    "dist": "npx webpack --env mode=production",
+    "test": "npx jest"
   },
   "repository": {
     "type": "git",
@@ -37,6 +38,7 @@
     "@babel/core": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "babel-loader": "^8.0.6",
+    "jest": "^24.9.0",
     "webpack": "^4.40.2",
     "webpack-cli": "^3.3.8"
   }

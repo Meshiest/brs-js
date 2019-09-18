@@ -1,8 +1,15 @@
 import { MAGIC, LATEST_VERSION, MAX_INT } from './constants';
 import isEqual from 'lodash/isEqual';
+import get from 'lodash/get';
 import { write } from './utils';
 
+function validate(save) {
+  if (typeof save !== 'object')
+    throw new Error('Expected save to be an object');
+}
+
 export default function writeBrs(save) {
+  validate(save);
 
   if(save.bricks.length > MAX_INT) {
     throw new Error('Brick count out of range');
@@ -15,21 +22,21 @@ export default function writeBrs(save) {
 
     // Header 1
     write.compressed(
-      write.string(save.map),
-      write.string(save.author.name),
-      write.string(save.description),
-      write.uuid(save.author.id),
-      save.save_time,
+      write.string(get(save, 'map', 'Unknown')),
+      write.string(get(save, 'author.name', 'Unknown')),
+      write.string(get(save, 'description', '')),
+      write.uuid(get(save, 'author.id', '00000000-0000-0000-0000-000000000000')),
+      get(save, 'save_time', [0, 0, 0, 0, 0, 0, 0, 0]),
       write.i32(save.bricks.length),
     ),
 
     // Header 2
     write.compressed(
-      write.array(save.mods, write.string),
-      write.array(save.brick_assets, write.string),
-      write.array(save.colors, d => d),
-      write.array(save.materials, write.string),
-      write.array(save.brick_owners, ({ id, name }) => [].concat(
+      write.array(get(save, 'mods', []), write.string),
+      write.array(get(save, 'brick_assets', []), write.string),
+      write.array(get(save, 'colors', []), d => d),
+      write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
+      write.array(get(save.brick_owners, []), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
         write.uuid(id),
         write.string(name),
       )),
@@ -55,6 +62,7 @@ export default function writeBrs(save) {
         if (brick.material_index != 1) {
           this.int_packed(brick.material_index);
         }
+
         if (typeof brick.color === 'number') {
           this.bit(false);
           this.int(brick.color, save.colors.length);

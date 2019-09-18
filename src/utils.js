@@ -241,7 +241,7 @@ class BitReader {
     const arr = [];
     for (let bit = 0; bit < num; bit++) {
       const shift = bit & 7;
-      arr[bit >> 3] = (arr[bit >> 3] & !(1 << shift)) | ((this.bit() ? 1 : 0) << shift);
+      arr[bit >> 3] = (arr[bit >> 3] & ~(1 << shift)) | ((this.bit() ? 1 : 0) << shift);
     }
     this.pos += num;
     return arr;
@@ -272,8 +272,10 @@ class BitWriter {
 
   // Write `len` bits from `src` bytes
   bits(src, len) {
+    let str = '';
     for (let bit = 0; bit < len; bit++) {
       this.bit((src[bit >> 3] & (1 << (bit & 7))) !== 0);
+      str += (src[bit >> 3] & (1 << (bit & 7))) !== 0 ? '1' : '0';
     }
   }
 
@@ -329,7 +331,7 @@ class BitWriter {
 
   // Write a packed integer 
   int_packed(value) {
-    this.uint_packed((Math.abs(value) << 1) | (value > 0 ? 1 : 0));
+    this.uint_packed((Math.abs(value) << 1) | (value >= 0 ? 1 : 0));
   }
 
   // Return built buffer
