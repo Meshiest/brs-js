@@ -71,21 +71,34 @@ Unsigned ints, while unlikely, may overflow.
 
 **Fields:** (optional fields during `brs.write(save)` will be set to default)
 
-| field               | type   | default                              | optional | description                      |
-|---------------------|--------|--------------------------------------|----------|----------------------------------|
-| version             | short  | Latest Save Version                  | auto     | Save file version                |
-| map                 | string | Unknown                              | &#9745;  | Map where the save was generated |
-| author.id           | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Save author UUID                 |
-| author.name         | string | Unknown                              | &#9745;  | Save author name                 |
-| description         | string | Empty String                         | &#9745;  | Save author name                 |
-| save_time           | array  | [0, 0, 0, 0, 0, 0, 0, 0]             | &#9745;  | UTC in bytes of creation time    |
-| brick_count         | int    | Number of bricks in `bricks`         | auto     | Number of bricks in save         |
-| mods                | array  | []                                   | &#9745;  | In game mods required for load   |
-| brick_assets        | array  | []                                   | &#9745;  | Array of brick assets            |
-| colors              | array  | []                                   | &#9745;  | Array of colorset colors         |
-| materials           | array  | ['BMC_Plastic']                      | &#9745;  | Array of used materials          |
-| brick_owners[].id   | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Brick owner list user uuid       |
-| brick_owners[].name | string | Unknown                              | &#9745;  | Brick owner list user name       |
+| field                     | type   | default                              | optional | description                      |
+|---------------------------|--------|--------------------------------------|----------|----------------------------------|
+| version                   | short  | Latest Save Version                  | auto     | Save file version                |
+| map                       | string | 'Unknown'                            | &#9745;  | Map where the save was generated |
+| author.id                 | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Save author UUID                 |
+| author.name               | string | 'Unknown'                            | &#9745;  | Save author name                 |
+| description               | string | '' (Empty String)                    | &#9745;  | Save author name                 |
+| save_time                 | array  | [0, 0, 0, 0, 0, 0, 0, 0]             | &#9745;  | UTC in bytes of creation time    |
+| brick_count               | int    | Number of bricks in `bricks`         | auto     | Number of bricks in save         |
+| mods                      | array  | []                                   | &#9745;  | In game mods required for load   |
+| brick_assets              | array  | []                                   | &#9745;  | List of brick assets             |
+| colors                    | array  | []                                   | &#9745;  | List of colorset colors          |
+| materials                 | array  | ['BMC_Plastic']                      | &#9745;  | List of used materials           |
+| brick_owners              | array  | [{}]                                 | &#9745;  | Brick owner list                 |
+| brick_owners[].id         | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Brick owner list user uuid       |
+| brick_owners[].name       | string | 'Unknown'                            | &#9745;  | Brick owner list user name       |
+| bricks                    | array  |                                      |          | List of bricks in the save       |
+| bricks[].asset_name_index | int    | 0                                    | &#9745;  | Index of asset in `brick_assets` |
+| bricks[].size             | array  |                                      |          | Brick size                       |
+| bricks[].position         | array  |                                      |          | Brick position                   |
+| bricks[].direction        | int    | 4 (Positive Z, Upward)               | &#9745;  | Brick axis / facing direction    |
+| bricks[].rotation         | int    | 0 (0 degrees)                        | &#9745;  | Brick rotation on axis           |
+| bricks[].collision        | bool   | true                                 | &#9745;  | Brick has collision with players |
+| bricks[].visibility       | bool   | true                                 | &#9745;  | Brick renders to players         |
+| bricks[].material_index   | int    | 0                                    | &#9745;  | Index of material in `materials` |
+| bricks[].color            | int    | [255, 255, 255, 255]                 | &#9745;  | Index of color in `colors`       |
+| bricks[].color            | array  | [255, 255, 255, 255]                 | &#9745;  | Color in RGBA Bytes              |
+| bricks[].owner_index      | int    | 0                                    | &#9745;  | Index of owner in `brick_owners` |
 
 ### Function `brs.read(buffer)`
 

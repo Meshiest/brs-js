@@ -1,10 +1,19 @@
 import { MAGIC, LATEST_VERSION, MAX_INT } from './constants';
 import { write, isEqual } from './utils';
 
+
 // TODO: Validate input saves
 function validate(save) {
-  if (typeof save !== 'object')
+  if (typeof save !== 'object') {
     throw new Error('Expected save to be an object');
+  }
+
+  if (typeof save.bricks !== 'object' && save.bricks.length) {
+    throw new Error('Expected save to have bricks field');
+  }
+
+  if (!save.bricks.every(b => typeof b.size === 'object' && typeof b.position === 'object'))
+    throw new Error('Expected every brick to have size and position arrays')
 }
 
 // looks up a value in an object or returns a defualt value
@@ -17,7 +26,7 @@ function get(obj, path='', def) {
     obj = obj[path.splice(0, 1)[0]];
   }
 
-  return obj || def;
+  return typeof obj !== 'undefined' ? obj : def;
 }
 
 export default function writeBrs(save) {
@@ -49,7 +58,7 @@ export default function writeBrs(save) {
       write.array(get(save, 'brick_assets', []), write.string),
       write.array(get(save, 'colors', []), d => d),
       write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
-      write.array(get(save, 'brick_owners', []), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
+      write.array(get(save, 'brick_owners', [{}]), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
         write.uuid(id),
         write.string(name),
       )),
@@ -59,31 +68,31 @@ export default function writeBrs(save) {
     write.compressed(write.bits()
       .each(save.bricks, function(brick) {
         this.align();
-        this.int(brick.asset_name_index, Math.max(save.brick_assets.length, 2));
+        this.int(get(brick, 'asset_name_index', 0), Math.max(get(save, 'brick_assets', []).length, 2));
 
-        const isSingularity = isEqual(brick.size, [0, 0, 0])
+        const isSingularity = isEqual(brick.size, [0, 0, 0]);
         this.bit(!isSingularity);
         if (!isSingularity) {
           brick.size.map(s => this.uint_packed(s));
         }
         brick.position.map(s => this.int_packed(s));
-        const orientation = (brick.direction << 2) | brick.rotation;
+        const orientation = (get(brick, 'direction', 4) << 2) | get(brick, 'rotation', 0);
         this.int(orientation, 24);
-        this.bit(brick.collision);
-        this.bit(brick.visibility);
-        this.bit(brick.material_index != 1);
-        if (brick.material_index != 1) {
+        this.bit(get(brick, 'collision', true));
+        this.bit(get(brick, 'visibility', true));
+        this.bit(brick.material_index !== 1);
+        if (brick.material_index !== 1) {
           this.int_packed(brick.material_index);
         }
 
         if (typeof brick.color === 'number') {
           this.bit(false);
-          this.int(brick.color, save.colors.length);
+          this.int(brick.color, Math.max(get(save, 'colors', []).length, 2));
         } else {
           this.bit(true);
-          this.bytes(brick.color);
+          this.bytes(get(brick, 'color', [255, 255, 255, 255]));
         }
-        this.int_packed(brick.owner_index);
+        this.int_packed(get(brick, 'owner_index', 0));
       })
       .finish()
     ),
