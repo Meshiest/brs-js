@@ -141,8 +141,26 @@ In node, the buffer can be saved with from `fs.writeFile(fileName, buffer)`. In 
 
 ### Brick Assets
 
+Notes:
+
+  - Size must be [0, 0, 0] for bricks using non-procedural brick assets
+  - Size must NOT be [0, 0, 0] for bricks using procedural brick assets
+  - 1x1 brick has size [5, 5, 6] and 'PB_DefaultBrick' brick asset
+  - 1x1F plate has size [5, 5, 2] and 'PB_DefaultBrick' brick asset
+
+
 | name | procedural |
 |------|------------|
+| PB_DefaultBrick | &#9745; |
+| PB_DefaultRamp | &#9745; |
+| PB_DefaultRampCrest | &#9745; |
+| PB_DefaultRampCrestCorner | &#9745; |
+| PB_DefaultRampCrestEnd | &#9745; |
+| PB_DefaultRampInnerCornerInverted | &#9745; |
+| PB_DefaultRampInverted | &#9745; |
+| PB_DefaultSideWedge | &#9745; |
+| PB_DefaultTile | &#9745; |
+| PB_DefaultWedge | &#9745; |
 | B_1x1_Brick_Side | |
 | B_1x1_Brick_Side_Lip | |
 | B_1x1_Cone | |
@@ -217,16 +235,6 @@ In node, the buffer can be saved with from `fs.writeFile(fileName, buffer)`. In 
 | B_Swirl_Plate | |
 | B_Turkey_Body | |
 | B_Turkey_Leg | |
-| PB_DefaultBrick | &#9745; |
-| PB_DefaultRamp | &#9745; |
-| PB_DefaultRampCrest | &#9745; |
-| PB_DefaultRampCrestCorner | &#9745; |
-| PB_DefaultRampCrestEnd | &#9745; |
-| PB_DefaultRampInnerCornerInverted | &#9745; |
-| PB_DefaultRampInverted | &#9745; |
-| PB_DefaultSideWedge | &#9745; |
-| PB_DefaultTile | &#9745; |
-| PB_DefaultWedge | &#9745; |
 
 ## Development
 
