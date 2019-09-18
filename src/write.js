@@ -27,8 +27,9 @@ export default function writeBrs(save) {
       write.string(get(save, 'description', '')),
       write.uuid(get(save, 'author.id', '00000000-0000-0000-0000-000000000000')),
       get(save, 'save_time', [0, 0, 0, 0, 0, 0, 0, 0]),
-      write.i32(save.bricks.length),
+      write.i32(get(save, 'bricks', []).length),
     ),
+
 
     // Header 2
     write.compressed(
@@ -36,7 +37,7 @@ export default function writeBrs(save) {
       write.array(get(save, 'brick_assets', []), write.string),
       write.array(get(save, 'colors', []), d => d),
       write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
-      write.array(get(save.brick_owners, []), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
+      write.array(get(save, 'brick_owners', []), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown' }={}) => [].concat(
         write.uuid(id),
         write.string(name),
       )),

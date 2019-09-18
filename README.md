@@ -1,6 +1,6 @@
 # brs.js
 
-Read ~~and write~~ Brickadia save files (.brs)
+Read and write Brickadia save files (.brs)
 
 Currently supports save versions <= 4
 
