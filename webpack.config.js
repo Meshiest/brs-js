@@ -1,7 +1,7 @@
 const path = require('path');
 
 const config = {
-  mode: 'development',
+  mode: process.env.NODE_ENV || 'development',
   entry: path.resolve(__dirname, 'src/index.js'),
   module: {
     rules: [{
