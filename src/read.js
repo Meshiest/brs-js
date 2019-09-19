@@ -74,7 +74,7 @@ export default function readBrs(brsData) {
       visibility: brickBits.bit(),
       material_index: brickBits.bit() ? brickBits.uint_packed() : 1,
       color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
-      owner_index: version >= 3 ? brickBits.uint_packed() : 0,
+      owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
     });
   }
 

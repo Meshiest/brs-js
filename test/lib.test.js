@@ -21,7 +21,7 @@ test('creating a brs from thin air', () => {
       size: [10, 10, 10],
       position: [0, 0, 0],
       direction: 4,
-      owner_index: 0,
+      owner_index: 1,
       rotation: 0,
       collision: true,
       visibility: true,

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<script src="../dist/dist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/josephg/noisejs/perlin.js"></script>
+
+<a id="anchor" download="generated.brs">Download Save</a>
+
+<script>
+
+// more documentation here: https://www.npmjs.com/package/brs-js
+
+// Brick owner author will be public
+const public = {
+  id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+  name: 'PUBLIC',
+};
+
+// seed noise with a "random" number
+noise.seed(Math.random());
+
+// 100x100x50 area
+const size = 100;
+const maxHeight = 50;
+
+// 8x8 cubes
+const brickSize = 40;
+
+// Array of cube positions
+const pos = [];
+
+// Generate the 3d terrain
+for (let x = 0; x < size; x++)
+  for (let y = 0; y < size; y++) {
+    // Generate a random heightmap around halfway through the cube
+    // and only render the cube if it's less than our 2d height
+    let height = (
+        (noise.simplex2(x / 50, y / 50) * 0.2) + // larger mountains
+        (noise.simplex2(x / 10, y / 10) * 0.02) + // Smaller lumps
+        (noise.simplex2(x / 2, y / 2) * 0.005) + // smallest details
+        0.5 // Make sure that the height doesn't go below 0 (0.5 - 0.2 - 0.02 - 0.05 > 0)
+      ) * maxHeight;
+    for (let z = 0; z < height; z++) {
+      // 60% chance of rendering a cube
+      // Simplex noise returns a number between -1 and 1, so -1 < x < 0.60 is 4/5 of that space
+      if(noise.simplex3(x / 10, y / 10, z / 10) < 0.2)
+        pos.push({x, y, z}); // add it to our position array
+    }
+  }
+
+const save = {
+  author: {
+    id: public.id,
+    name: 'JavaScript',
+  },
+  description: 'Simplex Noise Terrain',
+  map: 'brs-js example',
+  brick_owners: [public],
+  bricks: pos
+    .map(({x, y, z}) => ({
+      size: [brickSize, brickSize, brickSize],
+      color: [
+        // These colors are simply overlaying different 3d simplex blobs over others
+        // makes a cool blotchy pattern
+        Math.floor(noise.simplex3(x / 10, y / 10, z / 10) * 128 + 128),
+        Math.floor(noise.simplex3(x / 10 + 300, y / 10 + 300, z / 10 + 300) * 128 + 128),
+        Math.floor(noise.simplex3(x / 10 + 9000, y / 10 + 9000, z / 10 + 9000) * 128 + 128),
+        255,
+      ],
+      position: [
+        x * brickSize * 2,
+        y * brickSize * 2,
+        z * brickSize * 2,
+      ],
+    })),
+};
+
+
+// Chrome lets you benchmark the sizes, check out the console to see how long it takes!
+console.time('Generate');
+const blob = new Blob([BRS.write(save)]);
+console.timeEnd('Generate');
+anchor.href = URL.createObjectURL(blob);
+</script>

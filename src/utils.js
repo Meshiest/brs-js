@@ -208,7 +208,7 @@ class BitReader {
 
   // Align the pos to the nearest byte
   align() {
-    this.pos = this.pos + 7 & ~7;
+    this.pos = (this.pos + 7) & ~7;
   }
 
   // read an int up to max
@@ -231,6 +231,7 @@ class BitReader {
     let value = 0;
     for (let i = 0; i < 5; i++) {
       const next = this.bit();
+
       let part = 0;
       for (let shift = 0; shift < 7; shift++) {
         part |= (this.bit() ? 1 : 0) << shift;
@@ -257,7 +258,6 @@ class BitReader {
       const shift = bit & 7;
       arr[bit >> 3] = (arr[bit >> 3] & ~(1 << shift)) | ((this.bit() ? 1 : 0) << shift);
     }
-    this.pos += num;
     return arr;
   }
 
@@ -286,10 +286,8 @@ class BitWriter {
 
   // Write `len` bits from `src` bytes
   bits(src, len) {
-    let str = '';
     for (let bit = 0; bit < len; bit++) {
       this.bit((src[bit >> 3] & (1 << (bit & 7))) !== 0);
-      str += (src[bit >> 3] & (1 << (bit & 7))) !== 0 ? '1' : '0';
     }
   }
 
@@ -332,15 +330,12 @@ class BitWriter {
 
   // Write a packed unsigned int
   uint_packed(value) {
-    while (true) {
+    do {
       const src = value & 0b1111111;
       value >>= 7;
       this.bit(value !== 0);
       this.bits([src], 7);
-      if (value === 0) {
-        break;
-      }
-    }
+    } while (value !== 0);
   }
 
   // Write a packed integer 

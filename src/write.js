@@ -95,6 +95,7 @@ export default function writeBrs(save) {
           this.bit(true);
           this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
         }
+
         this.uint_packed(get(brick, 'owner_index', 1));
       })
       .finish()
