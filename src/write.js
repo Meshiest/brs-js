@@ -101,5 +101,5 @@ export default function writeBrs(save) {
     ),
   );
 
-  return buff;
+  return new Uint8Array(buff);
 }

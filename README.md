@@ -131,7 +131,7 @@ In node, the buffer can be obtained from `fs.readFile` without an encoding speci
 
 ### Function `brs.write(saveObj)`
 
-**Returns**: Byte Array
+**Returns**: Uint8Array
 
 In node, the buffer can be saved with from `fs.writeFile(fileName, buffer)`. In web, the buffer can be made into a `new Blob([buffer])`, and can be downloaded with an `<a download>` with `href` as `URL.createObjectURL(blob)`.
 
