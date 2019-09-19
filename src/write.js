@@ -85,7 +85,7 @@ export default function writeBrs(save) {
         this.bit(get(brick, 'visibility', true));
         this.bit(brick.material_index !== 1);
         if (brick.material_index !== 1) {
-          this.int_packed(brick.material_index);
+          this.uint_packed(brick.material_index);
         }
 
         if (typeof brick.color === 'number') {
@@ -95,7 +95,7 @@ export default function writeBrs(save) {
           this.bit(true);
           this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
         }
-        this.int_packed(get(brick, 'owner_index', 1));
+        this.uint_packed(get(brick, 'owner_index', 1));
       })
       .finish()
     ),
