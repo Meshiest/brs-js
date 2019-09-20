@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/gh/meshiest/brs-js/dist/dist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/josephg/noisejs/perlin.js"></script>
+
+<a id="anchor" download="generated.brs">Download Save</a>
+
+<script>
+
+// more documentation here: https://www.asdnpmjs.com/package/brs-js
+
+// Brick owner author will be public
+const public = {
+  id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+  name: 'PUBLIC',
+};
+
+// seed noise with a "random" number
+noise.seed(Math.random());
+
+const size = 100;
+
+// 8x8 cubes
+const brickSize = 20;
+
+// Array of cube positions
+const pos = [];
+
+// Helper function for generating noise at an offset with a frequency
+function Noise([x, y, z], freq, [ox, oy, oz]=[0, 0, 0]) {
+  return noise.perlin3(x / freq - ox, y / freq - oy, z / freq - oz)
+}
+
+// Fractal noise function (thanks ykul :) 
+function FractalNoise([x, y, z], freq, [ox, oy, oz]=[0, 0, 0]) {
+  return Noise(scale([x, y, z], 1 ), freq, [ox, oy, oz]) / 1 +
+         Noise(scale([x, y, z], 2 ), freq, [ox, oy, oz]) / 2 +
+         Noise(scale([x, y, z], 4 ), freq, [ox, oy, oz]) / 4 +
+         Noise(scale([x, y, z], 8 ), freq, [ox, oy, oz]) / 8 +
+         Noise(scale([x, y, z], 16), freq, [ox, oy, oz]) / 16
+}
+
+// Distance from center of planet helper
+const dist = (x, y, z) => Math.hypot(size/2-x, size/2-y, size/2-z);
+
+// Constants defining where things in the planet should be
+const cloudStart = size / 2 - 2;
+const cloudEnd = size / 2;
+const mountainHeight = size / 10;
+const terrainEnd = size / 2 - mountainHeight - size/10;
+
+// Scale a vector
+const scale = ([x, y, z], n=1) => [x*n, y*n, z*n];
+
+// Generate the 3d terrain
+for (let x = 0; x < size; x++)
+  for (let y = 0; y < size; y++) {
+    for (let z = 0; z < size; z++) {
+
+      const freq = 50;
+      const radius = dist(x, y, z);
+      // Vector from center of sphere
+      const norm = [(x-size/2)/radius, (y-size/2)/radius, (z-size/2)/radius];
+
+      // Mountains are 3d noise mapped to the vector from the center
+      // We use this number to determine where the terrain should cut off relative to distance from center
+      let mountain = (
+        FractalNoise(norm, 1)
+      ) * 0.3 + 0.4;
+
+      mountain += Noise(scale(norm, 5), 1) * 0.3;
+      mountain *= mountainHeight;
+      mountain += terrainEnd;
+
+      if(
+        // Clouds have higher z frequency so they look like strips
+        Math.min(
+          Math.abs(Noise([x, y, z * 5], freq)),
+          Math.abs(Noise([x, y, z * 5], freq, [17.23, 82.57, 72.72])),
+        ) > 0.15
+        && radius < cloudEnd
+        && radius > cloudStart
+        
+        ||
+
+        // Terrain has caves and is below the mountain cutoff
+        Math.max(
+          Math.abs(Noise([x, y, z], freq / 2)),
+          Math.abs(Noise([x, y, z], freq / 2, [83.56, 25.84, 15.25])),
+        ) > 0.15
+        && radius < mountain
+      )
+        pos.push({x, y, z}); // add it to our position array
+    }
+  }
+
+// clamp number between min and max
+const clamp = (val, min, max) => Math.floor(Math.min(Math.max(min, val), max));
+
+// helper function for rainbow colored terrain
+const colorHelper = (x, y, z, ox, oy, oz) => {
+  let val = Math.abs(noise.simplex3(x / 100 + ox, y / 100 + oy, z / 100 + oz));
+  let rad = dist(x, y, z);
+  val = rad > size / 2 - 3 ? val * val * 50 + 100 : val * val * val * 200 + 55;
+  return clamp(val, 0, 255);
+}
+
+const save = {
+  author: {
+    id: public.id,
+    name: 'JavaScript',
+  },
+  description: 'Simplex Noise Terrain',
+  map: 'brs-js example',
+  brick_owners: [public],
+  materials: ['BMC_Plastic', 'BMC_Metallic'],
+  bricks: pos
+    .map(({x, y, z}) => ({
+      size: [brickSize, brickSize, brickSize],
+      color: [
+        // These colors are simply overlaying different 3d simplex blobs over others
+        // makes a cool blotchy pattern
+        colorHelper(x, y, z, 0, 0, 0),
+        colorHelper(x, y, z, 300, 2000, 500),
+        colorHelper(x, y, z, 1000, -9000, 2300),
+        dist(x, y, z) > size / 2 - 3 ? 50 : 255,
+      ],
+      material_index: dist(x, y, z) < size / 2 - 3 ? 1 : 0,
+      collision: dist(x, y, z) < size / 2 - 3,
+      position: [
+        x * brickSize * 2,
+        y * brickSize * 2,
+        z * brickSize * 2,
+      ],
+    })),
+};
+
+
+// Chrome lets you benchmark the sizes, check out the console to see how long it takes!
+console.time('Generate');
+const blob = new Blob([BRS.write(save)]);
+console.timeEnd('Generate');
+anchor.href = URL.createObjectURL(blob);
+</script>

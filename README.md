@@ -114,7 +114,7 @@ Unsigned ints, while unlikely, may overflow.
 | bricks[].rotation           | int    | 0 (0 degrees)                        | &#9745;  | Brick rotation on axis           |
 | bricks[].collision          | bool   | true                                 | &#9745;  | Brick has collision with players |
 | bricks[].visibility         | bool   | true                                 | &#9745;  | Brick renders to players         |
-| bricks[].material_index     | int    | 0 (1 indexed)                        | &#9745;  | Index of material in `materials` |
+| bricks[].material_index     | int    | 0 (0 indexed)                        | &#9745;  | Index of material in `materials` |
 | bricks[].color *(colorset)* | int    | [255, 255, 255, 255]                 | &#9745;  | Index of color in `colors`       |
 | bricks[].color *(rgba)*     | array  | [255, 255, 255, 255]                 | &#9745;  | Color in RGBA Bytes              |
 | bricks[].owner_index        | int    | 1 (1 indexed)                        | &#9745;  | Index of owner in `brick_owners` |
