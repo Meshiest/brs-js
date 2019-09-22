@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/gh/meshiest/brs-js/dist/dist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/josephg/noisejs/perlin.js"></script>
+
+<a id="anchor" download="generated.brs">Download</a>
+
+<script>
+
+console.time('Generate');
+
+// Generate fake UUID for terrain owner so you can /clearbricks terrain
+const author = {
+  id: 'a8033bee-6c37-4118-b4a6-cecc1d966132',
+  name: 'terrain',
+};
+
+noise.seed(Math.random());
+
+const size = 200;
+const brickSize = 40; 
+
+// Build an array for the entire volume made of cubes
+const locations = Array.from({length: size ** 3})
+  .map((_, i) => {
+    let obj = {
+      x: i % size,
+      y: Math.floor(i / size) % size,
+      z: Math.floor(i / size / size) % size,
+      width: 1,
+      depth: 1,
+      height: 1,
+      kind: 0,
+      material: 2,
+      rotation: 0,
+    };
+    obj.v = (
+      Math.max( // caves
+        Math.abs(noise.perlin3(obj.x / 30, obj.y / 30, obj.z / 30)),
+        Math.abs(noise.perlin3(obj.x / 30 + 9000, obj.y / 30 - 2000, obj.z / 30 + 4000))
+      ) > 0.15 &&
+      Math.hypot(obj.x - size/2, obj.y - size/2, obj.z - size/2) < size/2 // sphere mask
+    ) ? 1 : 0;
+    return obj;
+  });
+
+// Get brick at position
+const at2 = (x, y, z) =>
+  x < 0 || y < 0 || z < 0 || x >= size || y >= size || z >= size
+    ? null
+    : locations[x + y * size + z * size * size];
+
+// get if brick exists at position
+const at = (x, y, z) => {
+  const brick = at2(x, y, z);
+  return (brick && brick.v) ? 1 : 0;
+};
+
+
+// Get a bit mask of the neighbors in West, North, East, South order
+const getNeighbors = (x, y, z) => (at(x - 1, y, z) << 3) | (at(x, y - 1, z) << 2) | (at(x + 1, y, z) << 1) | (at(x, y + 1, z));
+
+// convert corners to wedges
+const wedgify = () => locations
+  .filter(obj => obj.v)
+  .forEach(obj => {
+  const {x, y, z} = obj;
+  const neighbors = getNeighbors(x, y, z);
+
+  // delta x/y variables are for increasing width of wedges
+  let dx = 0;
+  let dy = 0;
+
+  // handle each of the possible rotations on the Z axis
+  if (neighbors === 0b0011) {
+    obj.kind = 1;
+    obj.rotation = 2;
+  }
+  else if (neighbors === 0b1100) {
+    obj.kind = 1;
+    obj.rotation = 0;
+  }
+  else if (neighbors === 0b1001) {
+    obj.kind = 1;
+    obj.rotation = 3;
+  }
+  else if (neighbors === 0b0110) {
+    obj.kind = 1;
+    obj.rotation = 1;
+  }
+
+  // re-center wedges that got resized
+  if(obj.kind === 1) {
+    obj.width += Math.abs(dx);
+    obj.x = dx / 2 + x;
+    obj.depth += Math.abs(dy);
+    obj.y = dy / 2 + y;
+  }
+});
+
+wedgify();
+
+// Hollow-out the middle by removing cubes surrounding
+locations
+  .filter(obj => obj.v)
+  .forEach(obj => {
+    const {x, y, z} = obj;
+    const neighbors = [ // all neighboring cubes
+      at2(x, y, z + 1),
+      at2(x, y, z - 1),
+      at2(x - 1, y, z),
+      at2(x + 1, y, z),
+      at2(x, y - 1, z),
+      at2(x, y + 1, z),
+    ];
+
+    // check if surrounded by bricks that exist and are not wedges
+    if(neighbors.every(n => n && n.v !== 0 && n.kind === 0)) {
+      obj.v = 2;
+    }
+  });
+
+// Uncomment below if you want wedges on the inside (creates holes in some places)
+
+/*
+locations.filter(obj => obj.v === 2).forEach(obj => obj.v = 0);
+wedgify();
+*/
+
+const save = {
+  author: author,
+  description: 'Cave Sphere',
+  map: 'JavaScript',
+  brick_owners: [author],
+  brick_assets: [
+    'PB_DefaultBrick',
+    'PB_DefaultSideWedge',
+  ],
+  materials: [
+    'BMC_Ghost',
+    'BMC_Ghost_Fail',
+    'BMC_Plastic',
+    'BMC_Glow',
+    'BMC_Metallic',
+    'BMC_Hologram',
+  ],
+  bricks: locations
+    .filter(o => o.v === 1)
+    .map(({x, y, z, kind, rotation, material, width, height, depth}) => ({
+      // give multiple dimensions in case we resize wedges
+      size: [brickSize * width, brickSize * depth, brickSize * height],
+      asset_name_index: kind,
+      material_index: material,
+      rotation,
+      // 3d color blobs that are kinda grey-ish
+      color: [
+        Math.floor(noise.perlin3(x / 50, y / 50, z / 50) * 80 + 100),
+        Math.floor(noise.perlin3(x / 50 - 3000, y / 50 - 3000, z / 50 + 200) * 80 + 100),
+        Math.floor(noise.perlin3(x / 50 + 2000, y / 50 + 2000, z / 50 - 2000) * 80 + 100),
+        255,
+      ],
+      position: [
+        x * brickSize * 2,
+        y * brickSize * 2,
+        z * brickSize * 2,
+      ],
+    })),
+};
+
+const blob = new Blob([new Uint8Array(BRS.write(save))]);
+console.timeEnd('Generate');
+anchor.href = URL.createObjectURL(blob);
+
+</script>
