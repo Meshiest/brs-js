@@ -163,14 +163,21 @@ function write_string(str) {
   }
 }
 
-// Read uuid from bytes
+// Read uuid from 4 LE ints
 function read_uuid(data) {
-  return uuidParse.unparse(data.splice(0, 16));
+  return uuidParse.unparse(
+    [].concat(...chunk(data.splice(0, 16), 4)
+      .map(arr => arr.reverse()) // each int is LE
+    )
+  );
 }
 
-// parse a uuid to bytes
+// parse a uuid into 4 LE ints
 function write_uuid(uuid) {
-  return Array.from(uuidParse.parse(uuid));
+  return [].concat(
+    ...chunk(Array.from(uuidParse.parse(uuid)), 4)
+    .map(arr => arr.reverse()) // convert into 4 LE ints
+  );
 }
 
 // Read an array of things given a fn

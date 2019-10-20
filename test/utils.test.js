@@ -77,9 +77,9 @@ describe('buffer read/writing', () => {
   });
 
   describe('uuid', () => {
-    test('01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 -> "01020304-0506-0708-090a-0b0c0d0e0f10"', () => {
+    test('01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 -> "04030201-0807-0605-0c0b-0a09100f0e0d"', () => {
       const bytes = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10];
-      const uuid = '01020304-0506-0708-090a-0b0c0d0e0f10';
+      const uuid = '04030201-0807-0605-0c0b-0a09100f0e0d';
 
       rwTest('uuid')(bytes, uuid);
     });
