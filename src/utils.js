@@ -100,7 +100,7 @@ function write_compressed(...args) {
   }
 
   if (compressed_size > MAX_INT) {
-    throw new Error("uncompressed_size out of range");
+    throw new Error("compressed_size out of range");
   }
 
   // Determine if compression increases size
