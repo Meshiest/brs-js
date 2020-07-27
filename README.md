@@ -2,7 +2,7 @@
 
 Read and write Brickadia save files (.brs)
 
-Currently supports save versions <= 4
+Currently supports save versions <= 8
 
 **Warning:** __Unreal Engine uses numbers potentially larger than Javascript can handle.__
 
@@ -41,6 +41,7 @@ Unsigned ints, while unlikely, may overflow.
   version: short,
   map: string,
   author: {id: uuid, name: string},
+  host: {id: uuid, name: string} // (v8+ only)
   description: string,
   save_time: UTC as 8 bytes,
   brick_count: int,
@@ -56,7 +57,11 @@ Unsigned ints, while unlikely, may overflow.
     // BMC_Glow
     // BMC_Metallic
     // BMC_Hologram
-  brick_owners: [{id: uuid, name: string}, ... ],
+  brick_owners: [{
+    id: uuid,
+    name: string,
+    bricks: int // (v8+ only)
+  }, ... ],
   bricks: [{
     asset_name_index: int,
     size: [uint, uint, uint],
