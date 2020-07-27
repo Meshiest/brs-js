@@ -1,6 +1,6 @@
 {
   "name": "brs-js",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "scripts": {
@@ -28,7 +28,7 @@
   "homepage": "https://github.com/meshiest/brs-js#readme",
   "dependencies": {
     "detect-node": "^2.0.4",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "pako": "^1.0.10",
     "punycode": "^2.1.1",
     "uuid-parse": "^1.1.0"
@@ -37,8 +37,8 @@
     "@babel/core": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "babel-loader": "^8.0.6",
-    "jest": "^24.9.0",
-    "webpack": "^4.40.2",
-    "webpack-cli": "^3.3.9"
+    "jest": "^26.1.0",
+    "webpack": "^4.44.0",
+    "webpack-cli": "^3.3.12"
   }
 }

@@ -16,6 +16,12 @@ export default function readBrs(brsData) {
     throw new Error('Unsupported version');
   }
 
+  // game version is included in saves >= v8
+  let gameVersion = 0;
+  if (version >= 8) {
+    gameVersion = read.i32(brsData);
+  }
+
   // Convert from BGRA to RGBA
   const bgra = ([b, g, r, a]) => [r, g, b, a];
 
@@ -35,6 +41,10 @@ export default function readBrs(brsData) {
       read.string(header1Data), // read description
       read.uuid(header1Data), // read author id
     ),
+    ...(version >= 8 ? {host: {
+      name: read.string(header1Data),
+      id: read.uuid(header1Data),
+    }} : {}),
     save_time: version >= 4 ? header1Data.splice(0, 8) : null,
     brick_count: read.i32(header1Data),
   };
@@ -50,9 +60,16 @@ export default function readBrs(brsData) {
       ? read.array(header2Data, data => ({
         id: read.uuid(data),
         name: read.string(data),
+        ...(version >= 8 ? {bricks: read.i32(data)} : {}),
       }))
       : [{id: header1.author_id, name: header1.author_name}],
   };
+
+  // check for preview byte
+  if (version >= 8) {
+    if(brsData.splice(0, 1)[0])
+      throw new Error('Preview not supported');
+  }
 
   // Read in bricks
   const brickData = read.compressed(brsData);
@@ -60,7 +77,7 @@ export default function readBrs(brsData) {
   const bricks = [];
 
   // Brick reader
-  while(!brickBits.empty() && bricks.length < header1.brick_count) {  
+  while(!brickBits.empty() && bricks.length < header1.brick_count) {
     brickBits.align();
     bricks.push({
       asset_name_index: brickBits.int(Math.max(header2.brick_assets.length, 2)),
@@ -72,7 +89,10 @@ export default function readBrs(brsData) {
       }))(brickBits.int(24)),
       collision: brickBits.bit(),
       visibility: brickBits.bit(),
-      material_index: brickBits.bit() ? brickBits.uint_packed() : 1,
+      material_index:
+        version >= 8
+        ? brickBits.int(Math.max(header2.materials.length, 2))
+        : brickBits.bit() ? brickBits.uint_packed() : 1,
       color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
       owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
     });

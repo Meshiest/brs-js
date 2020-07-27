@@ -212,6 +212,7 @@ Notes:
 | B_Flame | |
 | B_Flower | |
 | B_Gravestone | |
+| B_GoalPoint | |
 | B_Handle | |
 | B_Hedge_1x1 | |
 | B_Hedge_1x1_Corner | |

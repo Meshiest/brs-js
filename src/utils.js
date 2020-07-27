@@ -138,7 +138,7 @@ function read_string(data) {
     const bytes = data.splice(0, size).slice(0, -1);
 
     // Convert to UTF-8
-    return bytes 
+    return bytes
       .map(b => String.fromCharCode(b))
       .join('');
   }
@@ -345,7 +345,7 @@ class BitWriter {
     } while (value !== 0);
   }
 
-  // Write a packed integer 
+  // Write a packed integer
   int_packed(value) {
     this.uint_packed((Math.abs(value) << 1) | (value >= 0 ? 1 : 0));
   }
