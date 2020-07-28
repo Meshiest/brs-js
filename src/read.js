@@ -66,9 +66,12 @@ export default function readBrs(brsData) {
   };
 
   // check for preview byte
+  let preview;
   if (version >= 8) {
-    if(brsData.splice(0, 1)[0])
-      throw new Error('Preview not supported');
+    if(brsData.splice(0, 1)[0]) {
+      const len = read.i32(data);
+      preview = data.splice(0, len);
+    }
   }
 
   // Read in bricks
@@ -95,6 +98,39 @@ export default function readBrs(brsData) {
         : brickBits.bit() ? brickBits.uint_packed() : 1,
       color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
       owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
+      ...(version >= 8 ? { components: {} } : {}),
+    });
+  }
+
+  // components reader
+  const components = {};
+  if (version >= 8) {
+    const componentData = read.compressed(brsData);
+    read.array(componentData, data => {
+      // read component name
+      const name = read.string(data);
+
+      // read component body
+      const bits = read.bits(data.splice(0, read.i32(data)));
+
+      const version = read.i32(bits.bytes(4));
+      // list of bricks
+      const brick_indices = bits.array(() => bits.int(Math.max(bricks.length, 2)));
+
+      // list of name, type properties
+      const properties = bits.array(() => [bits.string(), bits.string()]);
+
+      // read components for each brick
+      for (const i of brick_indices) {
+        const props = Object.fromEntries(properties.map(([name, type]) =>  [name, bits.unreal(type)]));
+        bricks[i].components[name] = props;
+      };
+
+      return components[name] = {
+        version,
+        brick_indices,
+        properties: Object.fromEntries(properties),
+      }
     });
   }
 
@@ -102,6 +138,11 @@ export default function readBrs(brsData) {
     version,
     ...header1,
     ...header2,
+    ...(version >= 8 ? {
+      gameVersion,
+      preview,
+      components,
+    } : {}),
     bricks,
   }
 };

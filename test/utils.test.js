@@ -101,7 +101,7 @@ describe('buffer read/writing', () => {
     test('03 00 00 00 01 02 03 -> [1, 2, 3]', () => {
       const bytes = [0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03];
       const arr = [1, 2, 3];
-      
+
       arrTest(bytes, arr);
     });
   });
@@ -139,6 +139,17 @@ describe('buffer read/writing', () => {
       expect(bits.int(16)).toBe(12);
     });
 
-    // TODO: tests for int_packed, uint_packed, bits, bytes
+    it('reads floats', () => {
+      const bits = read.bits([0x42, 0xf6, 0xe6, 0x66].reverse());
+      expect(bits.float()).toBeCloseTo(123.45);
+    });
+
+    it('writes floats', () => {
+      const bits = write.bits();
+      bits.float(123.45);
+      expect(bits.finish()).toStrictEqual([0x42, 0xf6, 0xe6, 0x66].reverse());
+    });
+
+    // TODO: tests for int_packed, uint_packed, bytes
   });
 });

@@ -17,6 +17,9 @@ function isASCII(str) {
     return /^[\x00-\x7F]*$/.test(str);
 }
 
+// convert BGRA color to RGBA color
+const bgra = ([b, g, r, a]) => [r, g, b, a];
+
 // Compare equality of byte arrays
 export function isEqual(arrA, arrB) {
   return arrA.every((a, i) => arrB[i] === a);
@@ -92,24 +95,24 @@ function write_compressed(...args) {
 
   // Do the compression
   const compressed = Array.from(pako.deflate(data));
-  const uncompressed_size = data.length;
-  const compressed_size = compressed.length;
+  const uncompressedSize = data.length;
+  const compressedSize = compressed.length;
 
-  if (uncompressed_size > MAX_INT) {
-    throw new Error("uncompressed_size out of range");
+  if (uncompressedSize > MAX_INT) {
+    throw new Error("uncompressedSize out of range");
   }
 
-  if (compressed_size > MAX_INT) {
-    throw new Error("compressed_size out of range");
+  if (compressedSize > MAX_INT) {
+    throw new Error("compressedSize out of range");
   }
 
   // Determine if compression increases size
-  const badCompress = compressed_size >= uncompressed_size;
+  const badCompress = compressedSize >= uncompressedSize;
 
   // Build the output
   return [].concat(
-    write_i32(uncompressed_size),
-    write_i32(badCompress ? 0 : compressed_size),
+    write_i32(uncompressedSize),
+    write_i32(badCompress ? 0 : compressedSize),
     badCompress ? data : compressed,
   );
 }
@@ -272,6 +275,49 @@ class BitReader {
   bytes(num) {
     return this.bits(num * 8);
   }
+
+  // read an array
+  array(fn) {
+    const length = read_i32(this.bytes(4));
+    return Array.from({length}).map(() => fn(this));
+  }
+
+  // read a string
+  string() {
+    const lenBytes = this.bytes(4);
+    const len = read_i32(lenBytes.slice());
+    return read_string([...lenBytes, ...this.bytes(len)]);
+  }
+
+  // read a 32-bit float
+  float() {
+    const view = new DataView(new ArrayBuffer(4));
+
+    // Write the ints to it
+    view.setUint16(2, read_u16(this.bytes(2)));
+    view.setUint16(0, read_u16(this.bytes(2)));
+
+    // Read the bits as a float; note that by doing this, we're implicitly
+    // converting it from a 32-bit float into JavaScript's native 64-bit double
+    return view.getFloat32(0);
+  }
+
+  // read unreal types
+  unreal(type) {
+   switch(type) {
+    case 'Class':
+      return this.string();
+    case 'Boolean':
+      return !!read_i32(this.bytes(4));
+    case 'Float':
+      return this.float();
+    case 'Color':
+      return bgra(this.bytes(4));
+    case 'Rotator':
+      return [this.float(), this.float(), this.float()];
+    }
+    throw new Error('Unknown unreal type ' + type);
+  }
 }
 
 class BitWriter {
@@ -356,9 +402,87 @@ class BitWriter {
     return this.buffer;
   }
 
+  // Return built buffer (and include length)
+  finishSection() {
+    this.align();
+    return [].concat(write_i32(this.buffer.length), this.buffer);
+  }
+
+  // write a string
+  string(str) { this.bytes(write_string(str)); }
+
+  float(num) {
+    // create a float array
+    const floatArr = new Float32Array(1);
+    // assign the number
+    floatArr[0] = num;
+    // convert it into a byte array
+    const bytes = Array.from(new Int8Array(floatArr.buffer));
+    this.bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+  }
+
+  // use
+  self(fn) {
+    fn.bind(this)();
+    return this;
+  }
+
+  // write an array
+  array(arr, fn) {
+    this.bytes(write_i32(arr.length));
+    arr.forEach(fn.bind(this));
+    return this;
+  }
+
+  // write things from an array
   each(arr, fn) {
     arr.forEach(fn.bind(this));
     return this;
+  }
+
+  // write unreal types
+  unreal(type, value) {
+   switch(type) {
+    case 'Class':
+      if (typeof value !== 'string') {
+        console.error('errored value', value);
+        throw new Error('writing unreal type Class, did not receive string');
+      }
+      this.string(value);
+      return;
+    case 'Boolean':
+      if (typeof value !== 'boolean') {
+        console.error('errored value', value);
+        throw new Error('writing unreal type Boolean, did not receive boolean');
+      }
+      this.bytes(write_i32(value ? 1 : 0));
+      return;
+    case 'Float':
+      if (typeof value !== 'number') {
+        console.error('errored value', value);
+        throw new Error('writing unreal type Float, did not receive float');
+      }
+      this.float(value);
+      return;
+    case 'Color':
+      if (typeof value !== 'object' && value.length === 4) {
+        console.error('errored value', value);
+        throw new Error('writing unreal type Array, did not receive Array');
+      }
+      this.bytes(bgra(value));
+      return;
+    case 'Rotator':
+      if (typeof value !== 'object' && value.length === 3) {
+        console.error('errored value', value);
+        throw new Error('writing unreal type Array, did not receive Array');
+      }
+
+      this.float(value[0]);
+      this.float(value[1]);
+      this.float(value[2]);
+      return;
+    }
+    throw new Error('Unknown unreal type ' + type);
   }
 }
 
