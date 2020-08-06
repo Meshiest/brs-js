@@ -69,8 +69,8 @@ export default function readBrs(brsData) {
   let preview;
   if (version >= 8) {
     if(brsData.splice(0, 1)[0]) {
-      const len = read.i32(data);
-      preview = data.splice(0, len);
+      const len = read.i32(brsData);
+      preview = brsData.splice(0, len);
     }
   }
 
