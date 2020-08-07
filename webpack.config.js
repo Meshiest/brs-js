@@ -20,12 +20,21 @@ module.exports = [{
     filename: 'dist.node.js',
     library: 'brs-js',
     libraryTarget: 'commonjs2'
-  }
+  },
 }, {
   ...config,
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'dist.js',
-  }
+  },
+}, {
+  ...config,
+  target: 'web',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'dist.web.js',
+    library: 'brs-js',
+    libraryTarget: 'commonjs2',
+  },
 }];

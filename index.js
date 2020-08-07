@@ -1,10 +1,9 @@
 // Detect if we're on node
 const isNode = require('detect-node');
 
-if (isNode) {
+module.exports = require(isNode
   // require the node built target
-  module.exports = require('./dist/dist.node.js');
-} else {
+  ? './dist/dist.node.js'
   // require the web built target
-  module.exports = require('./dist/dist.js');
-}
+  : './dist/dist.web.js');
+
