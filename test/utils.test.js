@@ -4,8 +4,8 @@ const clone = require('lodash/clone');
 describe('buffer read/writing', () => {
   // Generic testing of read and write
   const rwTest = fn => (bytes, val, ...args) => {
-    expect(read[fn](clone(bytes), ...args)).toEqual(val);
-    expect(write[fn](val, ...args)).toEqual(bytes);
+    expect(read[fn](new Uint8Array(bytes), ...args)).toEqual(val);
+    expect(write[fn](val, ...args)).toMatchObject(new Uint8Array(bytes));
   };
 
   // Testing both endiannesses for read and write
@@ -14,7 +14,7 @@ describe('buffer read/writing', () => {
     rwTest(fn)(bytes, val);
 
     // Big Endian
-    rwTest(fn)(clone(bytes).reverse(), val, false);
+    rwTest(fn)(new Uint8Array(bytes).reverse(), val, false);
   };
 
   describe('unsigned short', () => {
@@ -77,32 +77,51 @@ describe('buffer read/writing', () => {
   });
 
   describe('uuid', () => {
-    test('01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 -> "04030201-0807-0605-0c0b-0a09100f0e0d"', () => {
-      const bytes = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10];
-      const uuid = '04030201-0807-0605-0c0b-0a09100f0e0d';
+       test('can parse uuid', () => {
+      const bytes = [
+       205,107, 157, 27,
+        45, 75, 253, 187,
+       141,171, 93, 155,
+       237, 75, 189, 251,
+      ];
+      const uuid = '1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed';
 
       rwTest('uuid')(bytes, uuid);
     });
   });
 
   describe('array', () => {
-    const arrTest = (bytes, arr) => {
-      expect(read.array(clone(bytes), b => b.splice(0, 1)[0])).toEqual(arr);
-      expect(write.array(arr, b => b)).toEqual(bytes);
+    /*
+      const bytes = [0x04, 0x00, 0x00, 0x00, 0x66, 0x6f, 0x6f, 0x00];
+      const val = 'foo';
+    */
+    const read_byte = b => read.bytes(b, 1)[0];
+
+    const arrTest = (bytes, arr, read_fn, write_fn) => {
+      expect(read.array(new Uint8Array(bytes), read_fn)).toMatchObject(arr);
+      expect(write.array(arr, write_fn)).toMatchObject(new Uint8Array(bytes));
     };
 
     test('00 00 00 00 -> []', () => {
       const bytes = [0x00, 0x00, 0x00, 0x00];
       const arr = [];
 
-      arrTest(bytes, arr);
+      arrTest(bytes, arr, read_byte, b => [b]);
     });
 
     test('03 00 00 00 01 02 03 -> [1, 2, 3]', () => {
       const bytes = [0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03];
       const arr = [1, 2, 3];
 
-      arrTest(bytes, arr);
+      arrTest(bytes, arr, read_byte, b => [b]);
+    });
+
+    test('string array', () => {
+      const str_bytes = [0x04, 0x00, 0x00, 0x00, 0x66, 0x6f, 0x6f, 0x00];
+      const str = 'foo';
+      const bytes = [0x05, 0, 0, 0, ...str_bytes, ...str_bytes, ...str_bytes, ...str_bytes, ...str_bytes];
+      const arr = [str, str, str, str, str, ];
+      arrTest(bytes, arr, read.string, write.string);
     });
   });
 

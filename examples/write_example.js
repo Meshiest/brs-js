@@ -22,4 +22,4 @@ console.log('read(write(save)) == read(buff) :', _.isEqual(save, same));
 // Write the save to a file
 const outfile = path.resolve(__dirname, 'ATCFort-test.brs');
 // Print some info
-fs.writeFileSync(outfile, new Uint8Array(brs.write(save)));
+fs.writeFileSync(outfile, brs.write(save));

@@ -1,6 +1,9 @@
 import pako from 'pako';
 import punycode from 'punycode';
-import uuidParse from 'uuid-parse';
+import {
+  uuidStringify,
+  uuidParse,
+} from './uuid';
 import { MAX_INT } from './constants';
 
 /*
@@ -25,19 +28,34 @@ export function isEqual(arrA, arrB) {
   return arrA.every((a, i) => arrB[i] === a);
 }
 
+
+// read `len` bytes and return slice while updating offset
+function bytes(data, len, isCopy=false) {
+  if (!(data instanceof Uint8Array)) {
+    throw new Error('Invalid data type in bytes reader');
+  }
+  if (typeof data.brsOffset === 'undefined')
+    data.brsOffset = 0;
+  const chunk = data[isCopy ? 'slice' : 'subarray'](data.brsOffset, data.brsOffset + len);
+  chunk.brsOffset = 0;
+  data.brsOffset += len;
+  return chunk;
+}
+
+// break a byte array into chunks of a specified size
 function chunk(arr, size) {
   const out = [];
-  const clone = Array.from(arr);
 
-  while(clone.length > 0)
-    out.push(clone.splice(0, size));
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(bytes(arr, size, true));
+  }
 
   return out;
 }
 
 // Read a u16 from a byte array
 function read_u16(data, littleEndian=true) {
-  const [a, b] = data.splice(0, 2);
+  const [a, b] = bytes(data, 2);
 
   return littleEndian ? (b << 8 | a) : (a << 8 | b);
 }
@@ -45,12 +63,12 @@ function read_u16(data, littleEndian=true) {
 // Write a u16 into byte array
 function write_u16(num, littleEndian=true) {
   const data = [num & 255, (num >> 8) & 255];
-  return !littleEndian ? data.reverse() : data;
+  return new Uint8Array(!littleEndian ? data.reverse() : data);
 }
 
 // Read an i32 from a byte array
 function read_i32(data, littleEndian=true) {
-  const [a, b, c, d] = data.splice(0, 4);
+  const [a, b, c, d] = bytes(data, 4);
   return littleEndian
     ? (d << 24 | c << 16 | b << 8 | a)
     : (a << 24 | b << 16 | c << 8 | d);
@@ -58,12 +76,12 @@ function read_i32(data, littleEndian=true) {
 
 // Write an i32 from a byte array
 function write_i32(num, littleEndian=true) {
-  const data = [
+  const data = new Uint8Array([
     num & 255,
     (num >> 8) & 255,
     (num >> 16) & 255,
     (num >> 24) & 255,
-  ];
+  ]);
 
   return !littleEndian ? data.reverse() : data;
 }
@@ -75,26 +93,26 @@ function read_compressed(data) {
 
   // Throw error for weird compression/uncompression sizes
   if (compressedSize < 0 || uncompressedSize < 0 || compressedSize >= uncompressedSize) {
-    throw new Error('Invalid compressed section size');
+    throw new Error(`Invalid compressed section size (comp: ${compressedSize}, uncomp: ${uncompressedSize})`);
   }
 
   // No compressed data? Return those bytes
   if (compressedSize === 0) {
-    return data.splice(0, uncompressedSize);
+    return bytes(data, uncompressedSize);
   } else {
     // Decompress the data otherwise
-    const compressed = data.splice(0, compressedSize);
-    return Array.from(pako.inflate(compressed));
+    const compressed = bytes(data, compressedSize);
+    return pako.inflate(compressed);
   }
 }
 
 // Compress a byte array into fewer bytes
 function write_compressed(...args) {
   // Concat the args to one massive array
-  const data = [].concat(...args);
+  const data = concat(...args);
 
   // Do the compression
-  const compressed = Array.from(pako.deflate(data));
+  const compressed = pako.deflate(data);
   const uncompressedSize = data.length;
   const compressedSize = compressed.length;
 
@@ -110,7 +128,7 @@ function write_compressed(...args) {
   const badCompress = compressedSize >= uncompressedSize;
 
   // Build the output
-  return [].concat(
+  return concat(
     write_i32(uncompressedSize),
     write_i32(badCompress ? 0 : compressedSize),
     badCompress ? data : compressed,
@@ -129,57 +147,57 @@ function read_string(data) {
       throw new Error('Invalid UCS-2 data size');
     }
 
-
     // Create ucs2 encoded string
     return punycode.ucs2.encode(
       // Read the data in 2 byte windows
-      chunk(data.splice(0, size), 2)
+      chunk(bytes(data, size), 2)
         .map(arr => read_u16(arr)) // Convert the two bytes into u16
     );
   } else {
     // Read the data, remove the \u0000 at the end :)
-    const bytes = data.splice(0, size).slice(0, -1);
+    const strData = bytes(data, size).subarray(0, -1);
 
-    // Convert to UTF-8
-    return bytes
-      .map(b => String.fromCharCode(b))
-      .join('');
+    // Convert into ascii
+    return String.fromCharCode.apply(null, strData);
   }
 }
 
 // Write a string to bytes
 function write_string(str) {
   if (isASCII(str)) {
-    return [].concat(
+    return concat(
       write_i32(str.length + 1), // Write string length (+ null term)
-      str.split('').map(s => s.charCodeAt(0)), // Write string as bytes
-      [0], // Null terminator
+      new Uint8Array(str.split('').map(s => s.charCodeAt(0))), // Write string as bytes
+      new Uint8Array([0]), // Null terminator
     );
   } else {
     // ucs2 strings denoted by negative length
     const len = -((str.length + 1) * 2);
-    return [].concat(
+    return concat(
       write_i32(len), // write length
       punycode.ucs2.decode(str), // write decoded string
-      [0], // Null terminator
+      new Uint8Array([0]), // Null terminator
     )
   }
 }
 
 // Read uuid from 4 LE ints
 function read_uuid(data) {
-  return uuidParse.unparse(
-    [].concat(...chunk(data.splice(0, 16), 4)
-      .map(arr => arr.reverse()) // each int is LE
-    )
-  );
+  return uuidStringify(chunk(bytes(data, 16), 4)
+    .flatMap(arr => {
+      arr.reverse();
+      return Array.from(arr);
+    })); // each chunk is LE
 }
 
 // parse a uuid into 4 LE ints
 function write_uuid(uuid) {
-  return [].concat(
-    ...chunk(Array.from(uuidParse.parse(uuid)), 4)
-    .map(arr => arr.reverse()) // convert into 4 LE ints
+  return concat(
+    ...chunk(uuidParse(uuid), 4)
+    .map(arr => {
+      arr.reverse(); // convert into 4 LE ints;
+      return new Uint8Array(arr);
+    })
   );
 }
 
@@ -191,17 +209,17 @@ function read_array(data, fn) {
 }
 
 // Write an array of things to bytes
-function write_array(things, fn) {
-  return [].concat(
-    write_i32(things.length),
-    ...things.map(o => fn(o))
+function write_array(arr, fn) {
+  return concat(
+    write_i32(arr.length),
+    ...arr.map(o => fn(o))
   );
 }
 
 // Tool for reading byte arrays 1 bit at a time
 class BitReader {
   constructor(data) {
-    this.buffer = data;
+    this.buffer = new Uint8Array(data);
     this.pos = 0;
   }
 
@@ -273,7 +291,7 @@ class BitReader {
 
   // Read some bytes
   bytes(num) {
-    return this.bits(num * 8);
+    return new Uint8Array(this.bits(num * 8));
   }
 
   // read an array
@@ -286,7 +304,7 @@ class BitReader {
   string() {
     const lenBytes = this.bytes(4);
     const len = read_i32(lenBytes.slice());
-    return read_string([...lenBytes, ...this.bytes(len)]);
+    return read_string(new Uint8Array([...lenBytes, ...this.bytes(len)]));
   }
 
   // read a 32-bit float
@@ -308,7 +326,7 @@ class BitReader {
     case 'Class':
       return this.string();
     case 'Boolean':
-      return !!read_i32(this.bytes(4));
+      return !!read_i32(new Uint8Array(this.bytes(4)));
     case 'Float':
       return this.float();
     case 'Color':
@@ -405,7 +423,7 @@ class BitWriter {
   // Return built buffer (and include length)
   finishSection() {
     this.align();
-    return [].concat(write_i32(this.buffer.length), this.buffer);
+    return concat(write_i32(this.buffer.length), this.buffer);
   }
 
   // write a string
@@ -417,7 +435,7 @@ class BitWriter {
     // assign the number
     floatArr[0] = num;
     // convert it into a byte array
-    const bytes = Array.from(new Int8Array(floatArr.buffer));
+    const bytes = new Int8Array(floatArr.buffer);
     this.bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
   }
 
@@ -486,7 +504,24 @@ class BitWriter {
   }
 }
 
+// concat uint8arrays together
+export function concat(...arrays) {
+  const buffLen = arrays.reduce((sum, value) => sum + value.length, 0);
+  const buff = new Uint8Array(buffLen);
+
+  // for each array - copy it over buff
+  // next array is copied right after the previous one
+  let length = 0;
+  for(const array of arrays) {
+    buff.set(array, length);
+    length += array.length;
+  }
+
+  return buff;
+};
+
 export const read = {
+  bytes,
   u16: read_u16,
   i32: read_i32,
   compressed: read_compressed,

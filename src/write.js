@@ -1,5 +1,5 @@
 import { MAGIC, LATEST_VERSION, MAX_INT } from './constants';
-import { write, isEqual } from './utils';
+import { write, isEqual, concat } from './utils';
 
 
 // TODO: Validate input saves
@@ -29,6 +29,8 @@ function get(obj, path='', def) {
   return typeof obj !== 'undefined' ? obj : def;
 }
 
+const EMPTY_ARR = new Uint8Array([]);
+
 export default function writeBrs(save) {
   validate(save);
 
@@ -39,17 +41,17 @@ export default function writeBrs(save) {
   const version = save.version === 8 ? 8 : LATEST_VERSION;
 
   // Convert from BGRA to RGBA
-  const rgba = ([r, g, b, a]) => [b, g, r, a];
+  const rgba = ([r, g, b, a]) => new Uint8Array([b, g, r, a]);
 
   // stored brick indices from components on the bricks
   const componentBricks = {};
 
-  const buff = [].concat(
+  const buff = concat(
     // Write magic bytes
     MAGIC,
     write.u16(version),
 
-    version >= 8 ? write.i32(save.gameVersion || 0) : [],
+    version >= 8 ? write.i32(save.gameVersion || 0) : EMPTY_ARR,
 
     // Header 1
     write.compressed(
@@ -57,41 +59,42 @@ export default function writeBrs(save) {
       write.string(get(save, 'author.name', 'Unknown')),
       write.string(get(save, 'description', '')),
       write.uuid(get(save, 'author.id', '00000000-0000-0000-0000-000000000000')),
-      version >= 8 ? [].concat(
+      version >= 8 ? concat(
         write.string(get(save ,'host.name', 'Unknown')),
         write.uuid(get(save, 'host.id', '00000000-0000-0000-0000-000000000000')),
-      ) : [],
-      get(save, 'save_time', [0, 0, 0, 0, 0, 0, 0, 0]),
-      write.i32(get(save, 'bricks', []).length),
+      ) : EMPTY_ARR,
+      get(save, 'save_time', new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0])),
+      write.i32(get(save, 'bricks', EMPTY_ARR).length),
     ),
 
 
     // Header 2
     write.compressed(
-      write.array(get(save, 'mods', []), write.string),
+      write.array(get(save, 'mods', EMPTY_ARR), write.string),
       write.array(get(save, 'brick_assets', ['PB_DefaultBrick']), write.string),
-      write.array(get(save, 'colors', []), rgba),
+      write.array(get(save, 'colors', EMPTY_ARR), rgba),
       write.array(get(save, 'materials', ['BMC_Plastic']), write.string),
-      write.array(get(save, 'brick_owners', [{}]), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown', bricks=0 }={}) => [].concat(
+      write.array(get(save, 'brick_owners', [{}]), ({ id='00000000-0000-0000-0000-000000000000', name='Unknown', bricks=0 }={}) => concat(
         write.uuid(id),
         write.string(name),
-        version >= 8 ? write.i32(bricks) : [],
+        version >= 8 ? write.i32(bricks) : EMPTY_ARR,
       )),
     ),
 
     // write the save preview if it exists
     version >= 8
-      ? [].concat(
+      ? concat(
           [save.preview ? 1 : 0],
-          get(save, 'preview', []),
+          write.i32(get(save, 'preview.length', 0)), // <- Sorry @Uxie https://i.imgur.com/hSRxdbf.png
+          get(save, 'preview', EMPTY_ARR).slice(),
         )
-      : [],
+      : EMPTY_ARR,
 
     // Bricks
     write.compressed(write.bits()
       .each(save.bricks, function(brick, i) {
         this.align();
-        this.int(get(brick, 'asset_name_index', 0), Math.max(get(save, 'brick_assets', []).length, 2));
+        this.int(get(brick, 'asset_name_index', 0), Math.max(get(save, 'brick_assets', EMPTY_ARR).length, 2));
 
         const isSingularity = isEqual(brick.size, [0, 0, 0]);
         this.bit(!isSingularity);
@@ -114,7 +117,7 @@ export default function writeBrs(save) {
 
         if (typeof brick.color === 'number') {
           this.bit(false);
-          this.int(brick.color, Math.max(get(save, 'colors', []).length, 2));
+          this.int(brick.color, Math.max(get(save, 'colors', EMPTY_ARR).length, 2));
         } else {
           this.bit(true);
           this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
@@ -125,7 +128,7 @@ export default function writeBrs(save) {
         if (version >= 8) {
           // add all the brick indices to the components list
           for (const key in brick.components) {
-            componentBricks[key] = componentBricks[key] || [];
+            componentBricks[key] = componentBricks[key] || EMPTY_ARR;
             componentBricks[key].push(i);
           }
         }
@@ -134,7 +137,7 @@ export default function writeBrs(save) {
     ),
 
     // write components section
-    version >= 8 ? write.compressed(write.array(Object.keys(get(save, 'components', {})), name => [].concat(
+    version >= 8 ? write.compressed(write.array(Object.keys(get(save, 'components', {})), name => concat(
       write.string(name),
       write.bits()
         .self(function() {
@@ -165,8 +168,7 @@ export default function writeBrs(save) {
           this.align();
         })
         .finishSection(),
-    ))) : [],
+    ))) : EMPTY_ARR,
   );
-
-  return new Uint8Array(buff);
+  return buff;
 }

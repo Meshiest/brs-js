@@ -16,6 +16,9 @@
         .then(buff => {
           const save = BRS.read(buff);
 
+          if (save.preview)
+            save.preview = ' - snipped -';
+
           // Log the save object
           console.log(save);
 

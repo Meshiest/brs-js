@@ -1,8 +1,11 @@
 const path = require('path');
 
+const mode = process.env.NODE_ENV || 'development';
+
 const config = {
-  mode: process.env.NODE_ENV || 'development',
+  mode,
   entry: path.resolve(__dirname, 'src/index.js'),
+  devtool: 'source-map',
   module: {
     rules: [{
       test: /\.js$/,
@@ -19,7 +22,7 @@ module.exports = [{
     path: path.resolve(__dirname, 'dist'),
     filename: 'dist.node.js',
     library: 'brs-js',
-    libraryTarget: 'commonjs2'
+    libraryTarget: 'commonjs2',
   },
 }, {
   ...config,
