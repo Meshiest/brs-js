@@ -32,7 +32,7 @@ export function isEqual(arrA, arrB) {
 // read `len` bytes and return slice while updating offset
 function bytes(data, len, isCopy=false) {
   if (!(data instanceof Uint8Array)) {
-    throw new Error('Invalid data type in bytes reader');
+    throw new Error(`Invalid data type in bytes reader (${typeof data})`);
   }
   if (typeof data.brsOffset === 'undefined')
     data.brsOffset = 0;
@@ -117,11 +117,11 @@ function write_compressed(...args) {
   const compressedSize = compressed.length;
 
   if (uncompressedSize > MAX_INT) {
-    throw new Error("uncompressedSize out of range");
+    throw new Error(`uncompressedSize (${uncompressedSize}) out of range`);
   }
 
   if (compressedSize > MAX_INT) {
-    throw new Error("compressedSize out of range");
+    throw new Error(`compressedSize (${compression}) out of range`);
   }
 
   // Determine if compression increases size
@@ -379,11 +379,11 @@ class BitWriter {
   // Write an int up to the potential max size
   int(value, max) {
     if (max < 2) {
-      throw new Error('Invalid input (BitWriter) -- max must be at least 2')
+      throw new Error(`Invalid input (BitWriter) -- max (${max}) must be at least 2`)
     }
 
     if (value >= max) {
-      throw new Error('Invalid input (BitWriter) -- value is larger than max')
+      throw new Error(`Invalid input (BitWriter) -- value (${value}) is larger than max (${max})`)
     }
 
     let new_val = 0;
@@ -463,36 +463,31 @@ class BitWriter {
    switch(type) {
     case 'Class':
       if (typeof value !== 'string') {
-        console.error('errored value', value);
-        throw new Error('writing unreal type Class, did not receive string');
+        throw new Error(`writing unreal type Class, did not receive string (${value})`);
       }
       this.string(value);
       return;
     case 'Boolean':
       if (typeof value !== 'boolean') {
-        console.error('errored value', value);
-        throw new Error('writing unreal type Boolean, did not receive boolean');
+        throw new Error(`writing unreal type Boolean, did not receive boolean (${value})`);
       }
       this.bytes(write_i32(value ? 1 : 0));
       return;
     case 'Float':
       if (typeof value !== 'number') {
-        console.error('errored value', value);
-        throw new Error('writing unreal type Float, did not receive float');
+        throw new Error(`writing unreal type Float, did not receive float (${value})`);
       }
       this.float(value);
       return;
     case 'Color':
       if (typeof value !== 'object' && value.length === 4) {
-        console.error('errored value', value);
-        throw new Error('writing unreal type Array, did not receive Array');
+        throw new Error(`writing unreal type Array, did not receive Array (${value})`);
       }
       this.bytes(bgra(value));
       return;
     case 'Rotator':
       if (typeof value !== 'object' && value.length === 3) {
-        console.error('errored value', value);
-        throw new Error('writing unreal type Array, did not receive Array');
+        throw new Error(`writing unreal type Array, did not receive Array (${value})`);
       }
 
       this.float(value[0]);

@@ -17,7 +17,7 @@ export default function readBrs(brsData, options={}) {
   // Determine if the file version supported
   const version = read.u16(brsData);
   if (version > MAX_VERSION) {
-    throw new Error('Unsupported version');
+    throw new Error('Unsupported version ' + version);
   }
 
   // game version is included in saves >= v8
