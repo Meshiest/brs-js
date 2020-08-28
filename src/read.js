@@ -72,7 +72,7 @@ export default function readBrs(brsData, options={}) {
   // check for preview byte
   let preview;
   if (version >= 8) {
-    if(read.bytes(brsData, 1)) {
+    if(read.bytes(brsData, 1)[0]) {
       const len = read.i32(brsData);
       preview = read.bytes(brsData, len);
     }

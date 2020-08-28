@@ -84,9 +84,9 @@ export default function writeBrs(save) {
     // write the save preview if it exists
     version >= 8
       ? concat(
-          [save.preview ? 1 : 0],
-          write.i32(get(save, 'preview.length', 0)), // <- Sorry @Uxie https://i.imgur.com/hSRxdbf.png
-          get(save, 'preview', EMPTY_ARR).slice(),
+          new Uint8Array([save.preview ? 1 : 0]),
+          save.preview ? write.i32(get(save, 'preview.length', 0)) : EMPTY_ARR, // <- Sorry @Uxie https://i.imgur.com/hSRxdbf.png
+          get(save, 'preview', EMPTY_ARR),
         )
       : EMPTY_ARR,
 
@@ -128,7 +128,7 @@ export default function writeBrs(save) {
         if (version >= 8) {
           // add all the brick indices to the components list
           for (const key in brick.components) {
-            componentBricks[key] = componentBricks[key] || EMPTY_ARR;
+            componentBricks[key] = componentBricks[key] || [];
             componentBricks[key].push(i);
           }
         }
