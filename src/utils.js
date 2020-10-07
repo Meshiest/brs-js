@@ -323,7 +323,7 @@ class BitReader {
   // read unreal types
   unreal(type) {
    switch(type) {
-    case 'Class':
+    case 'Class': case 'Object':
       return this.string();
     case 'Boolean':
       return !!read_i32(new Uint8Array(this.bytes(4)));
@@ -464,6 +464,12 @@ class BitWriter {
     case 'Class':
       if (typeof value !== 'string') {
         throw new Error(`writing unreal type Class, did not receive string (${value})`);
+      }
+      this.string(value);
+      return;
+    case 'Object':
+      if (typeof value !== 'string') {
+        throw new Error(`writing unreal type Object, did not receive string (${value})`);
       }
       this.string(value);
       return;
