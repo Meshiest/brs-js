@@ -124,15 +124,23 @@ Unsigned ints, while unlikely, may overflow.
 | bricks[].color *(rgba)*     | array  | [255, 255, 255, 255]                 | &#9745;  | Color in RGBA Bytes              |
 | bricks[].owner_index        | int    | 1 (1 indexed)                        | &#9745;  | Index of owner in `brick_owners` |
 
-### Function `brs.read(buffer)`
+### Function `brs.read(buffer, options)`
 
 **Returns**: Save Object
 
 In node, the buffer can be obtained from `fs.readFile` without an encoding specified. In web, the buffer can be obtained via `File.arrayBuffer()`. Be sure to resolve promises where necessary.
 
-| parameter   | type                | description              |
-|-------------|---------------------|--------------------------|
-| `buffer`    | Uint8Array / Buffer | Input bytes to be parsed |
+| parameter   | type                | description                             |
+|-------------|---------------------|-----------------------------------------|
+| `buffer`    | Uint8Array / Buffer | Input bytes to be parsed                |
+| `options`   | Object              | Options for the parser, see table below |
+
+#### Options
+
+| name      | type    | description              | default |
+|-----------|---------|--------------------------|---------|
+| `bricks`  | boolean | Whether to read bricks   | `true`  |
+| `preview` | boolean | Whether to copy previews | `false` |
 
 ### Function `brs.write(saveObj)`
 
