@@ -6,6 +6,12 @@ export default function readBrs(brsData, options={}) {
   if (typeof options !== 'object')
     throw new Error('Invalid options');
 
+  // default enable brick reading
+  if (typeof options.bricks !== 'boolean') options.bricks = true;
+
+  // default disable preview (a5 only)
+  if (typeof options.preview !== 'boolean') options.preview = false;
+
   brsData = new Uint8Array(brsData);
   brsData.brsOffset = 3;
 
@@ -74,67 +80,73 @@ export default function readBrs(brsData, options={}) {
   if (version >= 8) {
     if(read.bytes(brsData, 1)[0]) {
       const len = read.i32(brsData);
-      preview = read.bytes(brsData, len);
+      if (options.preview) {
+        preview = read.bytes(brsData, len);
+      } else {
+        brsData.brsOffset += len;
+      }
     }
   }
 
   // Read in bricks
-  const brickData = read.compressed(brsData);
-  const brickBits = read.bits(brickData);
   const bricks = [];
-
-  // Brick reader
-  while(!brickBits.empty() && bricks.length < header1.brick_count) {
-    brickBits.align();
-    bricks.push({
-      asset_name_index: brickBits.int(Math.max(header2.brick_assets.length, 2)),
-      size: brickBits.bit() ? [brickBits.uint_packed(), brickBits.uint_packed(), brickBits.uint_packed()] : [0, 0, 0],
-      position: [brickBits.int_packed(), brickBits.int_packed(), brickBits.int_packed()],
-      ...(orientation => ({
-        direction: (orientation >> 2) % 6,
-        rotation: orientation & 3,
-      }))(brickBits.int(24)),
-      collision: brickBits.bit(),
-      visibility: brickBits.bit(),
-      material_index: version >= 8
-        ? brickBits.int(Math.max(header2.materials.length, 2))
-        : brickBits.bit() ? brickBits.uint_packed() : 1,
-      color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
-      owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
-      ...(version >= 8 ? { components: {} } : {}),
-    });
-  }
-
-  // components reader
   const components = {};
-  if (version >= 8) {
-    const componentData = read.compressed(brsData);
-    read.array(componentData, data => {
-      // read component name
-      const name = read.string(data);
 
-      // read component body
-      const bits = read.bits(read.bytes(data, read.i32(data)));
+  if (options.bricks) {
+    const brickData = read.compressed(brsData);
+    const brickBits = read.bits(brickData);
 
-      const version = read.i32(bits.bytes(4));
-      // list of bricks
-      const brick_indices = bits.array(() => bits.int(Math.max(bricks.length, 2)));
+    // Brick reader
+    while(!brickBits.empty() && bricks.length < header1.brick_count) {
+      brickBits.align();
+      bricks.push({
+        asset_name_index: brickBits.int(Math.max(header2.brick_assets.length, 2)),
+        size: brickBits.bit() ? [brickBits.uint_packed(), brickBits.uint_packed(), brickBits.uint_packed()] : [0, 0, 0],
+        position: [brickBits.int_packed(), brickBits.int_packed(), brickBits.int_packed()],
+        ...(orientation => ({
+          direction: (orientation >> 2) % 6,
+          rotation: orientation & 3,
+        }))(brickBits.int(24)),
+        collision: brickBits.bit(),
+        visibility: brickBits.bit(),
+        material_index: version >= 8
+          ? brickBits.int(Math.max(header2.materials.length, 2))
+          : brickBits.bit() ? brickBits.uint_packed() : 1,
+        color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
+        owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
+        ...(version >= 8 ? { components: {} } : {}),
+      });
+    }
 
-      // list of name, type properties
-      const properties = bits.array(() => [bits.string(), bits.string()]);
+    if (version >= 8) {
+      const componentData = read.compressed(brsData);
+      read.array(componentData, data => {
+        // read component name
+        const name = read.string(data);
 
-      // read components for each brick
-      for (const i of brick_indices) {
-        const props = Object.fromEntries(properties.map(([name, type]) =>  [name, bits.unreal(type)]));
-        bricks[i].components[name] = props;
-      };
+        // read component body
+        const bits = read.bits(read.bytes(data, read.i32(data)));
 
-      return components[name] = {
-        version,
-        brick_indices,
-        properties: Object.fromEntries(properties),
-      }
-    });
+        const version = read.i32(bits.bytes(4));
+        // list of bricks
+        const brick_indices = bits.array(() => bits.int(Math.max(bricks.length, 2)));
+
+        // list of name, type properties
+        const properties = bits.array(() => [bits.string(), bits.string()]);
+
+        // read components for each brick
+        for (const i of brick_indices) {
+          const props = Object.fromEntries(properties.map(([name, type]) =>  [name, bits.unreal(type)]));
+          bricks[i].components[name] = props;
+        };
+
+        return components[name] = {
+          version,
+          brick_indices,
+          properties: Object.fromEntries(properties),
+        }
+      });
+    }
   }
 
   return {
