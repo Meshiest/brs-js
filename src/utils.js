@@ -331,6 +331,8 @@ class BitReader {
       return this.float();
     case 'Color':
       return bgra(this.bytes(4));
+    case 'Byte':
+      return this.bytes(1)[0];
     case 'Rotator':
       return [this.float(), this.float(), this.float()];
     }
@@ -484,6 +486,12 @@ class BitWriter {
         throw new Error(`writing unreal type Float, did not receive float (${value})`);
       }
       this.float(value);
+      return;
+    case 'Byte':
+      if (typeof value !== 'number') {
+        throw new Error(`writing unreal type Byte, did not receive Byte (${value})`);
+      }
+      this.bytes([value & 255]);
       return;
     case 'Color':
       if (typeof value !== 'object' && value.length === 4) {

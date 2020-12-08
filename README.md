@@ -172,8 +172,11 @@ Notes:
 | PB_DefaultRampInnerCornerInverted | &#9745; |
 | PB_DefaultRampInverted | &#9745; |
 | PB_DefaultSideWedge | &#9745; |
+| PB_DefaultSideWedgeTile | &#9745; |
 | PB_DefaultTile | &#9745; |
 | PB_DefaultWedge | &#9745; |
+| PB_DefaultMicroBrick | &#9745; |
+| PB_DefaultMicroWedge | &#9745; |
 | B_1x1_Brick_Side | |
 | B_1x1_Brick_Side_Lip | |
 | B_1x1_Cone | |
