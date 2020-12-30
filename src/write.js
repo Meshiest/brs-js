@@ -137,7 +137,7 @@ export default function writeBrs(save) {
     ),
 
     // write components section
-    version >= 8 ? write.compressed(write.array(Object.keys(get(save, 'components', {})), name => concat(
+    version >= 8 ? write.compressed(write.array(Object.keys(get(save, 'components', {})).filter(name => componentBricks[name]), name => concat(
       write.string(name),
       write.bits()
         .self(function() {
