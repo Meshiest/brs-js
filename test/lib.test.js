@@ -5,21 +5,26 @@ const _ = require('lodash');
 const uuid0 = '12345678-4321-1234-4321-123456789012';
 
 const save = {
-  version: 4,
+  version: 8,
   map: 'Unknown',
   description: '',
   author: {id: uuid0, name: 'Test'},
   save_time: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
   brick_count: 1,
   mods: [],
+  preview: undefined,
   brick_assets: [],
   colors: [],
+  components: {},
+  gameVersion: 0,
+  host: {id: uuid0, name: 'Test'},
   materials: ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic'],
-  brick_owners: [{id: uuid0, name: 'Test'}],
+  brick_owners: [{id: uuid0, name: 'Test', bricks: 0}],
   bricks: [{
     asset_name_index: 1,
     size: [10, 10, 10],
     position: [0, 0, 0],
+    components: {},
     direction: 4,
     owner_index: 1,
     rotation: 0,

@@ -73,6 +73,7 @@ export default function readBrs(brsData, options={}) {
         ...(version >= 8 ? {bricks: read.i32(data)} : {}),
       }))
       : [{id: header1.author_id, name: header1.author_name}],
+    ...(version >= 9 ? { physical_materials: read.array(header2Data, read.string) } : {}),
   };
 
   // check for preview byte
@@ -92,6 +93,10 @@ export default function readBrs(brsData, options={}) {
   const bricks = [];
   const components = {};
 
+  const numPhysMats = version >= 9 ? Math.max(header2.physical_materials.length, 2) : 0;
+  const numMats = Math.max(header2.materials.length, 2);
+  const numAssets = Math.max(header2.brick_assets.length, 2);
+
   if (options.bricks) {
     const brickData = read.compressed(brsData);
     const brickBits = read.bits(brickData);
@@ -100,7 +105,7 @@ export default function readBrs(brsData, options={}) {
     while(!brickBits.empty() && bricks.length < header1.brick_count) {
       brickBits.align();
       bricks.push({
-        asset_name_index: brickBits.int(Math.max(header2.brick_assets.length, 2)),
+        asset_name_index: brickBits.int(numAssets),
         size: brickBits.bit() ? [brickBits.uint_packed(), brickBits.uint_packed(), brickBits.uint_packed()] : [0, 0, 0],
         position: [brickBits.int_packed(), brickBits.int_packed(), brickBits.int_packed()],
         ...(orientation => ({
@@ -110,9 +115,15 @@ export default function readBrs(brsData, options={}) {
         collision: brickBits.bit(),
         visibility: brickBits.bit(),
         material_index: version >= 8
-          ? brickBits.int(Math.max(header2.materials.length, 2))
+          ? brickBits.int(numMats)
           : brickBits.bit() ? brickBits.uint_packed() : 1,
-        color: brickBits.bit() ? bgra(brickBits.bytes(4)) : brickBits.int(header2.colors.length),
+        ...(version >= 9 ? {
+          physical_index: brickBits.int(numPhysMats),
+          material_intensity: brickBits.int(11),
+        } : {}),
+        color: brickBits.bit()
+          ? version >= 9 ? Array.from(brickBits.bytes(3)) : bgra(brickBits.bytes(4))
+          : brickBits.int(header2.colors.length),
         owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
         ...(version >= 8 ? { components: {} } : {}),
       });
@@ -120,6 +131,8 @@ export default function readBrs(brsData, options={}) {
 
     if (version >= 8) {
       const componentData = read.compressed(brsData);
+      const numBricks = Math.max(bricks.length, 2);
+
       read.array(componentData, data => {
         // read component name
         const name = read.string(data);
@@ -129,7 +142,7 @@ export default function readBrs(brsData, options={}) {
 
         const version = read.i32(bits.bytes(4));
         // list of bricks
-        const brick_indices = bits.array(() => bits.int(Math.max(bricks.length, 2)));
+        const brick_indices = bits.array(() => bits.int(numBricks));
 
         // list of name, type properties
         const properties = bits.array(() => [bits.string(), bits.string()]);

@@ -38,13 +38,18 @@ export default function writeBrs(save) {
     throw new Error('Brick count out of range');
   }
 
-  const version = save.version === 8 ? 8 : LATEST_VERSION;
+  const version = save.version === 9 ? 9 : LATEST_VERSION;
 
   // Convert from BGRA to RGBA
   const rgba = ([r, g, b, a]) => new Uint8Array([b, g, r, a]);
 
   // stored brick indices from components on the bricks
   const componentBricks = {};
+
+  const numColors = Math.max(get(save, 'colors', EMPTY_ARR).length, 2);
+  const numAssets = Math.max(get(save, 'brick_assets', EMPTY_ARR).length, 2);
+  const numMats = Math.max(save.materials.length, 2);
+  const numPhysMats = Math.max(get(save, 'physical_materials', []).length, 2);
 
   const buff = concat(
     // Write magic bytes
@@ -67,7 +72,6 @@ export default function writeBrs(save) {
       write.i32(get(save, 'bricks', EMPTY_ARR).length),
     ),
 
-
     // Header 2
     write.compressed(
       write.array(get(save, 'mods', EMPTY_ARR), write.string),
@@ -79,6 +83,9 @@ export default function writeBrs(save) {
         write.string(name),
         version >= 8 ? write.i32(bricks) : EMPTY_ARR,
       )),
+      version >= 9
+        ? write.array(get(save, 'physical_materials', ['BPMC_Default']), write.string)
+        : [],
     ),
 
     // write the save preview if it exists
@@ -94,7 +101,7 @@ export default function writeBrs(save) {
     write.compressed(write.bits()
       .each(save.bricks, function(brick, i) {
         this.align();
-        this.int(get(brick, 'asset_name_index', 0), Math.max(get(save, 'brick_assets', EMPTY_ARR).length, 2));
+        this.int(get(brick, 'asset_name_index', 0), numAssets);
 
         const isSingularity = isEqual(brick.size, [0, 0, 0]);
         this.bit(!isSingularity);
@@ -107,27 +114,35 @@ export default function writeBrs(save) {
         this.bit(get(brick, 'collision', true));
         this.bit(get(brick, 'visibility', true));
         if (version >= 8) {
-          this.int(brick.material_index, Math.max(save.materials.length, 2))
+          this.int(brick.material_index, numMats)
         } else {
           this.bit(brick.material_index !== 1);
           if (brick.material_index !== 1) {
             this.uint_packed(brick.material_index);
           }
         }
+        if (version >= 9) {
+          this.int(get(brick, 'physical_index', 0), numPhysMats);
+          this.int(get(brick, 'material_intensity', 5), 11);
+        }
 
         if (typeof brick.color === 'number') {
           this.bit(false);
-          this.int(brick.color, Math.max(get(save, 'colors', EMPTY_ARR).length, 2));
+          this.int(brick.color, numColors);
         } else {
           this.bit(true);
-          this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
+          if (version >= 9) {
+            this.bytes(new Uint8Array(get(brick, 'color', [255, 255, 255])));
+          } else {
+            this.bytes(rgba(get(brick, 'color', [255, 255, 255, 255])));
+          }
         }
 
         this.uint_packed(get(brick, 'owner_index', 1));
 
         if (version >= 8) {
           // add all the brick indices to the components list
-          for (const key in brick.components) {
+          for (const key in brick.components || {}) {
             componentBricks[key] = componentBricks[key] || [];
             componentBricks[key].push(i);
           }
