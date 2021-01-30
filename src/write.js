@@ -48,8 +48,8 @@ export default function writeBrs(save) {
 
   const numColors = Math.max(get(save, 'colors', EMPTY_ARR).length, 2);
   const numAssets = Math.max(get(save, 'brick_assets', EMPTY_ARR).length, 2);
-  const numMats = Math.max(save.materials.length, 2);
-  const numPhysMats = Math.max(get(save, 'physical_materials', []).length, 2);
+  const numMats = Math.max(get(save, 'materials.length', 0), 2);
+  const numPhysMats = Math.max(get(save, 'physical_materials.length', 0), 2);
 
   const buff = concat(
     // Write magic bytes
