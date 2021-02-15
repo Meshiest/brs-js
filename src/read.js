@@ -41,23 +41,22 @@ export default function readBrs(brsData, options={}) {
 
   const header1 = {
     map: read.string(header1Data),
-    ...((name, description, id) => ({
-      author: {
-        id, name,
-      },
-      description,
-    }))(
-      read.string(header1Data), // read author name
-      read.string(header1Data), // read description
-      read.uuid(header1Data), // read author id
-    ),
-    ...(version >= 8 ? {host: {
+    author: {name: read.string(header1Data)},
+    description: read.string(header1Data),
+    save_time: null,
+  };
+  header1.author.id = read.uuid(header1Data);
+
+  if(version >= 8) {
+    header1.host = {
       name: read.string(header1Data),
       id: read.uuid(header1Data),
-    }} : {}),
-    save_time: version >= 4 ? read.bytes(header1Data, 8) : null,
-    brick_count: read.i32(header1Data),
-  };
+    };
+  }
+  if (version >= 4)
+    header1.save_time = read.bytes(header1Data, 8);
+
+  header1.brick_count = read.i32(header1Data);
 
   const header2 = {
     mods: read.array(header2Data, read.string),
@@ -65,16 +64,24 @@ export default function readBrs(brsData, options={}) {
     colors: read.array(header2Data, data => bgra(read.bytes(data, 4))),
     materials: version >= 2
       ? read.array(header2Data, read.string)
-      : ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic'],
+      : ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic', 'BMC_Glass'],
     brick_owners: version >= 3
-      ? read.array(header2Data, data => ({
-        id: read.uuid(data),
-        name: read.string(data),
-        ...(version >= 8 ? {bricks: read.i32(data)} : {}),
-      }))
+      ? read.array(header2Data, data => {
+        const owner = {
+          id: read.uuid(data),
+          name: read.string(data),
+        };
+
+        if (version >= 8) owner.bricks = read.i32(data);
+
+        return owner;
+      })
       : [{id: header1.author_id, name: header1.author_name}],
-    ...(version >= 9 ? { physical_materials: read.array(header2Data, read.string) } : {}),
   };
+
+  if (version >= 9)
+    header2.physical_materials = read.array(header2Data, read.string);
+
 
   // check for preview byte
   let preview;
@@ -90,7 +97,7 @@ export default function readBrs(brsData, options={}) {
   }
 
   // Read in bricks
-  const bricks = [];
+  let bricks = [];
   const components = {};
 
   const numPhysMats = version >= 9 ? Math.max(header2.physical_materials.length, 2) : 0;
@@ -98,42 +105,50 @@ export default function readBrs(brsData, options={}) {
   const numAssets = Math.max(header2.brick_assets.length, 2);
 
   if (options.bricks) {
+    bricks = Array(header1.brick_count)
     const brickData = read.compressed(brsData);
     const brickBits = read.bits(brickData);
 
     // Brick reader
-    while(!brickBits.empty() && bricks.length < header1.brick_count) {
+    for(let i = 0; !brickBits.empty() && i < header1.brick_count; i++) {
       brickBits.align();
-      bricks.push({
-        asset_name_index: brickBits.int(numAssets),
-        size: brickBits.bit() ? [brickBits.uint_packed(), brickBits.uint_packed(), brickBits.uint_packed()] : [0, 0, 0],
-        position: [brickBits.int_packed(), brickBits.int_packed(), brickBits.int_packed()],
-        ...(orientation => ({
-          direction: (orientation >> 2) % 6,
-          rotation: orientation & 3,
-        }))(brickBits.int(24)),
-        collision: brickBits.bit(),
-        visibility: brickBits.bit(),
-        material_index: version >= 8
-          ? brickBits.int(numMats)
-          : brickBits.bit() ? brickBits.uint_packed() : 1,
-        ...(version >= 9 ? {
-          physical_index: brickBits.int(numPhysMats),
-          material_intensity: brickBits.int(11),
-        } : {}),
-        color: brickBits.bit()
-          ? version >= 9 ? Array.from(brickBits.bytes(3)) : bgra(brickBits.bytes(4))
-          : brickBits.int(header2.colors.length),
-        owner_index: version >= 3 ? brickBits.uint_packed(true) : 0,
-        ...(version >= 8 ? { components: {} } : {}),
-      });
+      const brick = bricks[i] = {};
+      brick.asset_name_index = brickBits.int(numAssets);
+      brick.size = brickBits.bit()
+          ? [brickBits.uint_packed(), brickBits.uint_packed(), brickBits.uint_packed()]
+          : [0, 0, 0];
+      brick.position = [brickBits.int_packed(), brickBits.int_packed(), brickBits.int_packed()];
+
+      const orientation = brickBits.int(24);
+      brick.direction = (orientation >> 2) % 6;
+      brick.rotation = orientation & 3;
+
+      brick.collision = brickBits.bit();
+      brick.visibility = brickBits.bit();
+      brick.material_index = version >= 8
+        ? brickBits.int(numMats)
+        : brickBits.bit() ? brickBits.uint_packed() : 1;
+
+      if (version >= 9) {
+        brick.physical_index = brickBits.int(numPhysMats);
+        brick.material_intensity = brickBits.int(11);
+      }
+      brick.color = brickBits.bit()
+        ? version >= 9 ? Array.from(brickBits.bytes(3)) : bgra(brickBits.bytes(4))
+        : brickBits.int(header2.colors.length);
+
+      brick.owner_index = version >= 3 ? brickBits.uint_packed(true) : 0;
+
+      if (version >= 8) {
+        brick.components = {};
+      }
     }
 
     if (version >= 8) {
       const componentData = read.compressed(brsData);
       const numBricks = Math.max(bricks.length, 2);
 
-      read.array(componentData, data => {
+      read.each(componentData, data => {
         // read component name
         const name = read.string(data);
 
@@ -149,28 +164,34 @@ export default function readBrs(brsData, options={}) {
 
         // read components for each brick
         for (const i of brick_indices) {
-          const props = Object.fromEntries(properties.map(([name, type]) =>  [name, bits.unreal(type)]));
+          const props = {};
+          for (const [name, type] of properties)
+            props[name] = bits.unreal(type);
           bricks[i].components[name] = props;
         };
 
-        return components[name] = {
+        components[name] = {
           version,
           brick_indices,
           properties: Object.fromEntries(properties),
-        }
+        };
       });
     }
   }
 
-  return {
+  const saveData = {
     version,
-    ...header1,
-    ...header2,
-    ...(version >= 8 ? {
-      gameVersion,
-      preview,
-      components,
-    } : {}),
     bricks,
+  };
+
+  Object.assign(saveData, header1);
+  Object.assign(saveData, header2);
+
+  if (version >= 8) {
+    saveData.gameVersion = gameVersion;
+    saveData.preview = preview;
+    saveData.components = components;
   }
+
+  return saveData;
 };

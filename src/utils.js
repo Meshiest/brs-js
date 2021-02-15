@@ -204,8 +204,19 @@ function write_uuid(uuid) {
 // Read an array of things given a fn
 function read_array(data, fn) {
   const length = read_i32(data);
-  return Array.from({ length })
-    .map(() => fn(data));
+  const arr = Array(length);
+  for (let i = 0; i < length; i++) {
+    arr[i] = fn(data);
+  }
+  return arr;
+}
+
+// iterate an array of things given a fn
+function read_each(data, fn) {
+  const length = read_i32(data);
+  for (let i = 0; i < length; i++) {
+    fn(data);
+  }
 }
 
 // Write an array of things to bytes
@@ -294,17 +305,34 @@ class BitReader {
     return new Uint8Array(this.bits(num * 8));
   }
 
+  // read some bytes but not as a Uint8Array
+  bytesArr(num) {
+    return this.bits(num * 8);
+  }
+
   // read an array
   array(fn) {
     const length = read_i32(this.bytes(4));
-    return Array.from({length}).map(() => fn(this));
+    const arr = Array(length);
+    for(let i = 0; i < length; i++) {
+      arr[i] = fn(this);
+    }
+    return arr;
+  }
+
+  // for each
+  each(fn) {
+    const length = read_i32(this.bytes(4));
+    for(let i = 0; i < length; i++) {
+      fn(this);
+    }
   }
 
   // read a string
   string() {
-    const lenBytes = this.bytes(4);
-    const len = read_i32(lenBytes.slice());
-    return read_string(new Uint8Array([...lenBytes, ...this.bytes(len)]));
+    const lenBytes = this.bytesArr(4);
+    const len = read_i32(new Uint8Array(lenBytes));
+    return read_string(new Uint8Array(lenBytes.concat(this.bytesArr(len))));
   }
 
   // read a 32-bit float
@@ -537,6 +565,7 @@ export const read = {
   string: read_string,
   uuid: read_uuid,
   array: read_array,
+  each: read_each,
   bits: data => new BitReader(data),
 };
 
