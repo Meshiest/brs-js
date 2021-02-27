@@ -49,6 +49,7 @@ Unsigned ints, while unlikely, may overflow.
   brick_assets: [string],
     // --- See bottom of page for known bricks ---
   colors: [[byte, byte, byte, byte], ... ],
+  physical_materials: [string],
   materials: [string],
     // --- Known available materials
     // BMC_Ghost
@@ -62,6 +63,14 @@ Unsigned ints, while unlikely, may overflow.
     name: string,
     bricks: int // (v8+ only)
   }, ... ],
+  components: {
+    [componentName]: {
+      version: int,
+      brick_indices: [int, ...],
+      properties: {[name]: [value], ...},
+    },
+    ...
+  },
   bricks: [{
     asset_name_index: int,
     size: [uint, uint, uint],
@@ -87,8 +96,17 @@ Unsigned ints, while unlikely, may overflow.
     collision: bool,
     visibility: bool,
     material_index: uint,
-    color: uint or [byte, byte, byte, byte],
+    physical_index: uint,
+    material_intensity: 0-10,
+    color: uint or [byte, byte, byte, byte] or (v9) -> [byte, byte, byte],
     owner_index: uint,
+    components: {
+      [componentName]: {
+        [propName]: [propVal],
+        ...
+      },
+      ...
+    },
   }, ... ],
 }
 ```
@@ -98,6 +116,7 @@ Unsigned ints, while unlikely, may overflow.
 | field                       | type   | default                              | optional | description                      |
 |-----------------------------|--------|--------------------------------------|----------|----------------------------------|
 | version                     | short  | Latest Save Version                  | auto     | Save file version                |
+| gameVersion                 | int    | Game Version                         | &#9745;  | Saving version of the game       |
 | map                         | string | 'Unknown'                            | &#9745;  | Map where the save was generated |
 | author.id                   | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Save author UUID                 |
 | author.name                 | string | 'Unknown'                            | &#9745;  | Save author name                 |
@@ -108,9 +127,11 @@ Unsigned ints, while unlikely, may overflow.
 | brick_assets                | array  | ['PB_DefaultBrick']                  | &#9745;  | List of brick assets             |
 | colors                      | array  | []                                   | &#9745;  | List of colorset colors          |
 | materials                   | array  | ['BMC_Plastic']                      | &#9745;  | List of used materials           |
+| physical_materials          | array  | []                                   | &#9745;  | List of physical materials       |
 | brick_owners                | array  | [{}]                                 | &#9745;  | Brick owner list                 |
 | brick_owners[].id           | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Brick owner list user uuid       |
 | brick_owners[].name         | string | 'Unknown'                            | &#9745;  | Brick owner list user name       |
+| preview                     | array  | undefined                            | &#9745;  | 1280x720 png screenshot data     |
 | bricks                      | array  |                                      |          | List of bricks in the save       |
 | bricks[].asset_name_index   | int    | 0 (0 indexed)                        | &#9745;  | Index of asset in `brick_assets` |
 | bricks[].size               | array  |                                      |          | Brick size                       |
@@ -120,9 +141,17 @@ Unsigned ints, while unlikely, may overflow.
 | bricks[].collision          | bool   | true                                 | &#9745;  | Brick has collision with players |
 | bricks[].visibility         | bool   | true                                 | &#9745;  | Brick renders to players         |
 | bricks[].material_index     | int    | 0 (0 indexed)                        | &#9745;  | Index of material in `materials` |
-| bricks[].color *(colorset)* | int    | [255, 255, 255, 255]                 | &#9745;  | Index of color in `colors`       |
+| bricks[].material_intensity | int    | 0 (0 indexed)                        | &#9745;  | Material intensity (0-10)        |
+| bricks[].physical_index     | int    | 0 (0 indexed)                        | &#9745;  | Index of physical material       |
+| bricks[].color *(colorset)* | int    | 0                                    | &#9745;  | Index of color in `colors`       |
 | bricks[].color *(rgba)*     | array  | [255, 255, 255, 255]                 | &#9745;  | Color in RGBA Bytes              |
+| bricks[].color *(rgb)*      | array  | [255, 255, 255] *(v9+)*              | &#9745;  | Color in RGBA Bytes              |
 | bricks[].owner_index        | int    | 1 (1 indexed)                        | &#9745;  | Index of owner in `brick_owners` |
+| bricks[].components         | object | {}                                   | &#9745;  | Components on this brick         |
+| components                  | object | {}                                   | &#9745;  | List of components in the save   |
+| components[].version        | int    |                                      |          | Game version for this component  |
+| components[].brick_indices  | array  |                                      |          | Indices of assigned bricks       |
+| components[].properties     | object |                                      |          | Map of properties names and types|
 
 ### Function `brs.read(buffer, options)`
 
