@@ -123,7 +123,16 @@ export default function readBrs(brsData, options={}) {
       brick.direction = (orientation >> 2) % 6;
       brick.rotation = orientation & 3;
 
-      brick.collision = brickBits.bit();
+      if (version >= 10) {
+        brick.collision = {
+          player: brickBits.bit(),
+          weapon: brickBits.bit(),
+          interaction: brickBits.bit(),
+          tool: brickBits.bit(),
+        };
+      } else {
+        brick.collision = brickBits.bit();
+      }
       brick.visibility = brickBits.bit();
       brick.material_index = version >= 8
         ? brickBits.int(numMats)

@@ -111,7 +111,21 @@ export default function writeBrs(save) {
         brick.position.map(s => this.int_packed(s));
         const orientation = (get(brick, 'direction', 4) << 2) | get(brick, 'rotation', 0);
         this.int(orientation, 24);
-        this.bit(get(brick, 'collision', true));
+        if (version >= 10) {
+          if (typeof brick.collison === 'boolean' && !brick.collision) {
+            this.bit(false);
+            this.bit(false);
+            this.bit(false);
+            this.bit(true);
+          } else {
+            this.bit(get(brick, 'collision.player', true));
+            this.bit(get(brick, 'collision.weapon', true));
+            this.bit(get(brick, 'collision.interaction', true));
+            this.bit(get(brick, 'collision.tool', true));
+          }
+        } else {
+          this.bit(get(brick, 'collision', true));
+        }
         this.bit(get(brick, 'visibility', true));
         if (version >= 8) {
           this.int(brick.material_index, numMats)
