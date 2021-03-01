@@ -38,7 +38,7 @@ export default function writeBrs(save) {
     throw new Error('Brick count out of range');
   }
 
-  const version = save.version === 9 ? 9 : LATEST_VERSION;
+  const version = typeof save.version !== 'undefined' ? save.version : LATEST_VERSION;
 
   // Convert from BGRA to RGBA
   const rgba = ([r, g, b, a]) => new Uint8Array([b, g, r, a]);
