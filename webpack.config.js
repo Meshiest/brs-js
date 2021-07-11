@@ -21,8 +21,9 @@ module.exports = [{
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'dist.node.js',
-    library: 'brs-js',
-    libraryTarget: 'commonjs2',
+    library: {
+      type: 'commonjs2',
+    },
   },
 }, {
   ...config,
@@ -37,7 +38,8 @@ module.exports = [{
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'dist.web.js',
-    library: 'brs-js',
-    libraryTarget: 'commonjs2',
+    library: {
+      type: 'commonjs2',
+    },
   },
 }];
