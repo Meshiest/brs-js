@@ -2,7 +2,7 @@
 
 Read and write Brickadia save files (.brs)
 
-Currently supports save versions <= 8
+Currently supports save versions <= 10
 
 **Warning:** __Unreal Engine uses numbers potentially larger than Javascript can handle.__
 
