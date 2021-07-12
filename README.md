@@ -116,7 +116,7 @@ Unsigned ints, while unlikely, may overflow.
 | field                       | type   | default                              | optional | description                      |
 |-----------------------------|--------|--------------------------------------|----------|----------------------------------|
 | version                     | short  | Latest Save Version                  | auto     | Save file version                |
-| gameVersion                 | int    | Game Version                         | &#9745;  | Saving version of the game       |
+| game_version                | int    | Game Version                         | &#9745;  | Saving version of the game       |
 | map                         | string | 'Unknown'                            | &#9745;  | Map where the save was generated |
 | author.id                   | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Save author UUID                 |
 | author.name                 | string | 'Unknown'                            | &#9745;  | Save author name                 |

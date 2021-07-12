@@ -4,15 +4,23 @@ const mode = process.env.NODE_ENV || 'development';
 
 const config = {
   mode,
-  entry: path.resolve(__dirname, 'src/index.js'),
+  entry: path.resolve(__dirname, 'src/index.ts'),
   devtool: 'source-map',
   module: {
     rules: [{
-      test: /\.js$/,
-      use: 'babel-loader',
+      test: /\.ts$/,
+      use: {
+        loader: 'ts-loader',
+        options: {
+          experimentalFileCaching: true,
+        },
+      },
       exclude: /node_modules/,
     }],
-  }
+  },
+  resolve: {
+    extensions: ['.ts', '.js'],
+  },
 };
 
 module.exports = [{

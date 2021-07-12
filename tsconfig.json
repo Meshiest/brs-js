@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "baseUrl": ".",
+    "declaration": true,
+    "module": "es6",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "target": "es2020"
+  },
+  "exclude": ["node_modules", "dist", "dist/*"]
+}

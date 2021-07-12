@@ -3,20 +3,21 @@ const { read, write } = require('../dist/dist.node.js');
 // const uuid0 = '00000000-0000-0000-0000-000000000000';
 const uuid0 = '12345678-4321-1234-4321-123456789012';
 const save = {
-  version: 8,
+  version: 10,
   map: 'Unknown',
   description: '',
   author: { id: uuid0, name: 'Test' },
   save_time: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
   brick_count: 1,
   mods: [],
-  preview: undefined,
+  preview: null,
   brick_assets: [],
   colors: [],
   components: {},
-  gameVersion: 0,
+  game_version: 0,
   host: { id: uuid0, name: 'Test' },
   materials: ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic'],
+  physical_materials: ['BPMC_Default'],
   brick_owners: [{ id: uuid0, name: 'Test', bricks: 0 }],
   bricks: [
     {
@@ -27,10 +28,17 @@ const save = {
       direction: 4,
       owner_index: 1,
       rotation: 0,
-      collision: true,
+      collision: {
+        player: true,
+        interaction: true,
+        tool: true,
+        weapon: true,
+      },
       visibility: true,
       material_index: 1,
-      color: [0, 0, 0, 255],
+      material_intensity: 5,
+      physical_index: 0,
+      color: [0, 0, 0],
     },
   ],
 };

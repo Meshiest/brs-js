@@ -1,5 +1,4 @@
-const { utils: { read, write } } = require('../dist/dist.node.js');
-const clone = require('lodash/clone');
+const { utils: { read, write, subarray, chunk } } = require('../dist/dist.node.js');
 
 describe('buffer read/writing', () => {
   // Generic testing of read and write
@@ -16,6 +15,26 @@ describe('buffer read/writing', () => {
     // Big Endian
     rwTest(fn)(new Uint8Array(bytes).reverse(), val, false);
   };
+
+  describe('byte manipulating util', () => {
+    test('subarray', () => {
+      const arr = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(subarray(arr, 2)).toMatchObject({0: 1, 1: 2, brsOffset: 0});
+      expect(arr.brsOffset).toEqual(2);
+      expect(subarray(arr, 4)).toMatchObject({0: 3, 1: 4, 2: 5, 3: 6, brsOffset: 0});
+      expect(arr.brsOffset).toEqual(6);
+    });
+
+    test('chunk', () => {
+      const arr = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+      expect(chunk(arr, 4)).toMatchObject([
+        {0: 1, 1: 2, 2: 3, 3: 4, brsOffset: 0},
+        {0: 5, 1: 6, 2: 7, 3: 8, brsOffset: 0},
+        {0: 9, 1: 10, 2: 11, 3: 12, brsOffset: 0},
+        {0: 13, 1: 14, 2: 15, 3: 16, brsOffset: 0}
+      ]);
+    });
+  });
 
   describe('unsigned short', () => {
     const shortTest = endianTest('u16');
@@ -166,7 +185,7 @@ describe('buffer read/writing', () => {
     it('writes floats', () => {
       const bits = write.bits();
       bits.float(123.45);
-      expect(bits.finish()).toStrictEqual([0x42, 0xf6, 0xe6, 0x66].reverse());
+      expect(bits.finish()).toStrictEqual(new Uint8Array([0x42, 0xf6, 0xe6, 0x66]).reverse());
     });
 
     // TODO: tests for int_packed, uint_packed, bytes
