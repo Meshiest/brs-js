@@ -1,6 +1,6 @@
-examples
-debug
-src
+./examples
+./debug
+./src
 *.js.map
-test
+./test
 .vscode
