@@ -167,3 +167,4 @@ export interface WriteOptions {
     compress?: boolean;
 }
 export {};
+//# sourceMappingURL=types.d.ts.map

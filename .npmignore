@@ -1,3 +1,6 @@
-examples/
-debug/
-dist/*.map
+examples
+debug
+src
+*.js.map
+test
+.vscode

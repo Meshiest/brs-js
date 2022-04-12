@@ -42,7 +42,7 @@ function isBRSBytes(data: Bytes): data is BRSBytes {
 }
 
 // read `len` bytes and return slice while updating offset
-export function subarray(data: Bytes, len: number, isCopy = false): BRSBytes {
+export function subarray(data: Bytes, len: number, isCopy = false): Uint8Array {
   if (!(data instanceof Uint8Array)) {
     throw new Error(`Invalid data type in bytes reader (${typeof data})`);
   }
@@ -59,9 +59,8 @@ export function subarray(data: Bytes, len: number, isCopy = false): BRSBytes {
     bytes.brsOffset,
     bytes.brsOffset + len
   );
-  (chunk as BRSBytes).brsOffset = 0;
   bytes.brsOffset += len;
-  return <BRSBytes>chunk;
+  return chunk;
 }
 
 // break a byte array into chunks of a specified size

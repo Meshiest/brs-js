@@ -6,7 +6,7 @@ export declare const bgra: ([b, g, r, a]: number[]) => [
     number
 ];
 export declare function isEqual<T>(arrA: Array<T>, arrB: Array<T>): boolean;
-export declare function subarray(data: Bytes, len: number, isCopy?: boolean): BRSBytes;
+export declare function subarray(data: Bytes, len: number, isCopy?: boolean): Uint8Array;
 export declare function chunk(arr: Bytes, size: number): BRSBytes[];
 declare function read_u16(data: Bytes, littleEndian?: boolean): number;
 declare function write_u16(num: number, littleEndian?: boolean): Uint8Array;
@@ -84,3 +84,4 @@ export declare const write: {
     bits: () => BitWriter;
 };
 export {};
+//# sourceMappingURL=utils.d.ts.map

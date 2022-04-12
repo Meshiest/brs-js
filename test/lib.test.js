@@ -1,4 +1,4 @@
-const { read, write } = require('../dist/dist.node.js');
+const { read, write } = require('..');
 
 // const uuid0 = '00000000-0000-0000-0000-000000000000';
 const uuid0 = '12345678-4321-1234-4321-123456789012';

@@ -8,7 +8,15 @@
     "noImplicitAny": true,
     "outDir": "./dist/",
     "sourceMap": true,
-    "target": "es2020"
+    "declarationMap": true,
+    "target": "es2020",
+    "typeRoots": [
+      "dist/*"
+    ]
   },
-  "exclude": ["node_modules", "dist", "dist/*"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist/*"
+  ]
 }
