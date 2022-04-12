@@ -9,14 +9,10 @@
     "outDir": "./dist/",
     "sourceMap": true,
     "declarationMap": true,
-    "target": "es2020",
-    "typeRoots": [
-      "dist/*"
-    ]
+    "target": "es2020"
   },
   "exclude": [
     "node_modules",
     "dist",
-    "dist/*"
   ]
 }
