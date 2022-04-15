@@ -23,6 +23,22 @@ export type UnrealType =
   | UnrealByte
   | UnrealRotator;
 
+type UnrealTypeFromString<T> = T extends 'Class'
+  ? UnrealClass
+  : T extends 'Object'
+  ? UnrealObject
+  : T extends 'Boolean'
+  ? UnrealBoolean
+  : T extends 'Float'
+  ? UnrealFloat
+  : T extends 'Color'
+  ? UnrealColor
+  : T extends 'Byte'
+  ? UnrealByte
+  : T extends 'Rotator'
+  ? UnrealRotator
+  : UnrealType;
+
 export interface User {
   id: Uuid;
   name: string;
@@ -64,7 +80,7 @@ export interface AppliedComponent {
 export interface DefinedComponents {
   BCD_SpotLight?: {
     version: 1;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: {
       Rotation: 'Rotator';
       InnerConeAngle: 'Float';
@@ -78,7 +94,7 @@ export interface DefinedComponents {
   };
   BCD_PointLight?: {
     version: 1;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: {
       bMatchBrickShape: 'Boolean';
       Brightness: 'Float';
@@ -90,7 +106,7 @@ export interface DefinedComponents {
   };
   BCD_ItemSpawn?: {
     version: 1;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: {
       PickupClass: 'Class';
       bPickupEnabled: 'Boolean';
@@ -113,12 +129,12 @@ export interface DefinedComponents {
   };
   BCD_Interact?: {
     version: 1;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: { bPlayInteractSound: 'Boolean' };
   };
   BCD_AudioEmitter?: {
     version: 1;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: {
       AudioDescriptor: 'Object';
       VolumeMultiplier: 'Float';
@@ -130,62 +146,18 @@ export interface DefinedComponents {
   };
   [component_name: string]: {
     version: number;
-    brick_indices: number[];
+    brick_indices?: number[];
     properties: { [property: string]: string };
   };
 }
 
-export interface Components {
-  BCD_SpotLight?: {
-    Rotation: UnrealRotator;
-    InnerConeAngle: UnrealFloat;
-    OuterConeAngle: UnrealFloat;
-    Brightness: UnrealFloat;
-    Radius: UnrealFloat;
-    Color: UnrealColor;
-    bUseBrickColor: UnrealBoolean;
-    bCastShadows: UnrealBoolean;
+export type Components = {
+  [T in keyof DefinedComponents]: {
+    [V in keyof DefinedComponents[T]['properties']]: UnrealTypeFromString<
+      DefinedComponents[T]['properties'][V]
+    >;
   };
-  BCD_PointLight?: {
-    bMatchBrickShape: UnrealBoolean;
-    Brightness: UnrealFloat;
-    Radius: UnrealFloat;
-    Color: UnrealColor;
-    bUseBrickColor: UnrealBoolean;
-    bCastShadows: UnrealBoolean;
-  };
-  BCD_ItemSpawn?: {
-    PickupClass: UnrealClass;
-    bPickupEnabled: UnrealBoolean;
-    bPickupRespawnOnMinigameReset: UnrealBoolean;
-    PickupMinigameResetRespawnDelay: UnrealFloat;
-    bPickupAutoDisableOnPickup: UnrealBoolean;
-    PickupRespawnTime: UnrealFloat;
-    PickupOffsetDirection: UnrealByte;
-    PickupOffsetDistance: UnrealFloat;
-    PickupRotation: UnrealRotator;
-    PickupScale: UnrealFloat;
-    bPickupAnimationEnabled: UnrealBoolean;
-    PickupAnimationAxis: UnrealByte;
-    bPickupAnimationAxisLocal: UnrealBoolean;
-    PickupSpinSpeed: UnrealFloat;
-    PickupBobSpeed: UnrealFloat;
-    PickupBobHeight: UnrealFloat;
-    PickupAnimationPhase: UnrealFloat;
-  };
-  BCD_Interact?: {
-    bPlayInteractSound: UnrealBoolean;
-  };
-  BCD_AudioEmitter?: {
-    AudioDescriptor: UnrealObject;
-    VolumeMultiplier: UnrealFloat;
-    PitchMultiplier: UnrealFloat;
-    InnerRadius: UnrealFloat;
-    MaxDistance: UnrealFloat;
-    bSpatialization: UnrealBoolean;
-  };
-  [component_name: string]: AppliedComponent;
-}
+} & { [component_name: string]: AppliedComponent };
 
 export type Vector = [number, number, number];
 
