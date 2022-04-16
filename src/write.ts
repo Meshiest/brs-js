@@ -1,8 +1,79 @@
-import { MAGIC, LATEST_VERSION, MAX_INT, DEFAULT_UUID } from './constants';
-import { Brick, Owner, WriteOptions, WriteSaveObject } from './types';
-import { write, isEqual, concat } from './utils';
+import { DEFAULT_UUID, LATEST_VERSION, MAGIC, MAX_INT } from './constants';
+import {
+  Brick,
+  DefinedComponents,
+  KnownComponents,
+  Owner,
+  WriteOptions,
+  WriteSaveObject,
+} from './types';
+import { concat, isEqual, write } from './utils';
 
 const EMPTY_ARR = new Uint8Array([]);
+
+export const DEFAULT_COMPONENTS: DefinedComponents = {
+  BCD_SpotLight: {
+    version: 1,
+    properties: {
+      Rotation: 'Rotator',
+      InnerConeAngle: 'Float',
+      OuterConeAngle: 'Float',
+      Brightness: 'Float',
+      Radius: 'Float',
+      Color: 'Color',
+      bUseBrickColor: 'Boolean',
+      bCastShadows: 'Boolean',
+    },
+  },
+  BCD_PointLight: {
+    version: 1,
+    properties: {
+      bMatchBrickShape: 'Boolean',
+      Brightness: 'Float',
+      Radius: 'Float',
+      Color: 'Color',
+      bUseBrickColor: 'Boolean',
+      bCastShadows: 'Boolean',
+    },
+  },
+  BCD_ItemSpawn: {
+    version: 1,
+    properties: {
+      PickupClass: 'Class',
+      bPickupEnabled: 'Boolean',
+      bPickupRespawnOnMinigameReset: 'Boolean',
+      PickupMinigameResetRespawnDelay: 'Float',
+      bPickupAutoDisableOnPickup: 'Boolean',
+      PickupRespawnTime: 'Float',
+      PickupOffsetDirection: 'Byte',
+      PickupOffsetDistance: 'Float',
+      PickupRotation: 'Rotator',
+      PickupScale: 'Float',
+      bPickupAnimationEnabled: 'Boolean',
+      PickupAnimationAxis: 'Byte',
+      bPickupAnimationAxisLocal: 'Boolean',
+      PickupSpinSpeed: 'Float',
+      PickupBobSpeed: 'Float',
+      PickupBobHeight: 'Float',
+      PickupAnimationPhase: 'Float',
+    },
+  },
+  BCD_Interact: {
+    version: 1,
+    properties: { bPlayInteractSound: 'Boolean' },
+  },
+  BCD_AudioEmitter: {
+    version: 1,
+    properties: {
+      AudioDescriptor: 'Object',
+      VolumeMultiplier: 'Float',
+      PitchMultiplier: 'Float',
+      InnerRadius: 'Float',
+      MaxDistance: 'Float',
+      bSpatialization: 'Boolean',
+    },
+  },
+};
 
 export default function writeBrs(
   save: WriteSaveObject,
@@ -160,7 +231,7 @@ export default function writeBrs(
     // write components section
     compress(
       write.array(
-        Object.keys(save.components ?? {}).filter(
+        Object.keys(save.components ?? DEFAULT_COMPONENTS).filter(
           name => componentBrickOwnership[name]
         ),
         name =>
@@ -169,7 +240,8 @@ export default function writeBrs(
             write
               .bits()
               .self(function () {
-                const component = save.components[name];
+                const component =
+                  save.components?.[name] ?? DEFAULT_COMPONENTS[name];
                 const brick_indices = componentBrickOwnership[name];
                 const properties = Object.entries(component.properties);
 
@@ -190,7 +262,7 @@ export default function writeBrs(
                 // read brick indices
                 for (const i of brick_indices) {
                   for (const [prop, type] of properties) {
-                    if (!(prop in save.bricks[i].components[name])) {
+                    if (!(prop in (save.bricks[i].components?.[name] ?? {}))) {
                       throw new Error(
                         `Expected save.bricks[${i}].components[${name}] to have property '${prop}' of type '${type}'`
                       );

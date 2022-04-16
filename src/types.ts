@@ -77,8 +77,16 @@ export interface AppliedComponent {
   [property: string]: UnrealType;
 }
 
-export interface DefinedComponents {
-  BCD_SpotLight?: {
+export interface UnknownComponents {
+  [component_name: string]: {
+    version: number;
+    brick_indices?: number[];
+    properties: { [property: string]: string };
+  };
+}
+
+export type KnownComponents = {
+  BCD_SpotLight: {
     version: 1;
     brick_indices?: number[];
     properties: {
@@ -92,7 +100,7 @@ export interface DefinedComponents {
       bCastShadows: 'Boolean';
     };
   };
-  BCD_PointLight?: {
+  BCD_PointLight: {
     version: 1;
     brick_indices?: number[];
     properties: {
@@ -104,7 +112,7 @@ export interface DefinedComponents {
       bCastShadows: 'Boolean';
     };
   };
-  BCD_ItemSpawn?: {
+  BCD_ItemSpawn: {
     version: 1;
     brick_indices?: number[];
     properties: {
@@ -127,12 +135,12 @@ export interface DefinedComponents {
       PickupAnimationPhase: 'Float';
     };
   };
-  BCD_Interact?: {
+  BCD_Interact: {
     version: 1;
     brick_indices?: number[];
     properties: { bPlayInteractSound: 'Boolean' };
   };
-  BCD_AudioEmitter?: {
+  BCD_AudioEmitter: {
     version: 1;
     brick_indices?: number[];
     properties: {
@@ -144,17 +152,16 @@ export interface DefinedComponents {
       bSpatialization: 'Boolean';
     };
   };
-  [component_name: string]: {
-    version: number;
-    brick_indices?: number[];
-    properties: { [property: string]: string };
-  };
-}
+};
 
-export type Components = {
-  [T in keyof DefinedComponents]: {
-    [V in keyof DefinedComponents[T]['properties']]: UnrealTypeFromString<
-      DefinedComponents[T]['properties'][V]
+export interface DefinedComponents
+  extends UnknownComponents,
+    Partial<KnownComponents> {}
+
+export type Components<C extends DefinedComponents> = {
+  [T in keyof C]: {
+    [V in keyof C[T]['properties']]: UnrealTypeFromString<
+      C[T]['properties'][V]
     >;
   };
 } & { [component_name: string]: AppliedComponent };
@@ -181,7 +188,7 @@ export interface BrickV3 extends BrickV2 {
 }
 
 export interface BrickV8 extends BrickV3 {
-  components: Components;
+  components: Components<DefinedComponents>;
 }
 
 export type BrickV9 = Modify<
@@ -294,7 +301,7 @@ export interface Brick {
   material_intensity?: number;
   color?: ColorRgb | number;
   owner_index?: number;
-  components?: Components;
+  components?: Components<DefinedComponents>;
 }
 
 // save a user can write
