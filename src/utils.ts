@@ -266,7 +266,7 @@ function write_array<T>(arr: T[], fn: (_: T) => Uint8Array) {
 }
 
 // Tool for reading byte arrays 1 bit at a time
-class BitReader {
+export class BitReader {
   buffer: Uint8Array;
   pos: number = 0;
 
@@ -410,7 +410,7 @@ class BitReader {
   }
 }
 
-class BitWriter {
+export class BitWriter {
   buffer: number[] = [];
   cur: number = 0;
   bitNum: number = 0;
