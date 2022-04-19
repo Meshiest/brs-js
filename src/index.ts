@@ -10,5 +10,5 @@ export { read, write, utils, constants };
 export default brs;
 
 if (typeof window !== 'undefined') {
-  window.BRS = brs;
+  (window as any).BRS = brs;
 }
