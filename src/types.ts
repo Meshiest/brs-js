@@ -14,6 +14,7 @@ export type UnrealFloat = number;
 export type UnrealColor = [number, number, number, number];
 export type UnrealByte = number;
 export type UnrealRotator = [number, number, number];
+export type UnrealString = string;
 export type UnrealType =
   | UnrealClass
   | UnrealObject
@@ -21,7 +22,8 @@ export type UnrealType =
   | UnrealFloat
   | UnrealColor
   | UnrealByte
-  | UnrealRotator;
+  | UnrealRotator
+  | UnrealString;
 
 type UnrealTypeFromString<T> = T extends 'Class'
   ? UnrealClass
@@ -37,6 +39,8 @@ type UnrealTypeFromString<T> = T extends 'Class'
   ? UnrealByte
   : T extends 'Rotator'
   ? UnrealRotator
+  : T extends 'String'
+  ? UnrealString
   : UnrealType;
 
 export interface User {
