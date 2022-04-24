@@ -142,7 +142,11 @@ export type KnownComponents = {
   BCD_Interact: {
     version: 1;
     brick_indices?: number[];
-    properties: { bPlayInteractSound: 'Boolean' };
+    properties: {
+      bPlayInteractSound: 'Boolean';
+      Message: 'String';
+      ConsoleTag: 'String';
+    };
   };
   BCD_AudioEmitter: {
     version: 1;

@@ -60,7 +60,11 @@ export const DEFAULT_COMPONENTS: DefinedComponents = {
   },
   BCD_Interact: {
     version: 1,
-    properties: { bPlayInteractSound: 'Boolean' },
+    properties: {
+      bPlayInteractSound: 'Boolean',
+      Message: 'String',
+      ConsoleTag: 'String',
+    },
   },
   BCD_AudioEmitter: {
     version: 1,
