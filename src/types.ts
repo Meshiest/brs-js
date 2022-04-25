@@ -307,7 +307,7 @@ export interface Brick {
   material_index?: number;
   physical_index?: number;
   material_intensity?: number;
-  color?: ColorRgb | number;
+  color?: ColorRgb | number | UnrealColor | number[];
   owner_index?: number;
   components?: Components<DefinedComponents>;
 }

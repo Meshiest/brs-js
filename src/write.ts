@@ -213,12 +213,14 @@ export default function writeBrs(
             this.bit(true);
             if (
               brick.color &&
-              (!Array.isArray(brick.color) || brick.color.length !== 3)
+              (!Array.isArray(brick.color) || brick.color.length < 3)
             )
               throw new Error(
-                `Expected save.bricks[${i}].color to be an array of length 3`
+                `Expected save.bricks[${i}].color to be an array of at least length 3`
               );
-            this.bytes(new Uint8Array(brick.color ?? [255, 255, 255]));
+            this.bytes(
+              new Uint8Array(brick.color.slice(0, 3) ?? [255, 255, 255])
+            );
           }
 
           this.uint_packed(brick.owner_index ?? 1);
