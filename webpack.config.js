@@ -21,7 +21,7 @@ const config = {
             experimentalFileCaching: true,
           },
         },
-        exclude: /node_modules/,
+        exclude: /node_modules|dist/,
       },
     ],
   },

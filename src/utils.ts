@@ -179,7 +179,7 @@ function write_compressed(...args: Uint8Array[]): Uint8Array {
 function read_string(data: Bytes): string {
   const raw_size = read_i32(data);
   const is_ucs2 = raw_size < 0;
-  const size = is_ucs2 ? -raw_size : raw_size;
+  const size = is_ucs2 ? -raw_size * 2 : raw_size;
 
   // Determine if we are using UCS-2
   if (is_ucs2) {
@@ -197,6 +197,7 @@ function read_string(data: Bytes): string {
     const strData = subarray(data, size).subarray(0, -1);
 
     // Convert into ascii
+    // console.debug('[debug] strdata', strData);
     return String.fromCharCode.apply(null, strData);
   }
 }
@@ -372,7 +373,8 @@ export class BitReader {
   // read a string
   string(): string {
     const lenBytes = this.bytesArr(4);
-    const len = read_i32(new Uint8Array(lenBytes));
+    let len = read_i32(new Uint8Array(lenBytes));
+    if (len < 0) len = -len * 2;
     return read_string(new Uint8Array(lenBytes.concat(this.bytesArr(len))));
   }
 

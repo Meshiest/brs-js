@@ -1,6 +1,6 @@
 {
   "name": "brs-js",
-  "version": "2.0.11",
+  "version": "2.0.12",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "scripts": {
@@ -33,7 +33,7 @@
   "devDependencies": {
     "@babel/core": "^7.14.6",
     "@babel/preset-env": "^7.14.7",
-    "@types/pako": "^1.0.2",
+    "@types/pako": "^1.0.3",
     "babel-loader": "^8.0.6",
     "jest": "^27.0.6",
     "pako": "^1.0.10",

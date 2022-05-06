@@ -12,7 +12,7 @@
     "target": "es2020"
   },
   "exclude": [
-    "node_modules",
-    "dist",
+    "node_modules/",
+    "dist/",
   ]
 }
