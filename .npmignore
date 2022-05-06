@@ -1,6 +1,5 @@
 ./examples
 ./debug
 ./src
-*.js.map
 ./test
 .vscode

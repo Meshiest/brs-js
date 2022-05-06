@@ -212,7 +212,7 @@ function write_string(str: string): Uint8Array {
     );
   } else {
     // ucs2 strings denoted by negative length
-    const len = -((str.length + 1) * 2);
+    const len = -str.length;
     return concat(
       write_i32(len), // write length
       // convert string to little endian ucs2
@@ -220,8 +220,8 @@ function write_string(str: string): Uint8Array {
         str
           .split('')
           .flatMap(s => [s.charCodeAt(0) & 0xff, s.charCodeAt(0) >> 8])
-      ),
-      new Uint8Array([0]) // Null terminator
+      )
+      // new Uint8Array([0]) // Null terminator
     );
   }
 }
