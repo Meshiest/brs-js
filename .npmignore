@@ -1,5 +1,9 @@
-./examples
-./debug
-./src
-./test
+/examples
+/debug
+/src
+/test
 .vscode
+.babelrc
+.prettierrc
+tsconfig.json
+webpack.config.js
