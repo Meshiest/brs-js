@@ -219,7 +219,7 @@ export default function writeBrs(
                 `Expected save.bricks[${i}].color to be an array of at least length 3`
               );
             this.bytes(
-              new Uint8Array(brick.color.slice(0, 3) ?? [255, 255, 255])
+              new Uint8Array(brick.color?.slice(0, 3) ?? [255, 255, 255])
             );
           }
 
