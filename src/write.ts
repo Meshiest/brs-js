@@ -184,7 +184,7 @@ export default function writeBrs(
           const isNonProcedural = isEqual(brick.size, [0, 0, 0]);
           this.bit(!isNonProcedural);
           if (!isNonProcedural) {
-            brick.size.map(s => this.uint_packed(s));
+            brick.size.map(s => this.uint_packed(s >= 0 ? s : 1));
           }
           brick.position.map(s => this.int_packed(s));
           this.int(((brick.direction ?? 4) << 2) | (brick.rotation ?? 0), 24);
@@ -223,7 +223,7 @@ export default function writeBrs(
             );
           }
 
-          this.uint_packed(brick.owner_index ?? 1);
+          this.uint_packed(brick.owner_index >= 0 ? brick.owner_index : 0);
 
           // add all the brick indices to the components list
           for (const key in brick.components ?? {}) {
