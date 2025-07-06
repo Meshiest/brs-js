@@ -1,6 +1,6 @@
 {
   "name": "brs-js",
-  "version": "2.0.16",
+  "version": "2.1.0",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "file",
     "format"
   ],
-  "author": "Meshiest <meek.mesh@gmail.com>",
+  "author": "Meshiest <gpg@reheatedcake.io>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/meshiest/brs-js/issues"

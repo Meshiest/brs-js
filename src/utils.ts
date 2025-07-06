@@ -7,6 +7,7 @@ import {
   UnrealFloat,
   UnrealType,
   Uuid,
+  WireGraphVariant,
 } from './types';
 import { uuidParse, uuidStringify } from './uuid';
 
@@ -391,6 +392,66 @@ export class BitReader {
     return view.getFloat32(0);
   }
 
+  integer(): number {
+    const view = new DataView(new ArrayBuffer(4));
+    view.setUint16(2, read_u16(this.bytes(2)));
+    view.setUint16(0, read_u16(this.bytes(2)));
+
+    // Read the bits as a signed 32-bit integer
+    return view.getInt32(0);
+  }
+
+  int64(): number {
+    const view = new DataView(new ArrayBuffer(8));
+
+    // Read it 2 bytes at a time
+    view.setUint16(6, read_u16(this.bytes(2)));
+    view.setUint16(4, read_u16(this.bytes(2)));
+    view.setUint16(2, read_u16(this.bytes(2)));
+    view.setUint16(0, read_u16(this.bytes(2)));
+
+    // Read the bits as a signed 64-bit integer
+    const num = view.getBigInt64(0);
+    if (Number.isSafeInteger(num)) {
+      return Number(num);
+    }
+    throw new Error(
+      `Cannot read 64-bit integer ${num} as a JavaScript numbe...`
+    );
+  }
+
+  // read a 64-bit double
+  double(): number {
+    const view = new DataView(new ArrayBuffer(8));
+
+    // Read it 2 bytes at a time
+    view.setUint16(6, read_u16(this.bytes(2)));
+    view.setUint16(4, read_u16(this.bytes(2)));
+    view.setUint16(2, read_u16(this.bytes(2)));
+    view.setUint16(0, read_u16(this.bytes(2)));
+
+    // Read the bits as a double
+    return view.getFloat64(0);
+  }
+
+  wireGraphVariant(): WireGraphVariant {
+    const type = this.bytes(1)[0];
+    switch (type) {
+      case 0: // number
+        return { number: this.double() };
+      case 1: // integer
+        return { integer: this.int64() };
+      case 2: // bool
+        return { bool: this.bit() };
+      case 3: // exec
+        return { exec: true };
+      case 4: // object
+        return { object: true };
+      default:
+        throw new Error(`Unknown wire graph variant type ${type}`);
+    }
+  }
+
   // read unreal types
   unreal(type: string): UnrealType {
     switch (type) {
@@ -400,14 +461,24 @@ export class BitReader {
         return this.string();
       case 'Boolean':
         return !!read_i32(this.bytes(4));
+      case 'Integer':
+        return this.integer();
+      case 'Integer64':
+        return this.int64();
       case 'Float':
         return this.float();
+      case 'Double':
+        return this.double();
       case 'Color':
         return bgra(this.bytesArr(4)) as UnrealColor;
       case 'Byte':
         return this.bytes(1)[0];
       case 'Rotator':
         return [this.float(), this.float(), this.float()];
+      case 'WireGraphVariant':
+        return this.wireGraphVariant();
+      case 'WireGraphPrimMathVariant':
+        return this.wireGraphVariant();
     }
     throw new Error('Unknown unreal type ' + type);
   }
@@ -515,6 +586,65 @@ export class BitWriter {
     // convert it into a byte array
     const bytes = new Int8Array(floatArr.buffer);
     this.bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+  }
+
+  integer(num: number) {
+    // create an int array
+    const intArr = new Int32Array(1);
+    // assign the number
+    intArr[0] = num;
+    // convert it into a byte array
+    const bytes = new Int8Array(intArr.buffer);
+    this.bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+  }
+
+  int64(num: number) {
+    // write this as a 64-bit integer using a dataview
+    const view = new DataView(new ArrayBuffer(8));
+    view.setBigInt64(0, BigInt(num), true);
+    this.bytes(new Uint8Array(view.buffer));
+  }
+
+  double(num: number) {
+    // create a double array
+    const doubleArr = new Float64Array(1);
+    // assign the number
+    doubleArr[0] = num;
+    // convert it into a byte array
+    const bytes = new Int8Array(doubleArr.buffer);
+    this.bytes([
+      bytes[0],
+      bytes[1],
+      bytes[2],
+      bytes[3],
+      bytes[4],
+      bytes[5],
+      bytes[6],
+      bytes[7],
+    ]);
+  }
+
+  wireGraphVariant(variant: WireGraphVariant) {
+    if ('number' in variant) {
+      this.bytes([0]); // type 0
+      this.double(variant.number);
+    } else if ('integer' in variant) {
+      this.bytes([1]); // type 1
+      this.int64(variant.integer);
+    } else if ('bool' in variant) {
+      this.bytes([2]); // type 2
+      this.bit(variant.bool);
+    } else if ('exec' in variant) {
+      this.bytes([3]); // type 3
+      // no data for exec
+    } else if ('object' in variant) {
+      this.bytes([4]); // type 4
+      // no data for object
+    } else {
+      throw new Error(
+        `Unknown wire graph variant type ${JSON.stringify(variant)}`
+      );
+    }
   }
 
   // run a function with `this` as a BitReader

@@ -2,7 +2,6 @@ import { DEFAULT_UUID, LATEST_VERSION, MAGIC, MAX_INT } from './constants';
 import {
   Brick,
   DefinedComponents,
-  KnownComponents,
   Owner,
   WriteOptions,
   WriteSaveObject,
@@ -77,6 +76,259 @@ export const DEFAULT_COMPONENTS: DefinedComponents = {
       bSpatialization: 'Boolean',
     },
   },
+  Component_Internal_Rerouter: {
+    version: 1,
+    properties: {},
+  },
+  BrickComponentType_Internal_ReadBrickGrid: {
+    version: 1,
+    properties: {},
+  },
+  BrickComponentType_WireGraphPseudo_BufferSeconds: {
+    version: 1,
+    properties: {
+      SecondsToWait: 'Float',
+      ZeroSecondsToWait: 'Float',
+      CurrentTime: 'Float',
+      Input: 'WireGraphVariant',
+      Output: 'WireGraphVariant',
+      Buffered: 'WireGraphVariant',
+      Queued: 'WireGraphVariant',
+      bHasQueued: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraphPseudo_BufferTicks: {
+    version: 1,
+    properties: {
+      TicksToWait: 'Integer',
+      ZeroTicksToWait: 'Integer',
+      CurrentTicks: 'Integer',
+      Input: 'WireGraphVariant',
+      Output: 'WireGraphVariant',
+      Buffered: 'WireGraphVariant',
+      Queued: 'WireGraphVariant',
+      bHasQueued: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraphPseudo_Const: {
+    version: 1,
+    properties: {
+      Value: 'WireGraphVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseAND: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseNAND: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseNOR: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseNOT: {
+    version: 1,
+    properties: {
+      Input: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseOR: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseShiftLeft: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseShiftRight: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_BitwiseXOR: {
+    version: 1,
+    properties: {
+      InputA: 'Integer64',
+      InputB: 'Integer64',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_Ceil: {
+    version: 1,
+    properties: {
+      Input: 'Double',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareEqual: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphVariant',
+      InputB: 'WireGraphVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareGreater: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareGreaterOrEqual: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareLess: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareLessOrEqual: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_CompareNotEqual: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphVariant',
+      InputB: 'WireGraphVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_Floor: {
+    version: 1,
+    properties: {
+      Input: 'Double',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalAND: {
+    version: 1,
+    properties: {
+      bInputA: 'Boolean',
+      bInputB: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalNAND: {
+    version: 1,
+    properties: {
+      bInputA: 'Boolean',
+      bInputB: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalNOR: {
+    version: 1,
+    properties: {
+      bInputA: 'Boolean',
+      bInputB: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalNOT: {
+    version: 1,
+    properties: {
+      bInput: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalOR: {
+    version: 1,
+    properties: {
+      bInputA: 'Boolean',
+      bInputB: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_LogicalXOR: {
+    version: 1,
+    properties: {
+      bInputA: 'Boolean',
+      bInputB: 'Boolean',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathAdd: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathBlend: {
+    version: 1,
+
+    properties: {
+      Blend: 'Double',
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathDivide: {
+    version: 1,
+
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathModulo: {
+    version: 1,
+
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathModuloFloored: {
+    version: 1,
+
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathMultiply: {
+    version: 1,
+
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponentType_WireGraph_Expr_MathSubtract: {
+    version: 1,
+    properties: {
+      InputA: 'WireGraphPrimMathVariant',
+      InputB: 'WireGraphPrimMathVariant',
+    },
+  },
+  BrickComponent_WireGraph_Expr_EdgeDetector: {
+    version: 1,
+    properties: {
+      Input: 'Double',
+      bPulseOnRisingEdge: 'Boolean',
+      bPulseOnFallingEdge: 'Boolean',
+    },
+  },
 };
 
 export default function writeBrs(
@@ -111,6 +363,9 @@ export default function writeBrs(
 
   if (save.preview && !Array.isArray(save.preview))
     throw new Error('Expected preview to be an array');
+
+  let componentMap: Record<string, number> = {};
+  let componentCount = 0;
 
   const buff = concat(
     // Write magic bytes
@@ -147,8 +402,18 @@ export default function writeBrs(
       write.array(save.materials ?? ['BMC_Plastic'], write.string),
       write.array(
         save.brick_owners ?? [],
-        ({ id = DEFAULT_UUID, name = 'Unknown', bricks = 0 }: Partial<Owner>) =>
-          concat(write.uuid(id), write.string(name), write.i32(bricks))
+        ({
+          id = DEFAULT_UUID,
+          name = 'Unknown',
+          display_name = 'Unknown',
+          bricks = 0,
+        }: Partial<Owner>) =>
+          concat(
+            write.uuid(id),
+            write.string(name),
+            write.string(display_name),
+            write.i32(bricks)
+          )
       ),
       write.array(save.physical_materials ?? ['BPMC_Default'], write.string)
     ),
@@ -193,12 +458,14 @@ export default function writeBrs(
             this.bit(brick.collision);
             this.bit(brick.collision);
             this.bit(brick.collision);
+            this.bit(brick.collision);
             this.bit(true);
           } else {
             this.bit(brick.collision?.player ?? true);
             this.bit(brick.collision?.weapon ?? true);
             this.bit(brick.collision?.interaction ?? true);
             this.bit(brick.collision?.tool ?? true);
+            this.bit(brick.collision?.physics ?? true);
           }
 
           this.bit(brick?.visibility ?? true);
@@ -251,6 +518,11 @@ export default function writeBrs(
                 const brick_indices = componentBrickOwnership[name];
                 const properties = Object.entries(component.properties);
 
+                if (!(name in componentMap)) {
+                  componentMap[name] = componentCount;
+                  componentCount++;
+                }
+
                 // write version
                 this.bytes(write.i32(component.version));
 
@@ -281,6 +553,73 @@ export default function writeBrs(
               .finishSection()
           )
       )
+    ),
+
+    compress(
+      write
+        .bits()
+        .self(function () {
+          const intMax = 4294967295;
+          if (!save.wires || !Array.isArray(save.wires)) {
+            this.int(0, 4294967295); // u32 max
+            return;
+          }
+
+          this.int(save.wires.length, intMax);
+          for (const wire of save.wires) {
+            if (typeof wire !== 'object')
+              throw new Error('Expected save.wires to be an array of objects');
+
+            if (
+              !(
+                wire.source &&
+                typeof wire.source === 'object' &&
+                typeof wire.source.brick_index === 'number' &&
+                typeof wire.source.component === 'string' &&
+                typeof wire.source.port === 'string'
+              )
+            ) {
+              throw new Error(
+                'Expected save.wires[i].source to be an object with brick_index, component, and port properties'
+              );
+            }
+
+            if (
+              !(
+                wire.target &&
+                typeof wire.target === 'object' &&
+                typeof wire.target.brick_index === 'number' &&
+                typeof wire.target.component === 'string' &&
+                typeof wire.target.port === 'string'
+              )
+            ) {
+              throw new Error(
+                'Expected save.wires[i].target to be an object with brick_index, component, and port properties'
+              );
+            }
+
+            if (!(wire.source.component in componentMap))
+              throw new Error(
+                `Unknown component '${wire.source.component}' in wire source`
+              );
+            if (!(wire.target.component in componentMap))
+              throw new Error(
+                `Unknown component '${wire.target.component}' in wire target`
+              );
+
+            this.int(wire.source.brick_index, save.bricks.length);
+            this.int(componentMap[wire.source.component], componentCount);
+            this.string(wire.source.port);
+
+            this.int(wire.target.brick_index, save.bricks.length);
+            this.int(componentMap[wire.target.component], componentCount);
+            this.string(wire.target.port);
+
+            this.bit(false); // "skip prev bit that was in use lmao"
+            this.align();
+          }
+        })
+        .finishSection()
     )
   );
   return buff;

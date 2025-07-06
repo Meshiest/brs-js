@@ -11,10 +11,18 @@ export type UnrealClass = string;
 export type UnrealObject = string;
 export type UnrealBoolean = boolean;
 export type UnrealFloat = number;
+export type UnrealInteger = number;
+export type UnrealInteger64 = number;
 export type UnrealColor = [number, number, number, number];
 export type UnrealByte = number;
 export type UnrealRotator = [number, number, number];
 export type UnrealString = string;
+export type WireGraphVariant =
+  | { number: number }
+  | { integer: number }
+  | { bool: boolean }
+  | { exec: true }
+  | { object: true };
 export type UnrealType =
   | UnrealClass
   | UnrealObject
@@ -23,7 +31,9 @@ export type UnrealType =
   | UnrealColor
   | UnrealByte
   | UnrealRotator
-  | UnrealString;
+  | UnrealString
+  | WireGraphVariant
+  | UnrealInteger64;
 
 type UnrealTypeFromString<T> = T extends 'Class'
   ? UnrealClass
@@ -41,6 +51,14 @@ type UnrealTypeFromString<T> = T extends 'Class'
   ? UnrealRotator
   : T extends 'String'
   ? UnrealString
+  : T extends 'WireGraphVariant'
+  ? WireGraphVariant
+  : T extends 'WireGraphPrimMathVariant'
+  ? WireGraphVariant
+  : T extends 'Integer'
+  ? UnrealInteger
+  : T extends 'Integer64'
+  ? UnrealInteger64
   : UnrealType;
 
 export interface User {
@@ -48,8 +66,12 @@ export interface User {
   name: string;
 }
 
-export interface Owner extends User {
+export interface LegacyOwner extends User {
   bricks: number;
+}
+
+export interface Owner extends LegacyOwner {
+  display_name: string;
 }
 
 export enum Direction {
@@ -75,6 +97,7 @@ export interface Collision {
   weapon: boolean;
   interaction: boolean;
   tool: boolean;
+  physics: boolean;
 }
 
 export interface AppliedComponent {
@@ -176,6 +199,17 @@ export type Components<C extends DefinedComponents> = {
 
 export type Vector = [number, number, number];
 
+export type WirePort = {
+  brick_index: number;
+  component: string;
+  port: string;
+};
+
+export type Wire = {
+  source: WirePort;
+  target: WirePort;
+};
+
 export interface BrickV1 {
   asset_name_index: number;
   size: Vector;
@@ -260,7 +294,7 @@ export type BrsV8 = Modify<
   {
     version: 8;
     host: User;
-    brick_owners: Owner[];
+    brick_owners: LegacyOwner[];
     preview?: Bytes;
     game_version: number;
     bricks: BrickV8[];
@@ -285,6 +319,14 @@ export type BrsV10 = Modify<
   }
 >;
 
+export type BrsV14 = Modify<
+  BrsV10,
+  {
+    version: 14;
+    wires: Wire[];
+  }
+>;
+
 // a save read from a file
 export type ReadSaveObject =
   | BrsV1
@@ -293,7 +335,8 @@ export type ReadSaveObject =
   | BrsV4
   | BrsV8
   | BrsV9
-  | BrsV10;
+  | BrsV10
+  | BrsV14;
 
 // a brick a user provides
 export interface Brick {
@@ -329,6 +372,7 @@ export interface WriteSaveObject {
   bricks: Brick[];
   save_time?: ArrayLike<number>;
   components?: DefinedComponents;
+  wires?: Wire[];
 }
 
 export interface ReadOptions {

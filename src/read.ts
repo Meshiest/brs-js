@@ -1,6 +1,7 @@
 import { MAGIC } from './constants';
 import readBrsV1 from './read.v1';
 import readBrsV10 from './read.v10';
+import readBrsV14 from './read.v14';
 import readBrsV2 from './read.v2';
 import readBrsV3 from './read.v3';
 import readBrsV4 from './read.v4';
@@ -51,6 +52,8 @@ export default function readBrs(
       return readBrsV9(brsData, options);
     case 10:
       return readBrsV10(brsData, options);
+    case 14:
+      return readBrsV14(brsData, options);
     default:
       throw new Error('Unsupported version ' + version);
   }
