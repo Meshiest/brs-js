@@ -1,13 +1,13 @@
 import {
+  BrickV3,
   BRSBytes,
-  ReadOptions,
   BrsV3,
+  ReadOptions,
   UnrealColor,
   User,
-  BrickV3,
   Vector,
 } from './types';
-import { read, bgra } from './utils';
+import { bgra, read } from './utils';
 
 // Reads in a byte array to build a brs object
 export default function readBrsV3(

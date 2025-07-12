@@ -2,20 +2,21 @@ import {
   AppliedComponent,
   BrickV10,
   BRSBytes,
-  BrsV10,
+  BrsV14,
   Collision,
   ReadOptions,
   UnrealColor,
   User,
   Vector,
+  Wire,
 } from './types';
 import { bgra, read } from './utils';
 
 // Reads in a byte array to build a brs object
-export default function readBrsV10(
+export default function readBrsV14(
   brsData: BRSBytes,
   options: ReadOptions = {}
-): BrsV10 {
+): BrsV14 {
   // game version is included in saves >= v8
   const game_version = read.i32(brsData);
 
@@ -46,6 +47,7 @@ export default function readBrsV10(
   const brick_owners = read.array(header2Data, data => ({
     id: read.uuid(data),
     name: read.string(data),
+    display_name: read.string(data),
     bricks: read.i32(data),
   }));
 
@@ -64,7 +66,8 @@ export default function readBrsV10(
 
   // Read in bricks
   let bricks: BrickV10[] = [];
-  const components: BrsV10['components'] = {};
+  const components: BrsV14['components'] = {};
+  const wires: Wire[] = [];
 
   const numPhysMats = Math.max(physical_materials.length, 2);
   const numMats = Math.max(materials.length, 2);
@@ -100,7 +103,7 @@ export default function readBrsV10(
         weapon: brickBits.bit(),
         interaction: brickBits.bit(),
         tool: brickBits.bit(),
-        physics: false, // v10 does not have physics collision
+        physics: brickBits.bit(),
       };
       const visibility = brickBits.bit();
       const material_index = brickBits.int(numMats);
@@ -130,7 +133,9 @@ export default function readBrsV10(
     }
 
     const componentData = read.compressed(brsData);
+    const wiresData = read.compressed(brsData);
     const numBricks = Math.max(bricks.length, 2);
+    const componentIndex: string[] = [];
 
     read.each(componentData, data => {
       // read component name
@@ -140,6 +145,7 @@ export default function readBrsV10(
       const bits = read.bits(read.bytes(data, read.i32(data)));
 
       const version = read.i32(bits.bytes(4));
+
       // list of bricks
       const brick_indices = bits.array(() => bits.int(numBricks));
 
@@ -153,16 +159,52 @@ export default function readBrsV10(
         bricks[i].components[name] = props;
       }
 
+      if (!(name in components)) {
+        componentIndex.push(name);
+      }
       components[name] = {
         version,
         brick_indices,
         properties: Object.fromEntries(properties),
       };
     });
+
+    const numComponents = Math.max(componentIndex.length, 2);
+
+    {
+      const bits = read.bits(wiresData);
+
+      const numWires = bits.int(4294967295); // u32 max
+      for (let i = 0; i < numWires; i++) {
+        const srcBrick = bits.int(numBricks);
+        const srcComponentIndex = bits.int(numComponents);
+        const srcPort = bits.string();
+
+        const dstBrick = bits.int(numBricks);
+        const dstComponentIndex = bits.int(numComponents);
+        const dstPort = bits.string();
+
+        bits.bit(); // "skip prev bit that was in use lmao"
+        bits.align();
+
+        wires.push({
+          source: {
+            brick_index: srcBrick,
+            component: componentIndex[srcComponentIndex],
+            port: srcPort,
+          },
+          target: {
+            brick_index: dstBrick,
+            component: componentIndex[dstComponentIndex],
+            port: dstPort,
+          },
+        });
+      }
+    }
   }
 
   return {
-    version: 10,
+    version: 14,
     game_version,
     map,
     description,
@@ -182,5 +224,6 @@ export default function readBrsV10(
     brick_count,
     save_time,
     components,
+    wires,
   };
 }

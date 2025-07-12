@@ -1,13 +1,13 @@
 import {
-  BRSBytes,
-  ReadOptions,
-  BrsV9,
-  User,
-  UnrealColor,
-  BrickV9,
-  Vector,
-  ColorRgb,
   AppliedComponent,
+  BrickV9,
+  BRSBytes,
+  BrsV9,
+  ColorRgb,
+  ReadOptions,
+  UnrealColor,
+  User,
+  Vector,
 } from './types';
 import { bgra, read } from './utils';
 

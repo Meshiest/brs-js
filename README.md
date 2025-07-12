@@ -49,18 +49,21 @@ Unsigned ints, while unlikely, may overflow.
   brick_assets: [string],
     // --- See bottom of page for known bricks ---
   colors: [[byte, byte, byte, byte], ... ],
-  physical_materials: [string],
+  physical_materials: [string], // BPMC_Default
   materials: [string],
     // --- Known available materials
     // BMC_Ghost
     // BMC_Ghost_Fail
     // BMC_Plastic
+    // BMC_Glass
+    // BMC_TranslucentPlastic
     // BMC_Glow
     // BMC_Metallic
     // BMC_Hologram
   brick_owners: [{
     id: uuid,
     name: string,
+    displayName: string, // (v14+ only)
     bricks: int // (v8+ only)
   }, ... ],
   components: {
@@ -71,6 +74,18 @@ Unsigned ints, while unlikely, may overflow.
     },
     ...
   },
+  wires: [{
+    source: {
+      component: string, // component name
+      brick_index: int, // index of the brick in `bricks`
+      port: string, // port name
+    },
+    target: {
+      component: string, // component name
+      brick_index: int, // index of the brick in `bricks`
+      port: string, // port name
+    },
+  }]
   bricks: [{
     asset_name_index: int,
     size: [uint, uint, uint],
@@ -93,7 +108,13 @@ Unsigned ints, while unlikely, may overflow.
       // 1: 90 Deg
       // 2: 180 Deg
       // 3: 270 Deg
-    collision: bool,
+    collision: {
+      player: bool,
+      weapon: bool,
+      interaction: bool,
+      tool: bool,
+      physics: bool, // disable physics collision
+    }, // or bool
     visibility: bool,
     material_index: uint,
     physical_index: uint,
@@ -131,6 +152,7 @@ Unsigned ints, while unlikely, may overflow.
 | brick_owners                | array  | [{}]                                 | &#9745;  | Brick owner list                 |
 | brick_owners[].id           | uuid   | 00000000-0000-0000-0000-000000000000 | &#9745;  | Brick owner list user uuid       |
 | brick_owners[].name         | string | 'Unknown'                            | &#9745;  | Brick owner list user name       |
+| brick_owners[].display_name | string | 'Unknown'                            | &#9745;  | Brick owner list display name    |
 | preview                     | array  | undefined                            | &#9745;  | 1280x720 png screenshot data     |
 | bricks                      | array  |                                      |          | List of bricks in the save       |
 | bricks[].asset_name_index   | int    | 0 (0 indexed)                        | &#9745;  | Index of asset in `brick_assets` |
@@ -139,6 +161,7 @@ Unsigned ints, while unlikely, may overflow.
 | bricks[].direction          | int    | 4 (Positive Z, Upward)               | &#9745;  | Brick axis / facing direction    |
 | bricks[].rotation           | int    | 0 (0 degrees)                        | &#9745;  | Brick rotation on axis           |
 | bricks[].collision          | bool   | true                                 | &#9745;  | Brick has collision with players |
+| bricks[].collision          | object |                                      | &#9745;  | Brick collision in general       |
 | bricks[].visibility         | bool   | true                                 | &#9745;  | Brick renders to players         |
 | bricks[].material_index     | int    | 0 (0 indexed)                        | &#9745;  | Index of material in `materials` |
 | bricks[].material_intensity | int    | 0 (0 indexed)                        | &#9745;  | Material intensity (0-10)        |
@@ -281,6 +304,41 @@ Notes:
 | B_Swirl_Plate | |
 | B_Turkey_Body | |
 | B_Turkey_Leg | |
+| B_1x1_Gate_Constant | |
+| B_1x1_Gate_Subtract | |
+| B_1x1_Gate_Multiply | |
+| B_1x1_Gate_ModFloored | |
+| B_1x1_Gate_Mod | |
+| B_1x1_Gate_Divide | |
+| B_1x1_Gate_Blend | |
+| B_1x1_Gate_Add | |
+| B_1x1_Gate_XOR | |
+| B_1x1_Gate_OR | |
+| B_1x1_Gate_NOR | |
+| B_1x1_Gate_NAND | |
+| B_1x1_Gate_EdgeDetector | |
+| B_1x1_Gate_Floor | |
+| B_1x1_Gate_Ceiling | |
+| B_1x1_EntityGate_ReadBrickGrid | |
+| B_1x1_Gate_NotEqual | |
+| B_1x1_Gate_LessThanEqual | |
+| B_1x1_Gate_LessThan | |
+| B_1x1_Gate_GreaterThanEqual | |
+| B_1x1_Gate_GreaterThan | |
+| B_1x1_Gate_XOR_Bitwise | |
+| B_1x1_Gate_ShiftRight_Bitwise | |
+| B_1x1_Gate_ShiftLeft_Bitwise | |
+| B_1x1_Gate_OR_Bitwise | |
+| B_1x1_Gate_NOR_Bitwise | |
+| B_1x1_Gate_NAND_Bitwise | |
+| B_1x1_Gate_AND_Bitwise | |
+| B_1x1_Reroute_Node | |
+| B_1x1_Gate_Timer_Tick | |
+| B_1x1_Gate_Timer | |
+| B_1x1_NOT_Gate | |
+| B_1x1_Gate_AND | |
+| B_1x1_Gate_Equal | |
+| B_1x1_Gate_NOT_Bitwise | |
 
 ## Development
 
