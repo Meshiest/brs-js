@@ -3,7 +3,7 @@ const { read, write } = require('..');
 // const uuid0 = '00000000-0000-0000-0000-000000000000';
 const uuid0 = '12345678-4321-1234-4321-123456789012';
 const save = {
-  version: 10,
+  version: 14,
   map: 'Unknown',
   description: '',
   author: { id: uuid0, name: 'Test' },
@@ -18,7 +18,7 @@ const save = {
   host: { id: uuid0, name: 'Test' },
   materials: ['BMC_Hologram', 'BMC_Plastic', 'BMC_Glow', 'BMC_Metallic'],
   physical_materials: ['BPMC_Default'],
-  brick_owners: [{ id: uuid0, name: 'Test', bricks: 0 }],
+  brick_owners: [{ id: uuid0, name: 'Test', bricks: 0, display_name: 'Test' }],
   bricks: [
     {
       asset_name_index: 1,
@@ -30,6 +30,7 @@ const save = {
       rotation: 0,
       collision: {
         player: true,
+        physics: true,
         interaction: true,
         tool: true,
         weapon: true,
@@ -41,9 +42,10 @@ const save = {
       color: [0, 0, 0],
     },
   ],
+  wires: [],
 };
 test('creating a brs from thin air', () => {
-  expect(read(write(save))).toEqual(save);
+  expect(read(write(save, { compress: false }))).toEqual(save);
 });
 
 test('reads no bricks when the option is passed in', () => {

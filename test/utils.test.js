@@ -196,6 +196,20 @@ describe('buffer read/writing', () => {
       expect(bits.float()).toBeCloseTo(123.45);
     });
 
+    it('doubles', () => {
+      const written = write.bits();
+      written.double(123.45);
+      const bits = read.bits(written.finish());
+      expect(bits.double()).toBeCloseTo(123.45);
+    });
+
+    it('integer64', () => {
+      const written = write.bits();
+      written.int64(1234567890);
+      const bits = read.bits(written.finish());
+      expect(bits.int64()).toBe(1234567890);
+    });
+
     it('writes floats', () => {
       const bits = write.bits();
       bits.float(123.45);
@@ -203,6 +217,27 @@ describe('buffer read/writing', () => {
         new Uint8Array([0x42, 0xf6, 0xe6, 0x66]).reverse()
       );
     });
+
+    it('reads wire graph types', () => {
+      const datas = [
+        { bool: false },
+        { bool: true },
+        { number: 1.23 },
+        { number: -1 },
+        { number: 0.0 },
+        { integer: 123456789 },
+        { integer: -123456789 },
+        { integer: 0 },
+      ];
+
+      for (const data of datas) {
+        const written = write.bits();
+        written.wireGraphVariant(data);
+        const bits = read.bits(written.finish());
+        expect(bits.wireGraphVariant()).toMatchObject(data);
+      }
+    });
+    // it('writes wire graph types', () => {});
 
     // TODO: tests for int_packed, uint_packed, bytes
   });

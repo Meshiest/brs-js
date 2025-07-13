@@ -446,7 +446,8 @@ export default function writeBrs(
           this.align();
           this.int(brick.asset_name_index ?? 0, numAssets);
 
-          const isNonProcedural = isEqual(brick.size, [0, 0, 0]);
+          const isNonProcedural =
+            brick.size === null || isEqual(brick.size, [0, 0, 0]);
           this.bit(!isNonProcedural);
           if (!isNonProcedural) {
             brick.size.map(s => this.uint_packed(s >= 0 ? s : 1));
@@ -458,8 +459,8 @@ export default function writeBrs(
             this.bit(brick.collision);
             this.bit(brick.collision);
             this.bit(brick.collision);
-            this.bit(brick.collision);
             this.bit(true);
+            this.bit(brick.collision);
           } else {
             this.bit(brick.collision?.player ?? true);
             this.bit(brick.collision?.weapon ?? true);
@@ -468,8 +469,8 @@ export default function writeBrs(
             this.bit(brick.collision?.physics ?? true);
           }
 
-          this.bit(brick?.visibility ?? true);
-          this.int(brick?.material_index ?? 0, numMats);
+          this.bit(brick.visibility ?? true);
+          this.int(brick.material_index ?? 0, numMats);
           this.int(brick.physical_index ?? 0, numPhysMats);
           this.int(brick.material_intensity ?? 5, 11);
 
@@ -560,8 +561,13 @@ export default function writeBrs(
         .bits()
         .self(function () {
           const intMax = 4294967295;
-          if (!save.wires || !Array.isArray(save.wires)) {
-            this.int(0, 4294967295); // u32 max
+          if (
+            !save.wires ||
+            !Array.isArray(save.wires) ||
+            save.wires.length === 0
+          ) {
+            // if no wires, write
+            this.int(0, intMax); // u32 max
             return;
           }
 
@@ -619,7 +625,7 @@ export default function writeBrs(
             this.align();
           }
         })
-        .finishSection()
+        .finish()
     )
   );
   return buff;

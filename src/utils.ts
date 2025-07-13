@@ -412,11 +412,11 @@ export class BitReader {
 
     // Read the bits as a signed 64-bit integer
     const num = view.getBigInt64(0);
-    if (Number.isSafeInteger(num)) {
+    if (num <= 1n << 64n) {
       return Number(num);
     }
     throw new Error(
-      `Cannot read 64-bit integer ${num} as a JavaScript numbe...`
+      `Cannot read 64-bit integer ${num} as a JavaScript number...`
     );
   }
 
@@ -442,7 +442,7 @@ export class BitReader {
       case 1: // integer
         return { integer: this.int64() };
       case 2: // bool
-        return { bool: this.bit() };
+        return { bool: this.bytes(1)[0] !== 0 };
       case 3: // exec
         return { exec: true };
       case 4: // object
@@ -598,10 +598,10 @@ export class BitWriter {
     this.bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
   }
 
-  int64(num: number) {
+  int64(num: number | bigint | string) {
     // write this as a 64-bit integer using a dataview
     const view = new DataView(new ArrayBuffer(8));
-    view.setBigInt64(0, BigInt(num), true);
+    view.setBigInt64(0, typeof num === 'bigint' ? num : BigInt(num), true);
     this.bytes(new Uint8Array(view.buffer));
   }
 
@@ -632,8 +632,7 @@ export class BitWriter {
       this.bytes([1]); // type 1
       this.int64(variant.integer);
     } else if ('bool' in variant) {
-      this.bytes([2]); // type 2
-      this.bit(variant.bool);
+      this.bytes([2, variant.bool ? 1 : 0]); // type 2
     } else if ('exec' in variant) {
       this.bytes([3]); // type 3
       // no data for exec
@@ -735,6 +734,46 @@ export class BitWriter {
         this.float(value[0]);
         this.float(value[1]);
         this.float(value[2]);
+        return;
+      case 'Integer':
+        if (typeof value !== 'number') {
+          throw new Error(
+            `writing unreal type Integer, did not receive integer (${value})`
+          );
+        }
+        this.integer(value);
+        return;
+      case 'Integer64':
+        if (typeof value !== 'number') {
+          throw new Error(
+            `writing unreal type Integer64, did not receive integer (${value})`
+          );
+        }
+        this.int64(value);
+        return;
+      case 'Double':
+        if (typeof value !== 'number') {
+          throw new Error(
+            `writing unreal type Double, did not receive double (${value})`
+          );
+        }
+        this.double(value);
+        return;
+      case 'WireGraphVariant':
+        if (typeof value !== 'object') {
+          throw new Error(
+            `writing unreal type WireGraphVariant, did not receive object (${value})`
+          );
+        }
+        this.wireGraphVariant(value as WireGraphVariant);
+        return;
+      case 'WireGraphPrimMathVariant':
+        if (typeof value !== 'object') {
+          throw new Error(
+            `writing unreal type WireGraphPrimMathVariant, did not receive object (${value})`
+          );
+        }
+        this.wireGraphVariant(value as WireGraphVariant);
         return;
     }
     throw new Error('Unknown unreal type ' + type);
