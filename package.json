@@ -3,6 +3,8 @@
   "version": "2.1.1",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
+  "browser": "dist/dist.web.js",
+  "module": "dist/dist.node.js",
   "scripts": {
     "build": "npx webpack --progress",
     "watch": "npx webpack -w --progress",
