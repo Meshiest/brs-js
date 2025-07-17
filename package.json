@@ -1,13 +1,13 @@
 {
   "name": "brs-js",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "browser": "dist/dist.web.js",
   "module": "dist/dist.node.js",
   "scripts": {
     "build": "npx webpack --progress",
-    "prepare": "npm run build",
+    "prepare": "npm run dist",
     "watch": "npx webpack -w --progress",
     "dist": "NODE_ENV=production npx webpack",
     "test": "npx jest"
