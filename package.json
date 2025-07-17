@@ -7,6 +7,7 @@
   "module": "dist/dist.node.js",
   "scripts": {
     "build": "npx webpack --progress",
+    "prepare": "npm run build",
     "watch": "npx webpack -w --progress",
     "dist": "NODE_ENV=production npx webpack",
     "test": "npx jest"
