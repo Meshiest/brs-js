@@ -1,6 +1,6 @@
 // this code is modified from https://github.com/uuidjs/uuid
 
-import { Uuid } from './types';
+import { Uuid } from './brs/types';
 
 /*
 The MIT License (MIT)
@@ -14,7 +14,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 const hexTable: string[] = Array.from({ length: 256 }).map((_, i) =>
-  (i + 0x100).toString(16).substr(1)
+  (i + 0x100).toString(16).substr(1),
 );
 
 // stringify uuid
