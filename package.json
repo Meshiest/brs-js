@@ -4,12 +4,17 @@
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "browser": "dist/dist.web.js",
-  "module": "dist/dist.node.js",
+  "module": "dist/dist.mjs",
+  "files": [
+    "index.js",
+    "dist"
+  ],
   "scripts": {
-    "build": "npx webpack --progress",
-    "watch": "npx webpack -w --progress",
-    "dist": "NODE_ENV=production npx webpack",
-    "test": "npx jest"
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "watch": "vite build --watch",
+    "dist": "vite build && tsc --emitDeclarationOnly",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -33,16 +38,11 @@
   },
   "types": "./dist/src/index.d.ts",
   "devDependencies": {
-    "@babel/core": "^7.14.6",
-    "@babel/preset-env": "^7.14.7",
-    "@types/pako": "^1.0.3",
-    "babel-loader": "^8.0.6",
-    "jest": "^27.0.6",
-    "pako": "^1.0.10",
+    "@types/pako": "^2.0.4",
+    "pako": "^3.0.0",
     "prettier": "^2.3.2",
-    "ts-loader": "^9.2.3",
-    "typescript": "^4.3.5",
-    "webpack": "^5.44.0",
-    "webpack-cli": "^4.7.2"
+    "typescript": "^6.0.3",
+    "vite": "^8.1.2",
+    "vitest": "^4.1.9"
   }
 }

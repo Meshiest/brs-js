@@ -344,10 +344,11 @@ Notes:
 
 NPM Scripts (`npm run <cmd>`)
 
-| name  | description                                              |
-|-------|----------------------------------------------------------|
-| build | Build library in development mode                        |
-| watch | Auto-build library in development mode when files change |
-| dist  | Build library in production mode                         |
-| test  | Run tests                                                |
+| name       | description                                           |
+|------------|-------------------------------------------------------|
+| build      | Build all targets (web + node) and type declarations  |
+| watch      | Rebuild the library when files change                 |
+| dist       | Alias for `build`                                     |
+| test       | Run the test suite once                               |
+| test:watch | Run the test suite in watch mode                      |
 
