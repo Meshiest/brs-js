@@ -8,6 +8,7 @@ import type { Collision, Owner, Vector } from '../brs/types';
 import { bit } from './bits';
 import { ByteReader } from './bytes';
 import { BrzReader } from './brz';
+import { ENTITY_TYPE_STRUCTS } from './componentDb';
 import type { FoundFile, WorldFs } from './fs';
 import { guidToUuid } from './guid';
 import { BrdbSchema, BrdbValue } from './schema';
@@ -100,6 +101,41 @@ export interface BrzWorldBrick {
   owner_index: number;
 }
 
+/** Convert one linear-light color channel (0-255) to sRGB. Saves whose
+ * colors are stored linear (bColorsAreLinear true, or the field missing
+ * entirely on older saves) need this on read; new saves store sRGB already
+ * and skip the conversion. Values at or below 0x0F scale into a 15-wide
+ * range instead of 255, matching the low-value storage convention used
+ * throughout the color format. */
+export function linearToSrgb(v: number): number {
+  const scale = v <= 0x0f ? 15 : 255;
+  return Math.trunc(Math.pow(v / 255, 1 / 2.2) * scale);
+}
+
+/** Convert one brick color's R/G/B from linear to sRGB, leaving A (material
+ * intensity) untouched. */
+function colorToSrgb<T extends { R: number; G: number; B: number }>(c: T): T {
+  return {
+    ...c,
+    R: linearToSrgb(c.R),
+    G: linearToSrgb(c.G),
+    B: linearToSrgb(c.B),
+  };
+}
+
+/** Convert every Color0..Color7 slot of an entity's packed colors struct
+ * from linear to sRGB, leaving each slot's A untouched. */
+function entityColorsToSrgb(
+  colors: Record<string, BrdbValue>
+): Record<string, BrdbValue> {
+  const out: Record<string, BrdbValue> = {};
+  for (const [key, value] of Object.entries(colors))
+    out[key] = colorToSrgb(
+      value as { R: number; G: number; B: number; A: number }
+    );
+  return out;
+}
+
 /** Expand one decoded brick chunk SoA into bricks. Positions are relative to
  * the owning grid's origin (world origin for the main grid). */
 function decodeChunkBricks(
@@ -108,12 +144,23 @@ function decodeChunkBricks(
   basicCount: number
 ): BrzWorldBrick[] {
   // Expand the run-length size table: slot s belongs to the counter
-  // covering it; BrickSizes[s] is its size.
+  // covering it; BrickSizes[s] is its size. Bound the expansion by the real
+  // payload (a hostile/corrupt chunk could otherwise claim billions of
+  // slots from a single counter): the total must not exceed BrickSizes.
+  let totalNumSizes = 0;
+  for (const counter of soa.BrickSizeCounters)
+    totalNumSizes += counter.NumSizes;
+  if (totalNumSizes < 0 || totalNumSizes > soa.BrickSizes.length)
+    throw new Error('brdb: brick size counters exceed size table');
   const slotAssets: number[] = [];
   for (const counter of soa.BrickSizeCounters)
     for (let s = 0; s < counter.NumSizes; s++)
       slotAssets.push(counter.AssetIndex);
   const start: number = soa.ProceduralBrickStartingIndex;
+  // Saves whose colors are stored linear (older saves, or the field simply
+  // absent from this archive's schema) need converting to sRGB on read; new
+  // saves write bColorsAreLinear = false and are returned unchanged.
+  const linear: boolean = soa.bColorsAreLinear ?? true;
 
   const bricks: BrzWorldBrick[] = [];
   for (let i = 0; i < soa.BrickTypeIndices.length; i++) {
@@ -133,7 +180,8 @@ function decodeChunkBricks(
     }
     const rel = soa.RelativePositions[i];
     const orientation: number = soa.Orientations[i];
-    const color = soa.ColorsAndAlphas[i];
+    const rawColor = soa.ColorsAndAlphas[i];
+    const color = linear ? colorToSrgb(rawColor) : rawColor;
     bricks.push({
       asset_name_index,
       size,
@@ -161,6 +209,13 @@ function decodeChunkBricks(
   return bricks;
 }
 
+/** Reads a .brz or .brdb world lazily through a WorldFs. Schema blobs and
+ * decoded metadata (GlobalData, Owners, Bundle/World JSON) are cached for
+ * the lifetime of the reader; chunk payloads are always decoded fresh. For
+ * a .brz this is safe by construction (the archive never changes), but a
+ * reader built over a live Brdb (Brdb.worldReader()) must not be reused
+ * across a write to that database: construct a new reader afterward so
+ * cached metadata cannot mix with newly written chunk data. */
 export class WorldReader {
   private schemas = new Map<string, BrdbSchema>();
   private values = new Map<string, unknown>();
@@ -289,18 +344,22 @@ export class WorldReader {
       this.path('Bricks/ChunkIndexShared.schema'),
       'BRSavedBrickChunkIndexSoA'
     );
-    return soa.Chunk3DIndices.map((c: any, i: number) => ({
-      index: { x: c.X, y: c.Y, z: c.Z },
-      offset: {
-        x: soa.ChunkOffsets[i].X,
-        y: soa.ChunkOffsets[i].Y,
-        z: soa.ChunkOffsets[i].Z,
-      },
-      size: soa.ChunkSizes[i],
-      numBricks: soa.NumBricks[i],
-      numComponents: soa.NumComponents[i],
-      numWires: soa.NumWires[i],
-    }));
+    // ChunkOffsets/ChunkSizes were added to the format later; older worlds
+    // decode without them (the archive's own schema simply omits the
+    // keys), so default to a half-chunk offset and the standard chunk size.
+    return soa.Chunk3DIndices.map((c: any, i: number) => {
+      const off = soa.ChunkOffsets?.[i];
+      return {
+        index: { x: c.X, y: c.Y, z: c.Z },
+        offset: off
+          ? { x: off.X, y: off.Y, z: off.Z }
+          : { x: CHUNK_HALF, y: CHUNK_HALF, z: CHUNK_HALF },
+        size: soa.ChunkSizes?.[i] ?? CHUNK_SIZE,
+        numBricks: soa.NumBricks[i],
+        numComponents: soa.NumComponents[i],
+        numWires: soa.NumWires[i],
+      };
+    });
   }
 
   /** Decode one brick chunk's SoA. Not cached: chunk payloads are the bulk
@@ -365,6 +424,16 @@ export class WorldReader {
     const globalData = this.globalData();
     const r = new ByteReader(bytes);
     const soa: any = schema.readValue(r, 'BRSavedComponentChunkSoA');
+    // A hostile/corrupt chunk could claim billions of instances from a
+    // single counter with no backing data; validate the total against the
+    // real row count before looping instead of allocating unbounded.
+    let totalInstances = 0;
+    for (const counter of soa.ComponentTypeCounters)
+      totalInstances += counter.NumInstances;
+    if (totalInstances !== soa.ComponentBrickIndices.length)
+      throw new Error(
+        'brdb: component counters do not match brick index count'
+      );
 
     const components: ComponentInstance[] = [];
     let stream = 0;
@@ -447,6 +516,28 @@ export class WorldReader {
     const globalData = this.globalData();
     const r = new ByteReader(bytes);
     const soa: any = schema.readValue(r, 'BRSavedEntityChunkSoA');
+    // A hostile/corrupt chunk could claim billions of entities from a
+    // single counter with no backing rows; validate the total against the
+    // real row count before looping instead of allocating unbounded.
+    let totalEntities = 0;
+    for (const counter of soa.TypeCounters)
+      totalEntities += counter.NumEntities;
+    if (totalEntities !== soa.PersistentIndices.length)
+      throw new Error(
+        'brdb: entity counters do not match persistent index count'
+      );
+    // Very old (legacy) worlds omit EntityDataClassNames from GlobalData
+    // entirely; fall back to the known entity-type-to-class table, using
+    // 'Unknown' for anything not in it (an 'Unknown' struct decode throws
+    // loudly below, same as the reference behavior for such saves).
+    const entityDataClassNames: string[] =
+      globalData.EntityDataClassNames ??
+      globalData.EntityTypeNames.map(
+        (n: string) => ENTITY_TYPE_STRUCTS.get(n) ?? 'Unknown'
+      );
+    // Colors are stored linear on older saves (or any save whose schema
+    // simply omits the flag); convert to sRGB on read, alpha untouched.
+    const entityColorsLinear: boolean = soa.bColorsAreLinear ?? true;
 
     const entities: EntityRecord[] = [];
     let index = 0;
@@ -454,22 +545,28 @@ export class WorldReader {
       const typeName: string =
         globalData.EntityTypeNames[counter.TypeIndex] ?? '<invalid>';
       const rawClass: string | undefined =
-        globalData.EntityDataClassNames[counter.TypeIndex];
+        entityDataClassNames[counter.TypeIndex];
       const className = rawClass && rawClass !== 'None' ? rawClass : null;
       for (let i = 0; i < counter.NumEntities; i++) {
+        const rawColors = soa.ColorsAndAlphas[index];
         entities.push({
           typeName,
           className,
           persistentIndex: soa.PersistentIndices[index],
           ownerIndex: soa.OwnerIndices[index],
-          originalOwnerIndex: soa.OriginalOwnerIndices[index],
+          // Added alongside the per-entity original-owner update; older
+          // saves omit this column and mirror the owner index instead.
+          originalOwnerIndex:
+            soa.OriginalOwnerIndices?.[index] ?? soa.OwnerIndices[index],
           location: soa.Locations[index],
           rotation: soa.Rotations[index],
           frozen: bit(soa.PhysicsLockedFlags, index),
           sleeping: bit(soa.PhysicsSleepingFlags, index),
           linearVelocity: soa.LinearVelocities[index],
           angularVelocity: soa.AngularVelocities[index],
-          colors: soa.ColorsAndAlphas[index],
+          colors: entityColorsLinear
+            ? entityColorsToSrgb(rawColors)
+            : rawColors,
           remainingLifeSpan: soa.RemainingLifeSpans?.[index] ?? 0,
           data: className
             ? (schema.readValue(r, className) as Record<string, BrdbValue>)

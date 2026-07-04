@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
@@ -98,6 +98,40 @@ describe('Brdb container core', () => {
     expect(db.findFileAtRevision(f, 'a.bin', 250)).toBeNull();
     expect(db.findFileAtRevision(f, 'a.bin', 50)).toBeNull();
   });
+
+  test('findFileByPathAtRevision tolerates a folder stamped after its files', () => {
+    // Real crate-written worlds stamp a freshly inserted folder with the
+    // wall clock mid-transaction, so a folder's created_at can be LATER
+    // than the files it contains (whose created_at is the revision
+    // timestamp captured once at transaction start). Reproduce that skew
+    // directly: the file's created_at (1100) predates its parent folder's
+    // (1101).
+    const db = mem(1000);
+    const root = db.insertFolder('World', null, 1000);
+    const entities = db.insertFolder('Entities', root, 1101);
+    const blobId = db.insertBlob(new Uint8Array([1]), new Uint8Array(32), null);
+    db.insertFile('ChunkIndex.schema', entities, blobId, 1100);
+    expect(
+      db.findFileByPathAtRevision('World/Entities/ChunkIndex.schema', 1100)
+    ).toEqual({ contentId: blobId, createdAt: 1100 });
+  });
+
+  test('findFileByPathAtRevision keeps the soft-delete improvement', () => {
+    // A normal (unskewed) ancestor folder that is soft-deleted AFTER `date`
+    // must still resolve a file that was live at `date`.
+    const db = mem(1000);
+    const root = db.insertFolder('World', null, 1000);
+    const entities = db.insertFolder('Entities', root, 1000);
+    const blobId = db.insertBlob(new Uint8Array([1]), new Uint8Array(32), null);
+    db.insertFile('ChunkIndex.schema', entities, blobId, 1100);
+    db.deleteFolder(entities, 1200);
+    expect(
+      db.findFileByPathAtRevision('World/Entities/ChunkIndex.schema', 1100)
+    ).toEqual({ contentId: blobId, createdAt: 1100 });
+    expect(
+      db.findFileByPathAtRevision('World/Entities/ChunkIndex.schema', 1250)
+    ).toBeNull();
+  });
 });
 
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -174,6 +208,30 @@ describe('Brdb.writePending', () => {
     expect(() =>
       db2.writePending('clash', [['x', folder([])]], { createdAt: 1200 })
     ).toThrow(/'x'/);
+  });
+
+  test('the original error propagates even when ROLLBACK itself fails', () => {
+    // Simulate SQLite auto-rolling back the transaction before the catch
+    // block runs its own explicit ROLLBACK (e.g. SQLITE_FULL/IOERR): the
+    // explicit ROLLBACK then fails with an unrelated error, which must not
+    // mask the original one.
+    const db = mem(1000);
+    let rollbackCalls = 0;
+    const originalExec = db.db.exec.bind(db.db);
+    (db.db as any).exec = (sql: string) => {
+      if (sql === 'ROLLBACK') {
+        rollbackCalls++;
+        throw new Error('cannot rollback - no transaction is active');
+      }
+      return originalExec(sql);
+    };
+    expect(() =>
+      db.writePending('dup', [
+        ['x', file(enc('1'))],
+        ['x', file(enc('2'))],
+      ])
+    ).toThrow(/duplicate name 'x'/);
+    expect(rollbackCalls).toBe(1);
   });
 
   test('toPending round-trips the current tree', () => {
@@ -274,6 +332,43 @@ describe('Brdb world API', () => {
       dump(WorldReader.from(writeBrzLegacy(featuresSave))).brickAssets
     );
     expect(() => readonly.save('nope', featuresSave)).toThrow();
+  });
+
+  test('open() on a nonexistent path rejects and leaves no file behind', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'brs-js-brdb-'));
+    const missing = join(dir, 'missing.brdb');
+    await expect(Brdb.open(missing)).rejects.toThrow();
+    expect(existsSync(missing)).toBe(false);
+    // openOrCreate must still take the create branch afterward (no stray
+    // empty file left behind to poison it)
+    const fresh = await Brdb.openOrCreate(missing);
+    expect(fresh.revisions()).toHaveLength(1);
+    fresh.close();
+  });
+
+  test('openReadonly() on a nonexistent path rejects and leaves no file behind', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'brs-js-brdb-'));
+    const missing = join(dir, 'missing-ro.brdb');
+    await expect(Brdb.openReadonly(missing)).rejects.toThrow();
+    expect(existsSync(missing)).toBe(false);
+  });
+
+  test('a failed construction closes the underlying handle', async () => {
+    // A path whose file exists but is not a valid brdb container: the
+    // required-table guard throws inside the Brdb constructor. The handle
+    // must still be closed (not leaked), otherwise the file stays locked
+    // (on Windows, an open handle blocks deletion of its own file).
+    const dir = mkdtempSync(join(tmpdir(), 'brs-js-brdb-'));
+    const path = join(dir, 'not-a-container.brdb');
+    new Database(path).close(); // an empty, valid-but-schema-less sqlite file
+    await expect(Brdb.open(path)).rejects.toThrow(/missing required table/);
+    expect(() => rmSync(path)).not.toThrow();
+  });
+
+  test('fromBytes on garbage bytes rejects', async () => {
+    await expect(
+      Brdb.fromBytes(new Uint8Array([1, 2, 3, 4]))
+    ).rejects.toThrow();
   });
 });
 

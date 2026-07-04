@@ -255,6 +255,35 @@ describe.skipIf(!hasFixtures)('WorldReader(features_raw.brz)', () => {
   });
 });
 
+describe.skipIf(!hasFixtures)('WorldReader(entities_raw.brz)', () => {
+  test('decodes the dynamic sub-grid entity and both grids', () => {
+    const reader = WorldReader.from(fixture('entities_raw.brz'));
+    expect(reader.gridIds()).toEqual([1, 2]);
+    const idx = reader.entityChunkIndex();
+    expect(idx.nextPersistentIndex).toBe(3);
+    expect(idx.chunks).toEqual([
+      { index: { x: 0, y: 0, z: 0 }, numEntities: 1 },
+    ]);
+    const [entity] = [...reader.entities()];
+    expect(entity.typeName).toBe('Entity_DynamicBrickGrid');
+    expect(entity.className).toBe('BrickGridDynamicActor');
+    expect(entity.persistentIndex).toBe(2);
+    expect(entity.frozen).toBe(true);
+    expect(entity.sleeping).toBe(false);
+    expect(entity.location).toEqual({ X: 0, Y: 0, Z: 40 });
+    expect(entity.rotation).toEqual({ X: 0, Y: 0, Z: 0, W: 1 });
+    expect(entity.data).toMatchObject({ bEnableGravity: false, EntityTag: '' });
+    // the sub-grid's brick coordinates are stored offset by half a chunk
+    expect([...reader.bricks(2)].map(b => b.position)).toEqual([
+      [-1024, -1024, -1021],
+    ]);
+    expect([...reader.bricks(1)].map(b => b.position)).toEqual([
+      [0, 0, 6],
+      [20, 0, 6],
+    ]);
+  });
+});
+
 describe('write -> read round-trips', () => {
   describe.skipIf(!hasFixtures)(
     'features: full fidelity (single chunk)',

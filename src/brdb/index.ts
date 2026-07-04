@@ -34,7 +34,15 @@ export type {
 export { BrzReader, writeBrzContainer } from './brz';
 export type { BrzContainerOptions, Compressor } from './brz';
 export { BrdbSchema, embeddedSchema } from './schema';
-export type { BrdbValue, PropDesc } from './schema';
+export type {
+  BrdbValue,
+  BrdbVariant,
+  PropDesc,
+  SchemaSource,
+  SchemaSourceProp,
+} from './schema';
+export type { SchemaData } from './schemaText';
+export type { EmbeddedSchemaName } from './schemas';
 export { guidToUuid, PUBLIC_GUID, uuidToGuid } from './guid';
 export type { BrGuid } from './guid';
 export { file, folder } from './pending';

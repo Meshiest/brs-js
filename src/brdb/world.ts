@@ -270,8 +270,6 @@ class Registry {
   }
 }
 
-// LSB-first growable bit vector serialized as
-// BRSavedBitFlags { Flags: u8[flat] }.
 // Column packer for one chunk of the brick SoA.
 class ChunkBuilder {
   private sizeCounters: { AssetIndex: number; NumSizes: number }[] = [];

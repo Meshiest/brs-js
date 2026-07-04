@@ -201,6 +201,52 @@ describe('edge cases', () => {
     ).toThrow(/bricks\[0\].*i16 chunk range/);
   });
 
+  test('additional writer validation guards', () => {
+    // material_index out of range (default materials list has 1 entry)
+    expect(() =>
+      writeBrzLegacy({
+        bricks: [{ size: [1, 1, 1], position: [0, 0, 0], material_index: 5 }],
+      })
+    ).toThrow(/bricks\[0\].*material_index/);
+    // size components must be u16 (non-negative, <= 0xffff)
+    expect(() =>
+      writeBrzLegacy({
+        bricks: [{ size: [-1, 1, 1], position: [0, 0, 0] }],
+      })
+    ).toThrow(/bricks\[0\].*u16/);
+    // a color array needs at least 3 components (R, G, B)
+    expect(() =>
+      writeBrzLegacy({
+        bricks: [{ size: [1, 1, 1], position: [0, 0, 0], color: [255] as any }],
+      })
+    ).toThrow(/bricks\[0\].*at least 3/);
+    // an unknown component data field surfaces fillStruct's own guard
+    expect(() =>
+      writeBrzLegacy({
+        bricks: [
+          {
+            size: [1, 1, 1],
+            position: [0, 0, 0],
+            components: [
+              { type: 'Component_PointLight', data: { NotAField: 1 } },
+            ],
+          },
+        ],
+      })
+    ).toThrow(/no field 'NotAField'/);
+    // more than 256 distinct materials overflows the u8 MaterialIndices column
+    expect(() =>
+      writeBrzLegacy({
+        materials: Array.from({ length: 257 }, (_, i) => `BMC_M${i}`),
+        bricks: Array.from({ length: 257 }, (_, i) => ({
+          size: [1, 1, 1] as [number, number, number],
+          position: [i * 10, 0, 0] as [number, number, number],
+          material_index: i,
+        })),
+      })
+    ).toThrow(/too many distinct materials/);
+  });
+
   test('palette-indexed colors resolve through save.colors (RGBA in memory)', () => {
     const bytes = writeBrzLegacy({
       colors: [
@@ -304,14 +350,24 @@ describe('brdb components and wires (write -> read round-trip)', () => {
       [CHIP_IN, 0],
       [CHIP_IN, 1],
     ]);
-    // set fields survive; omitted fields decode as their zero values
-    const max = embeddedSchema('BRSavedComponentChunkSoA_max');
-    expect(components[0].data).toEqual(
-      max.fillStruct('BrickComponentData_PointLight', {
-        Brightness: 100,
-        bEnabled: true,
-      })
-    );
+    // Set fields survive; omitted fields decode as their zero values. The
+    // expected shape is spelled out literally (not derived via fillStruct,
+    // which the production writer also calls) so a regression in
+    // fillStruct/zeroValue can't shift both sides identically and hide.
+    const zeroFilledPointLight = {
+      bMatchBrickShape: false,
+      bEnabled: false,
+      Brightness: 0,
+      Radius: 0,
+      Color: { B: 0, G: 0, R: 0, A: 0 },
+      bUseBrickColor: false,
+      bCastShadows: false,
+    };
+    expect(components[0].data).toEqual({
+      ...zeroFilledPointLight,
+      Brightness: 100,
+      bEnabled: true,
+    });
     expect(components[1].data).toEqual({ PortLabel: 'In' });
     expect(components[2].data).toEqual({ PortLabel: 'Other' });
 
@@ -321,7 +377,7 @@ describe('brdb components and wires (write -> read round-trip)', () => {
         typeName: POINT_LIGHT,
         structName: 'BrickComponentData_PointLight',
         brickIndex: 0,
-        data: max.fillStruct('BrickComponentData_PointLight', {}),
+        data: zeroFilledPointLight,
       },
     ]);
   });

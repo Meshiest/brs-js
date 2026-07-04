@@ -1,0 +1,29 @@
+# The published package is index.js + dist/ (see package.json "files",
+# which is the primary allowlist). This file is defense in depth: npm
+# consults .npmignore INSTEAD of .gitignore, and .gitignore excludes dist/,
+# so this file must exist and must NOT list dist/.
+
+# Source, tests, tooling
+/src/
+/test/
+/examples/
+/scripts/
+/docs/
+/debug/
+tsconfig.json
+vite.config.ts
+justfile
+.prettierrc
+.mcp.json
+
+# Project planning docs (repo-local)
+/.superpowers/
+/.claude/
+/.vscode/
+
+# Local artifacts
+*.brs
+*.brs.json
+*.brz
+*.brdb
+*.tgz

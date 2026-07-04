@@ -131,7 +131,7 @@ interface SerializableSqlite extends BrdbSqlite {
 async function engine(): Promise<
   new (
     source: string | Uint8Array,
-    options?: { readonly?: boolean }
+    options?: { readonly?: boolean; fileMustExist?: boolean }
   ) => SerializableSqlite
 > {
   try {
@@ -183,20 +183,36 @@ export class Brdb implements WorldFs {
     return brdb;
   }
 
+  /** Construct create/open semantics on a handle, closing it if construction
+   * (the DDL or the required-table guard) throws so a failed opener never
+   * leaks the underlying handle (and, on Windows, never leaves it locked). */
   private static async wrap(db: BrdbSqlite, init: boolean): Promise<Brdb> {
-    const brdb = init ? Brdb.init(db) : new Brdb(db);
-    brdb.defaultCompress = nodeZstd();
-    return brdb;
+    try {
+      const brdb = init ? Brdb.init(db) : new Brdb(db);
+      brdb.defaultCompress = nodeZstd();
+      return brdb;
+    } catch (err) {
+      db.close();
+      throw err;
+    }
   }
 
-  /** Open an existing database file. */
+  /** Open an existing database file. Rejects (without creating a file) when
+   * the path does not already exist. */
   static async open(path: string): Promise<Brdb> {
-    return Brdb.wrap(new (await engine())(path), false);
+    return Brdb.wrap(
+      new (await engine())(path, { fileMustExist: true }),
+      false
+    );
   }
 
-  /** Open an existing database file read-only. */
+  /** Open an existing database file read-only. Rejects (without creating a
+   * file) when the path does not already exist. */
   static async openReadonly(path: string): Promise<Brdb> {
-    return Brdb.wrap(new (await engine())(path, { readonly: true }), false);
+    return Brdb.wrap(
+      new (await engine())(path, { readonly: true, fileMustExist: true }),
+      false
+    );
   }
 
   /** Create a new database file (container schema + initial revision). */
@@ -243,7 +259,12 @@ export class Brdb implements WorldFs {
     this.writePending(description, saveToPendingFs(save, options), options);
   }
 
-  /** Lazy world reader over this database (same surface as .brz reading). */
+  /** Lazy world reader over this database (same surface as .brz reading).
+   * The reader caches decoded metadata (GlobalData, Owners, Bundle/World
+   * JSON) for its lifetime; if this Brdb is written to (save/writePending)
+   * after the reader is created, construct a fresh worldReader() rather
+   * than reusing the old one, or later reads may mix stale cached metadata
+   * with newly written chunk data. */
   worldReader(): WorldReader {
     return new WorldReader(this);
   }
@@ -459,7 +480,15 @@ export class Brdb implements WorldFs {
       this.mergeFolder(null, pending, createdAt, compress);
       this.db.exec('COMMIT');
     } catch (err) {
-      this.db.exec('ROLLBACK');
+      // Some SQLite error classes (SQLITE_FULL, SQLITE_IOERR, SQLITE_NOMEM)
+      // auto-rollback the transaction before the throw reaches here; an
+      // explicit ROLLBACK would then fail with its own unrelated error and
+      // mask the original one. Swallow that failure so `err` always wins.
+      try {
+        this.db.exec('ROLLBACK');
+      } catch {
+        // transaction already rolled back by SQLite
+      }
       throw err;
     }
   }
@@ -590,10 +619,18 @@ export class Brdb implements WorldFs {
     if (path === '') return null;
     let id: number | null = null;
     for (const part of path.split('/')) {
+      // Real crate-written databases stamp a freshly inserted folder with
+      // the wall clock mid-transaction, so a folder's created_at can be
+      // LATER than the files it contains (the revision/file timestamps are
+      // captured once at transaction start). When the at-revision lookup
+      // misses for that reason, fall back to the current tree so such an
+      // ancestor still resolves; a folder deleted after `date` is still
+      // caught by the at-revision branch first.
       const next =
         date === undefined
           ? this.findFolder(id, part)
-          : this.findFolderAtRevision(id, part, date);
+          : this.findFolderAtRevision(id, part, date) ??
+            this.findFolder(id, part);
       if (next === null) return null;
       id = next;
     }

@@ -24,6 +24,7 @@
     "build": "vite build && tsc --emitDeclarationOnly",
     "watch": "vite build --watch",
     "dist": "vite build && tsc --emitDeclarationOnly",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

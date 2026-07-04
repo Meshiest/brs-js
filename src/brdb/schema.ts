@@ -592,7 +592,16 @@ export class BrdbSchema {
     }
   }
 
-  readValue(r: ByteReader, ty: string): BrdbValue {
+  // A hostile .schema blob can declare a struct that references itself
+  // (directly or transitively) as a plain field, which would otherwise
+  // recurse forever consuming zero input bytes. depth is threaded through
+  // the decode-side walk only (readValue/readProperty); encode is
+  // unaffected since it always terminates against caller-supplied values.
+  private static readonly MAX_DECODE_DEPTH = 64;
+
+  readValue(r: ByteReader, ty: string, depth = 0): BrdbValue {
+    if (depth > BrdbSchema.MAX_DECODE_DEPTH)
+      throw new Error('brdb: schema recursion too deep');
     switch (ty) {
       case 'u8':
       case 'u16':
@@ -629,7 +638,7 @@ export class BrdbSchema {
       const member = variantTy[tag];
       if (member === undefined)
         throw new Error(`brdb: unknown tag ${tag} for variant ${ty}`);
-      return { $variant: member, value: this.readValue(r, member) };
+      return { $variant: member, value: this.readValue(r, member, depth + 1) };
     }
     const enumTy = this.enums.get(ty);
     if (enumTy) {
@@ -644,7 +653,7 @@ export class BrdbSchema {
     if (struct) {
       const obj: { [k: string]: BrdbValue } = {};
       for (const [field, prop] of struct)
-        obj[field] = this.readProperty(r, prop, `${ty}.${field}`);
+        obj[field] = this.readProperty(r, prop, `${ty}.${field}`, depth + 1);
       return obj;
     }
     throw new Error(`brdb: unknown type ${ty}`);
@@ -675,14 +684,20 @@ export class BrdbSchema {
     }
   }
 
-  private readProperty(r: ByteReader, prop: PropDesc, ctx: string): BrdbValue {
+  private readProperty(
+    r: ByteReader,
+    prop: PropDesc,
+    ctx: string,
+    depth = 0
+  ): BrdbValue {
     switch (prop.kind) {
       case 'type':
-        return this.readValue(r, prop.type);
+        return this.readValue(r, prop.type, depth);
       case 'array': {
         const len = rdArrayLen(r);
         const out: BrdbValue[] = [];
-        for (let i = 0; i < len; i++) out.push(this.readValue(r, prop.type));
+        for (let i = 0; i < len; i++)
+          out.push(this.readValue(r, prop.type, depth));
         return out;
       }
       case 'flatarray': {

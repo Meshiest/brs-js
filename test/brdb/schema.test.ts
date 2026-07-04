@@ -173,6 +173,19 @@ test('variant values round-trip with tag preserved', () => {
   expect(Array.from(bytes)).toEqual([6, 0xa1, 0x78]);
 });
 
+test('decode guards against a self-referential struct cycle', () => {
+  const schema = BrdbSchema.fromData({
+    enums: {},
+    variants: {},
+    structs: {
+      Cyclic: { Next: 'Cyclic' },
+    },
+  });
+  expect(() => schema.decode(new Uint8Array(0), 'Cyclic')).toThrow(
+    /schema recursion too deep/
+  );
+});
+
 test('legacy wire_graph_variant uses fixed tags', () => {
   const schema = BrdbSchema.fromText(`
     struct Holder {
