@@ -3,3 +3,6 @@ debug/
 dist/
 *.brs
 *.brs.json
+test/fixtures/brdb/
+*.brz
+*.brdb
