@@ -1,18 +1,19 @@
-const {
-  utils: { read, write, subarray, chunk },
-} = require('..');
+import { describe, expect, it, test } from 'vitest';
+import { utils } from '../src';
+
+const { read, write, subarray, chunk } = utils;
 
 describe('buffer read/writing', () => {
   // Generic testing of read and write
   const rwTest =
-    fn =>
-    (bytes, val, ...args) => {
-      expect(read[fn](new Uint8Array(bytes), ...args)).toEqual(val);
-      expect(write[fn](val, ...args)).toMatchObject(new Uint8Array(bytes));
+    (fn: string) =>
+    (bytes: any, val: any, ...args: any[]) => {
+      expect((read as any)[fn](new Uint8Array(bytes), ...args)).toEqual(val);
+      expect((write as any)[fn](val, ...args)).toMatchObject(new Uint8Array(bytes));
     };
 
   // Testing both endiannesses for read and write
-  const endianTest = fn => (bytes, val) => {
+  const endianTest = (fn: string) => (bytes: number[], val: any) => {
     // Little Endian (default)
     rwTest(fn)(bytes, val);
 
@@ -24,9 +25,9 @@ describe('buffer read/writing', () => {
     test('subarray', () => {
       const arr = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
       expect(subarray(arr, 2)).toMatchObject({ 0: 1, 1: 2 });
-      expect(arr.brsOffset).toEqual(2);
+      expect((arr as any).brsOffset).toEqual(2);
       expect(subarray(arr, 4)).toMatchObject({ 0: 3, 1: 4, 2: 5, 3: 6 });
-      expect(arr.brsOffset).toEqual(6);
+      expect((arr as any).brsOffset).toEqual(6);
     });
 
     test('chunk', () => {
@@ -118,25 +119,30 @@ describe('buffer read/writing', () => {
       const bytes = [0x04, 0x00, 0x00, 0x00, 0x66, 0x6f, 0x6f, 0x00];
       const val = 'foo';
     */
-    const read_byte = b => read.bytes(b, 1)[0];
+    const read_byte = (b: any) => read.bytes(b, 1)[0];
 
-    const arrTest = (bytes, arr, read_fn, write_fn) => {
+    const arrTest = (
+      bytes: number[],
+      arr: any,
+      read_fn: any,
+      write_fn: any,
+    ) => {
       expect(read.array(new Uint8Array(bytes), read_fn)).toMatchObject(arr);
       expect(write.array(arr, write_fn)).toMatchObject(new Uint8Array(bytes));
     };
 
     test('00 00 00 00 -> []', () => {
       const bytes = [0x00, 0x00, 0x00, 0x00];
-      const arr = [];
+      const arr: number[] = [];
 
-      arrTest(bytes, arr, read_byte, b => [b]);
+      arrTest(bytes, arr, read_byte, (b: number) => [b]);
     });
 
     test('03 00 00 00 01 02 03 -> [1, 2, 3]', () => {
       const bytes = [0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03];
       const arr = [1, 2, 3];
 
-      arrTest(bytes, arr, read_byte, b => [b]);
+      arrTest(bytes, arr, read_byte, (b: number) => [b]);
     });
 
     test('string array', () => {
@@ -160,7 +166,7 @@ describe('buffer read/writing', () => {
 
   describe('bit reader', () => {
     it('reads bits', () => {
-      const bits = read.bits([0b10101111]);
+      const bits = read.bits([0b10101111] as any);
       expect(bits.bit()).toBe(true);
       expect(bits.bit()).toBe(true);
       expect(bits.bit()).toBe(true);
@@ -172,7 +178,7 @@ describe('buffer read/writing', () => {
     });
 
     it('reads aligned bits', () => {
-      const bits = read.bits([0b00000001, 0b10101111]);
+      const bits = read.bits([0b00000001, 0b10101111] as any);
       expect(bits.bit()).toBe(true);
       bits.align();
       expect(bits.bit()).toBe(true);
@@ -186,13 +192,13 @@ describe('buffer read/writing', () => {
     });
 
     it('reads ints', () => {
-      const bits = read.bits([0b11001111]);
+      const bits = read.bits([0b11001111] as any);
       expect(bits.int(16)).toBe(15);
       expect(bits.int(16)).toBe(12);
     });
 
     it('reads floats', () => {
-      const bits = read.bits([0x42, 0xf6, 0xe6, 0x66].reverse());
+      const bits = read.bits([0x42, 0xf6, 0xe6, 0x66].reverse() as any);
       expect(bits.float()).toBeCloseTo(123.45);
     });
 
@@ -219,7 +225,7 @@ describe('buffer read/writing', () => {
     });
 
     it('reads wire graph types', () => {
-      const datas = [
+      const datas: any[] = [
         { bool: false },
         { bool: true },
         { number: 1.23 },

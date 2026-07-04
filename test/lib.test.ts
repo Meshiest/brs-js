@@ -1,7 +1,10 @@
-const { read, write } = require('..');
+import { expect, test } from 'vitest';
+import { read, write, WriteSaveObject } from '../src';
 
 // const uuid0 = '00000000-0000-0000-0000-000000000000';
 const uuid0 = '12345678-4321-1234-4321-123456789012';
+// Full save fixture (read-shaped: includes version/brick_count that `write`
+// ignores), reused as both write input and the expected round-trip result.
 const save = {
   version: 14,
   map: 'Unknown',
@@ -43,7 +46,7 @@ const save = {
     },
   ],
   wires: [],
-};
+} as unknown as WriteSaveObject;
 test('creating a brs from thin air', () => {
   expect(read(write(save, { compress: false }))).toEqual(save);
 });

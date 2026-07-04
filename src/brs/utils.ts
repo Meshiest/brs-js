@@ -12,7 +12,7 @@ import {
   Vector3d,
   WireGraphVariant,
 } from './types';
-import { uuidParse, uuidStringify } from './uuid';
+import { uuidParse, uuidStringify } from '../uuid';
 
 /*
   Notes:
@@ -33,7 +33,7 @@ export const bgra = ([b, g, r, a]: number[]): [
   number,
   number,
   number,
-  number
+  number,
 ] => [r, g, b, a];
 
 // Compare equality of byte arrays
@@ -61,7 +61,7 @@ export function subarray(data: Bytes, len: number, isCopy = false): Uint8Array {
 
   const chunk = bytes[isCopy ? 'slice' : 'subarray'](
     bytes.brsOffset,
-    bytes.brsOffset + len
+    bytes.brsOffset + len,
   );
   bytes.brsOffset += len;
   return chunk;
@@ -127,7 +127,7 @@ function read_compressed(data: Bytes): Bytes {
     compressedSize >= uncompressedSize
   ) {
     throw new Error(
-      `Invalid compressed section size (comp: ${compressedSize}, uncomp: ${uncompressedSize})`
+      `Invalid compressed section size (comp: ${compressedSize}, uncomp: ${uncompressedSize})`,
     );
   }
 
@@ -175,7 +175,7 @@ function write_compressed(...args: Uint8Array[]): Uint8Array {
   return concat(
     write_i32(uncompressedSize),
     write_i32(badCompress ? 0 : compressedSize),
-    badCompress ? data : compressed
+    badCompress ? data : compressed,
   );
 }
 
@@ -194,7 +194,7 @@ function read_string(data: Bytes): string {
     // Create ucs2 encoded string
     return String.fromCodePoint(
       // Read the data in 2 byte windows
-      ...chunk(subarray(data, size), 2).map(arr => read_u16(arr)) // Convert the two bytes into u16
+      ...chunk(subarray(data, size), 2).map(arr => read_u16(arr)), // Convert the two bytes into u16
     );
   } else {
     // Read the data, remove the \u0000 at the end :)
@@ -212,7 +212,7 @@ function write_string(str: string): Uint8Array {
     return concat(
       write_i32(str.length + 1), // Write string length (+ null term)
       new Uint8Array(str.split('').map(s => s.charCodeAt(0))), // Write string as bytes
-      new Uint8Array([0]) // Null terminator
+      new Uint8Array([0]), // Null terminator
     );
   } else {
     // ucs2 strings denoted by negative length
@@ -223,8 +223,8 @@ function write_string(str: string): Uint8Array {
       new Uint8Array(
         str
           .split('')
-          .flatMap(s => [s.charCodeAt(0) & 0xff, s.charCodeAt(0) >> 8])
-      )
+          .flatMap(s => [s.charCodeAt(0) & 0xff, s.charCodeAt(0) >> 8]),
+      ),
       // new Uint8Array([0]) // Null terminator
     );
   }
@@ -234,7 +234,7 @@ function write_string(str: string): Uint8Array {
 function read_uuid(data: Bytes): string {
   return uuidStringify(
     // each chunk is LE
-    chunk(subarray(data, 16), 4).flatMap(([a, b, c, d]) => [d, c, b, a])
+    chunk(subarray(data, 16), 4).flatMap(([a, b, c, d]) => [d, c, b, a]),
   );
 }
 
@@ -242,8 +242,8 @@ function read_uuid(data: Bytes): string {
 function write_uuid(uuid: Uuid) {
   return concat(
     ...chunk(uuidParse(uuid), 4).map(
-      ([a, b, c, d]) => new Uint8Array([d, c, b, a])
-    )
+      ([a, b, c, d]) => new Uint8Array([d, c, b, a]),
+    ),
   );
 }
 
@@ -419,7 +419,7 @@ export class BitReader {
       return Number(num);
     }
     throw new Error(
-      `Cannot read 64-bit integer ${num} as a JavaScript number...`
+      `Cannot read 64-bit integer ${num} as a JavaScript number...`,
     );
   }
 
@@ -533,13 +533,13 @@ export class BitWriter {
   int(value: number, max: number) {
     if (max < 2) {
       throw new Error(
-        `Invalid input (BitWriter) -- max (${max}) must be at least 2`
+        `Invalid input (BitWriter) -- max (${max}) must be at least 2`,
       );
     }
 
     if (value >= max) {
       throw new Error(
-        `Invalid input (BitWriter) -- value (${value}) is larger than max (${max})`
+        `Invalid input (BitWriter) -- value (${value}) is larger than max (${max})`,
       );
     }
 
@@ -651,7 +651,7 @@ export class BitWriter {
       // no data for object
     } else {
       throw new Error(
-        `Unknown wire graph variant type ${JSON.stringify(variant)}`
+        `Unknown wire graph variant type ${JSON.stringify(variant)}`,
       );
     }
   }
@@ -681,7 +681,7 @@ export class BitWriter {
       case 'Class':
         if (typeof value !== 'string') {
           throw new Error(
-            `writing unreal type Class, did not receive string (${value})`
+            `writing unreal type Class, did not receive string (${value})`,
           );
         }
         this.string(value);
@@ -689,7 +689,7 @@ export class BitWriter {
       case 'String':
         if (typeof value !== 'string') {
           throw new Error(
-            `writing unreal type String, did not receive string (${value})`
+            `writing unreal type String, did not receive string (${value})`,
           );
         }
         this.string(value);
@@ -697,7 +697,7 @@ export class BitWriter {
       case 'Object':
         if (typeof value !== 'string') {
           throw new Error(
-            `writing unreal type Object, did not receive string (${value})`
+            `writing unreal type Object, did not receive string (${value})`,
           );
         }
         this.string(value);
@@ -705,7 +705,7 @@ export class BitWriter {
       case 'Boolean':
         if (typeof value !== 'boolean') {
           throw new Error(
-            `writing unreal type Boolean, did not receive boolean (${value})`
+            `writing unreal type Boolean, did not receive boolean (${value})`,
           );
         }
         this.bytes(write_i32(value ? 1 : 0));
@@ -713,7 +713,7 @@ export class BitWriter {
       case 'Float':
         if (typeof value !== 'number') {
           throw new Error(
-            `writing unreal type Float, did not receive float (${value})`
+            `writing unreal type Float, did not receive float (${value})`,
           );
         }
         this.float(value);
@@ -721,7 +721,7 @@ export class BitWriter {
       case 'Byte':
         if (typeof value !== 'number') {
           throw new Error(
-            `writing unreal type Byte, did not receive Byte (${value})`
+            `writing unreal type Byte, did not receive Byte (${value})`,
           );
         }
         this.bytes([value & 255]);
@@ -729,7 +729,7 @@ export class BitWriter {
       case 'Color':
         if (!Array.isArray(value) || value.length !== 4) {
           throw new Error(
-            `writing unreal type Color, did not receive Array (${value})`
+            `writing unreal type Color, did not receive Array (${value})`,
           );
         }
         this.bytes(bgra(value));
@@ -738,7 +738,7 @@ export class BitWriter {
       case 'Rotator3d':
         if (!Array.isArray(value) || value.length !== 3) {
           throw new Error(
-            `writing unreal type Rotator, did not receive Array (${value})`
+            `writing unreal type Rotator, did not receive Array (${value})`,
           );
         }
 
@@ -749,7 +749,7 @@ export class BitWriter {
       case 'Vector3d':
         if (!Array.isArray(value) || value.length !== 3) {
           throw new Error(
-            `writing unreal type Vector3d, did not receive Array (${value})`
+            `writing unreal type Vector3d, did not receive Array (${value})`,
           );
         }
 
@@ -760,7 +760,7 @@ export class BitWriter {
       case 'IntVector':
         if (!Array.isArray(value) || value.length !== 3) {
           throw new Error(
-            `writing unreal type IntVector, did not receive Array (${value})`
+            `writing unreal type IntVector, did not receive Array (${value})`,
           );
         }
         this.integer(value[0]);
@@ -770,7 +770,7 @@ export class BitWriter {
       case 'Integer':
         if (typeof value !== 'number') {
           throw new Error(
-            `writing unreal type Integer, did not receive integer (${value})`
+            `writing unreal type Integer, did not receive integer (${value})`,
           );
         }
         this.integer(value);
@@ -778,7 +778,7 @@ export class BitWriter {
       case 'Integer64':
         if (typeof value !== 'number') {
           throw new Error(
-            `writing unreal type Integer64, did not receive integer (${value})`
+            `writing unreal type Integer64, did not receive integer (${value})`,
           );
         }
         this.int64(value);
@@ -786,7 +786,7 @@ export class BitWriter {
       case 'Double':
         if (typeof value !== 'number') {
           throw new Error(
-            `writing unreal type Double, did not receive double (${value})`
+            `writing unreal type Double, did not receive double (${value})`,
           );
         }
         this.double(value);
@@ -794,7 +794,7 @@ export class BitWriter {
       case 'WireGraphVariant':
         if (typeof value !== 'object') {
           throw new Error(
-            `writing unreal type WireGraphVariant, did not receive object (${value})`
+            `writing unreal type WireGraphVariant, did not receive object (${value})`,
           );
         }
         this.wireGraphVariant(value as WireGraphVariant);
@@ -802,7 +802,7 @@ export class BitWriter {
       case 'WireGraphPrimMathVariant':
         if (typeof value !== 'object') {
           throw new Error(
-            `writing unreal type WireGraphPrimMathVariant, did not receive object (${value})`
+            `writing unreal type WireGraphPrimMathVariant, did not receive object (${value})`,
           );
         }
         this.wireGraphVariant(value as WireGraphVariant);
@@ -810,7 +810,7 @@ export class BitWriter {
       case 'BRInventoryEntryPlan':
         if (typeof value !== 'string') {
           throw new Error(
-            `writing unreal type BRInventoryEntryPlan, did not receive string (${value})`
+            `writing unreal type BRInventoryEntryPlan, did not receive string (${value})`,
           );
         }
         this.string(value);

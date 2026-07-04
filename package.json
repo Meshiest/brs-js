@@ -1,16 +1,31 @@
 {
   "name": "brs-js",
-  "version": "2.1.3",
+  "version": "3.0.0",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "browser": "dist/dist.web.js",
-  "module": "dist/dist.node.js",
+  "module": "dist/dist.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "browser": "./dist/dist.web.js",
+      "import": "./dist/dist.mjs",
+      "require": "./index.js",
+      "default": "./dist/dist.mjs"
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "dist"
+  ],
   "scripts": {
-    "build": "npx webpack --progress",
-    "prepare": "npm run dist",
-    "watch": "npx webpack -w --progress",
-    "dist": "NODE_ENV=production npx webpack",
-    "test": "npx jest"
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "watch": "vite build --watch",
+    "dist": "vite build && tsc --emitDeclarationOnly",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -32,18 +47,26 @@
   "dependencies": {
     "detect-node": "^2.0.4"
   },
+  "peerDependencies": {
+    "better-sqlite3": ">=7.5.0"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
+  },
   "types": "./dist/src/index.d.ts",
   "devDependencies": {
-    "@babel/core": "^7.14.6",
-    "@babel/preset-env": "^7.14.7",
-    "@types/pako": "^1.0.3",
-    "babel-loader": "^8.0.6",
-    "jest": "^27.0.6",
-    "pako": "^1.0.10",
+    "@noble/hashes": "^2.2.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^26.1.0",
+    "@types/pako": "^2.0.4",
+    "better-sqlite3": "^12.11.1",
+    "fzstd": "^0.1.1",
+    "pako": "^3.0.0",
     "prettier": "^2.3.2",
-    "ts-loader": "^9.2.3",
-    "typescript": "^4.3.5",
-    "webpack": "^5.44.0",
-    "webpack-cli": "^4.7.2"
+    "typescript": "^6.0.3",
+    "vite": "^8.1.2",
+    "vitest": "^4.1.9"
   }
 }
