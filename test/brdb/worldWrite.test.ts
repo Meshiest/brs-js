@@ -89,7 +89,46 @@ describe.skipIf(!hasFixtures)(
   }
 );
 
+describe('basic (non-procedural) asset bricks', () => {
+  test('size may be omitted for basic assets', () => {
+    const bytes = writeBrzLegacy({
+      brick_assets: ['B_1x1_Gate_AND'],
+      bricks: [{ position: [0, 0, 2], color: [255, 0, 0] }],
+    });
+    const r = WorldReader.from(bytes);
+    const [b] = [...r.bricks()];
+    expect(r.brickAssets()[b.asset_name_index]).toBe('B_1x1_Gate_AND');
+    expect(b.position).toEqual([0, 0, 2]);
+  });
+
+  test('procedural assets still require a size', () => {
+    expect(() =>
+      writeBrzLegacy({ bricks: [{ position: [0, 0, 6] }] } as any)
+    ).toThrow(/requires a size/);
+  });
+});
+
 describe('edge cases', () => {
+  test('bundle_path_ref fields (PrefabSpawn) round-trip as strings', () => {
+    const bytes = writeBrzLegacy({
+      bricks: [
+        {
+          size: [5, 5, 6],
+          position: [0, 0, 6],
+          components: [
+            {
+              type: 'BrickComponentType_PrefabSpawn',
+              data: { Prefab: 'Prefabs/MyPrefab' },
+            },
+          ],
+        },
+      ],
+    });
+    const r = WorldReader.from(bytes);
+    const { components } = r.componentChunk(1, { x: 0, y: 0, z: 0 });
+    expect(components[0].data?.Prefab).toBe('Prefabs/MyPrefab');
+  });
+
   test('empty save still produces a full, readable world tree', () => {
     const reader = BrzReader.from(writeBrzLegacy({ bricks: [] }));
     // no bricks -> no Chunks folder, but ChunkIndex.mps and Entities remain
@@ -338,7 +377,7 @@ describe('brdb components and wires (write -> read round-trip)', () => {
     expect(r.owners().ComponentCounts).toEqual([4]);
   });
 
-  test('component chunks: run-length counters, per-instance data, zero-fill', () => {
+  test('component chunks: run-length counters, per-instance data, default-fill', () => {
     const r = reader();
     const { soa, components } = r.componentChunk(1, { x: 0, y: 0, z: 0 });
     expect(soa.ComponentTypeCounters).toEqual([
@@ -350,21 +389,22 @@ describe('brdb components and wires (write -> read round-trip)', () => {
       [CHIP_IN, 0],
       [CHIP_IN, 1],
     ]);
-    // Set fields survive; omitted fields decode as their zero values. The
-    // expected shape is spelled out literally (not derived via fillStruct,
-    // which the production writer also calls) so a regression in
-    // fillStruct/zeroValue can't shift both sides identically and hide.
-    const zeroFilledPointLight = {
-      bMatchBrickShape: false,
-      bEnabled: false,
-      Brightness: 0,
-      Radius: 0,
-      Color: { B: 0, G: 0, R: 0, A: 0 },
-      bUseBrickColor: false,
+    // Set fields survive; omitted fields decode as the game's default
+    // values (crate STRUCT_DEFAULTS). The expected shape is spelled out
+    // literally (not derived via fillStruct, which the production writer
+    // also calls) so a regression in fillStruct/defaults can't shift both
+    // sides identically and hide.
+    const defaultFilledPointLight = {
+      bMatchBrickShape: true,
+      bEnabled: true,
+      Brightness: 20,
+      Radius: 150,
+      Color: { B: 255, G: 255, R: 255, A: 255 },
+      bUseBrickColor: true,
       bCastShadows: false,
     };
     expect(components[0].data).toEqual({
-      ...zeroFilledPointLight,
+      ...defaultFilledPointLight,
       Brightness: 100,
       bEnabled: true,
     });
@@ -377,7 +417,7 @@ describe('brdb components and wires (write -> read round-trip)', () => {
         typeName: POINT_LIGHT,
         structName: 'BrickComponentData_PointLight',
         brickIndex: 0,
-        data: zeroFilledPointLight,
+        data: defaultFilledPointLight,
       },
     ]);
   });

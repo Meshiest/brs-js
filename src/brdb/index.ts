@@ -47,7 +47,22 @@ export { guidToUuid, PUBLIC_GUID, uuidToGuid } from './guid';
 export type { BrGuid } from './guid';
 export { file, folder } from './pending';
 export type { PendingEntry, PendingNode } from './pending';
-export { isProceduralAsset } from './catalog';
+export {
+  BASIC_BRICK_ASSETS,
+  BRICK_ASSETS,
+  isProceduralAsset,
+  PROCEDURAL_BRICK_ASSETS,
+} from './catalog';
+export {
+  COMPONENT_STRUCT_DEFAULTS,
+  COMPONENT_TYPE_STRUCTS,
+  COMPONENT_WIRE_PORTS,
+  COMPONENTS,
+  ENTITY_TYPE_STRUCTS,
+  WIRE_PORT_NAMES,
+} from './componentDb';
+export type { ComponentPortInfo } from './componentDb';
+export type * from './componentTypes';
 export { Brdb, BRDB_SQLITE_SCHEMA } from './brdb';
 export type {
   BrdbBlob,

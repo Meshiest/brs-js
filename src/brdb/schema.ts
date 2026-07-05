@@ -279,6 +279,7 @@ export class BrdbSchema {
       case 'bool':
         return false;
       case 'str':
+      case 'bundle_path_ref':
         return '';
       case 'class':
       case 'object':
@@ -306,10 +307,13 @@ export class BrdbSchema {
   }
 
   /** Complete a partial struct value: present fields pass through, missing
-   * fields get their zero value. Unknown keys are an error. */
+   * fields fall back to `defaults`, then to their zero value. Unknown keys
+   * in `partial` are an error; unknown keys in `defaults` are ignored (the
+   * defaults table may carry fields a given schema revision lacks). */
   fillStruct(
     structName: string,
-    partial: Readonly<Record<string, BrdbValue>>
+    partial: Readonly<Record<string, BrdbValue>>,
+    defaults?: Readonly<Record<string, BrdbValue>>
   ): Record<string, BrdbValue> {
     const struct = this.structs.get(structName);
     if (!struct) throw new Error(`brdb: unknown struct ${structName}`);
@@ -318,7 +322,8 @@ export class BrdbSchema {
         throw new Error(`brdb: ${structName} has no field '${key}'`);
     const out: Record<string, BrdbValue> = {};
     for (const [field, prop] of struct) {
-      const given = partial[field];
+      const given =
+        partial[field] !== undefined ? partial[field] : defaults?.[field];
       out[field] =
         given !== undefined
           ? given
@@ -431,6 +436,7 @@ export class BrdbSchema {
       case 'f64':
         return mpF64(w, value as number);
       case 'str':
+      case 'bundle_path_ref': // a string path on the wire
         return mpStr(w, value as string);
       case 'bool':
         return mpBool(w, value as boolean);
@@ -618,6 +624,7 @@ export class BrdbSchema {
       case 'f64':
         return rdF64(r);
       case 'str':
+      case 'bundle_path_ref':
         return rdStr(r);
       case 'bool':
         return rdBool(r);

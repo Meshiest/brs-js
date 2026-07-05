@@ -4,29 +4,43 @@
 import { writeFileSync } from 'node:fs';
 import { lib } from './openWorld.mjs';
 
-const { WorldReader, writeBrzLegacy } = lib;
+const { WorldReader, writeBrzLegacy, brdb } = lib;
 
-const CHIP_IN = 'BrickComponentType_Internal_MicrochipInput';
+// COMPONENTS carries each component's type name (NAME), host brick asset
+// (BRICK), and wire port names (PORTS). Port components only function on
+// their matching gate brick assets, and basic (non-procedural) assets need
+// no size.
+const CHIP_IN = brdb.COMPONENTS.MicrochipInput;
+const CHIP_OUT = brdb.COMPONENTS.MicrochipOutput;
 
 const save = {
+  brick_assets: [CHIP_IN.BRICK, CHIP_OUT.BRICK],
   bricks: [
     {
-      size: [5, 5, 6],
-      position: [0, 0, 6],
+      asset_name_index: 0,
+      position: [0, 0, 2],
       color: [255, 0, 0],
-      components: [{ type: CHIP_IN, data: { PortLabel: 'Out' } }],
+      components: [{ type: CHIP_IN.NAME, data: { PortLabel: 'In' } }],
     },
     {
-      size: [5, 5, 6],
-      position: [20, 0, 6],
+      asset_name_index: 1,
+      position: [20, 0, 2],
       color: [0, 255, 0],
-      components: [{ type: CHIP_IN, data: { PortLabel: 'In' } }],
+      components: [{ type: CHIP_OUT.NAME, data: { PortLabel: 'Out' } }],
     },
   ],
   wires: [
     {
-      source: { brick_index: 0, component_type: CHIP_IN, port: 'Output' },
-      target: { brick_index: 1, component_type: CHIP_IN, port: 'Input' },
+      source: {
+        brick_index: 0,
+        component_type: CHIP_IN.NAME,
+        port: CHIP_IN.PORTS.RER_Output,
+      },
+      target: {
+        brick_index: 1,
+        component_type: CHIP_OUT.NAME,
+        port: CHIP_OUT.PORTS.RER_Input,
+      },
     },
   ],
 };

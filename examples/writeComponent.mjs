@@ -1,6 +1,6 @@
 // Write a brick carrying a point light component to example_component.brz,
-// then read the component back. Component data fields not listed here are
-// zero-filled; unknown field names throw at write time.
+// then read the component back. Component data fields not listed here take
+// the game's default values; unknown field names throw at write time.
 // Build the library first: just build
 import { existsSync, writeFileSync } from 'node:fs';
 
@@ -9,7 +9,12 @@ if (!existsSync(dist)) {
   console.error('dist/dist.mjs not found; run `just build` first');
   process.exit(1);
 }
-const { WorldReader, writeBrzLegacy } = await import(dist.href);
+const { WorldReader, writeBrzLegacy, brdb } = await import(dist.href);
+
+// COMPONENTS carries each component's type name (NAME), host brick asset
+// (BRICK), and wire port names (PORTS). A point light works on any brick,
+// so the default procedural brick is fine here.
+const LIGHT = brdb.COMPONENTS.PointLight;
 
 const save = {
   bricks: [
@@ -19,7 +24,7 @@ const save = {
       color: [255, 255, 255],
       components: [
         {
-          type: 'Component_PointLight',
+          type: LIGHT.NAME,
           data: {
             bEnabled: true,
             Brightness: 500,

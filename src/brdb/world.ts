@@ -6,7 +6,11 @@ import { BitFlags } from './bits';
 import { BrzContainerOptions, Compressor, writeBrzContainer } from './brz';
 import { ByteWriter } from './bytes';
 import { isProceduralAsset } from './catalog';
-import { COMPONENT_TYPE_STRUCTS } from './componentDb';
+import {
+  COMPONENT_STRUCT_DEFAULTS,
+  COMPONENT_TYPE_STRUCTS,
+} from './componentDb';
+import type { ComponentTypeDataMap } from './componentTypes';
 import { BrGuid, PUBLIC_GUID, uuidToGuid } from './guid';
 import { file, folder, PendingEntry } from './pending';
 import { BrdbSchema, BrdbValue, embeddedSchema } from './schema';
@@ -41,12 +45,23 @@ export interface WriteBrzOptions {
 
 /** A brdb-native component on a brick. Legacy brs components
  * (save.components / brick.components) are NOT converted. */
-export interface BrdbComponentInput {
-  /** brdb component type name, e.g. 'Component_Internal_Seat' */
-  type: string;
-  /** fields of the component's data struct; omitted fields zero-fill */
-  data?: Record<string, BrdbValue>;
-}
+/** Typed component input: known component types complete their `data`
+ * fields in the editor; unknown type strings stay accepted (they throw at
+ * write time unless the component db knows them). Omitted data fields take
+ * the game's default values (zero values where no default is known). */
+export type BrdbComponentInput =
+  | {
+      [T in keyof ComponentTypeDataMap]: {
+        /** brdb component type name, e.g. 'Component_Internal_Seat' */
+        type: T;
+        /** fields of the component's data struct */
+        data?: Partial<ComponentTypeDataMap[T]>;
+      };
+    }[keyof ComponentTypeDataMap]
+  | {
+      type: string & {};
+      data?: Record<string, BrdbValue>;
+    };
 
 export interface BrdbWireEndpointInput {
   /** index into save.bricks */
@@ -70,6 +85,9 @@ export interface BrdbWireInput {
  * carries `wires`. */
 export interface BrdbBrickExtras {
   components?: BrdbComponentInput[];
+  /** Required for procedural assets; optional for basic (non-procedural)
+   * assets, whose size is fixed by the asset and never stored. */
+  size?: WriteSaveObject['bricks'][number]['size'];
 }
 
 export interface BrdbSaveExtras {
@@ -80,7 +98,7 @@ export interface BrdbSaveExtras {
  * legacy `components` map and the save-level legacy `wires` list are
  * replaced by the modern forms. */
 export type WriteBrzSave = Omit<WriteSaveObject, 'bricks' | 'wires'> & {
-  bricks: (Omit<WriteSaveObject['bricks'][number], 'components'> &
+  bricks: (Omit<WriteSaveObject['bricks'][number], 'components' | 'size'> &
     BrdbBrickExtras)[];
 } & BrdbSaveExtras;
 
@@ -169,7 +187,13 @@ function normalizeBricks(save: WriteBrzInput): Brick[] {
         );
       return v;
     }) as [number, number, number];
-    const size = brick.size.map(v => {
+    const procedural = isProceduralAsset(assetName);
+    if (brick.size === undefined && procedural)
+      throw new Error(
+        `brdb: ${at}: procedural asset ${assetName} requires a size`
+      );
+    // Basic assets have a fixed size that is never stored; default it.
+    const size = (brick.size ?? [0, 0, 0]).map(v => {
       if (!Number.isInteger(v) || v < 0 || v > 0xffff)
         throw new Error(
           `brdb: ${at}: size components must be u16, got ${brick.size}`
@@ -228,7 +252,7 @@ function normalizeBricks(save: WriteBrzInput): Brick[] {
       );
     return {
       assetName,
-      procedural: isProceduralAsset(assetName),
+      procedural,
       size,
       position,
       direction: brick.direction ?? 4, // ZPositive
@@ -412,7 +436,11 @@ class ComponentChunkBuilder {
       schema.writeValue(
         w,
         t.structName,
-        schema.fillStruct(t.structName, t.data)
+        schema.fillStruct(
+          t.structName,
+          t.data,
+          COMPONENT_STRUCT_DEFAULTS.get(t.structName)
+        )
       );
     return w.toBytes();
   }
