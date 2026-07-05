@@ -1,5 +1,7 @@
-// WriteSaveObject -> brdb world tree -> .brz. Bricks, brdb-native
-// components, and wires; entities are a later phase.
+// Brick/entity/wire state -> brdb world tree -> .brz. Two entry points:
+// writeBrzLegacy converts a legacy .brs-shaped save (single grid), and the
+// World builder authors multi-grid worlds with entities, microchips, and
+// prefab metadata, mirroring the reference crate's wrapper::World.
 import { DEFAULT_UUID } from '../brs/constants';
 import type { WriteSaveObject } from '../brs/types';
 import { BitFlags } from './bits';
@@ -9,6 +11,7 @@ import { isProceduralAsset } from './catalog';
 import {
   COMPONENT_STRUCT_DEFAULTS,
   COMPONENT_TYPE_STRUCTS,
+  ENTITY_TYPE_STRUCTS,
 } from './componentDb';
 import type { ComponentTypeDataMap } from './componentTypes';
 import { BrGuid, PUBLIC_GUID, uuidToGuid } from './guid';
@@ -403,6 +406,9 @@ class ComponentChunkBuilder {
   private brickIndices: number[] = [];
   private trailing: { structName: string; data: Record<string, BrdbValue> }[] =
     [];
+  // outer-microchip-brick <-> inner-grid-entity pairings on this chunk
+  private microchipBrickIndices: number[] = [];
+  private microchipGridReferences: number[] = [];
   numComponents = 0;
 
   add(
@@ -420,6 +426,11 @@ class ComponentChunkBuilder {
     this.numComponents += 1;
   }
 
+  addMicrochipLink(brickIndex: number, gridReference: number) {
+    this.microchipBrickIndices.push(brickIndex);
+    this.microchipGridReferences.push(gridReference);
+  }
+
   toBytes(schema: BrdbSchema): Uint8Array {
     const w = new ByteWriter();
     schema.writeValue(w, 'BRSavedComponentChunkSoA', {
@@ -429,8 +440,8 @@ class ComponentChunkBuilder {
       JointEntityReferences: [],
       JointInitialRelativeOffsets: [],
       JointInitialRelativeRotations: [],
-      MicrochipBrickIndices: [],
-      MicrochipBrickGridReferences: [],
+      MicrochipBrickIndices: this.microchipBrickIndices,
+      MicrochipBrickGridReferences: this.microchipGridReferences,
     });
     for (const t of this.trailing)
       schema.writeValue(
@@ -446,11 +457,109 @@ class ComponentChunkBuilder {
   }
 }
 
+// ---- internal write model (shared by the legacy converter and World) ----
+
+interface ModelWireEnd {
+  gridSlot: number; // index into model.grids
+  brickIndex: number; // index into that grid's brick list
+  componentType: string;
+  port: string;
+}
+
+interface NormEntity {
+  type: string;
+  className: string;
+  location: { X: number; Y: number; Z: number };
+  rotation: { X: number; Y: number; Z: number; W: number };
+  ownerIndex: number;
+  frozen: boolean;
+  sleeping: boolean;
+  velocity: { X: number; Y: number; Z: number };
+  angularVelocity: { X: number; Y: number; Z: number };
+  colors: { R: number; G: number; B: number; A: number }[]; // exactly 8
+  data: Record<string, BrdbValue>;
+}
+
+interface WorldModel {
+  description?: string;
+  authorName?: string;
+  /** owner table rows; row 0 is the built-in PUBLIC owner */
+  ownerRows: { guid: BrGuid; name: string; display: string }[];
+  /** normalized bricks per grid; slot 0 is the main grid (grid id 1) */
+  grids: Brick[][];
+  /** on-disk grid id per slot: 1 for slot 0, then each sub-grid entity's
+   * persistent index */
+  gridIds: number[];
+  /** entities in insertion order; persistent index = 2 + position */
+  entities: NormEntity[];
+  wires: { source: ModelWireEnd; target: ModelWireEnd }[];
+  /** outer-microchip-brick -> inner-grid pairings; gridReference is the
+   * inner grid entity's persistent index */
+  microchipLinks: { gridSlot: number; brickIndex: number; gridReference: number }[];
+  /** Meta/Prefab.json content; non-null switches the bundle to a prefab
+   * (Bundle.json type "Prefab" + Prefab.json, no World.json) */
+  prefab: Record<string, unknown> | null;
+}
+
+function ownerRowsFrom(
+  owners: WriteSaveObject['brick_owners']
+): WorldModel['ownerRows'] {
+  const rows = [{ guid: PUBLIC_GUID, name: 'PUBLIC', display: 'PUBLIC' }];
+  for (const o of owners ?? [])
+    rows.push({
+      guid: uuidToGuid(o.id ?? DEFAULT_UUID),
+      name: o.name ?? 'Unknown',
+      display: o.display_name ?? o.name ?? 'Unknown',
+    });
+  return rows;
+}
+
 export function saveToPendingFs(
   save: WriteBrzInput,
   options: WriteBrzOptions = {}
 ): PendingEntry[] {
   const bricks = normalizeBricks(save);
+  // Legacy .brs wires name endpoints by brs component; only modern-shaped
+  // wires (component_type) are written, matching the components handling.
+  const wires = (save.wires ?? []).filter(
+    (w): w is BrdbWireInput => 'component_type' in w.source
+  );
+  return modelToPendingFs(
+    {
+      description: save.description,
+      authorName: save.author?.name,
+      ownerRows: ownerRowsFrom(save.brick_owners),
+      grids: [bricks],
+      gridIds: [1],
+      entities: [],
+      wires: wires.map(w => ({
+        source: {
+          gridSlot: 0,
+          brickIndex: w.source.brick_index,
+          componentType: w.source.component_type,
+          port: w.source.port,
+        },
+        target: {
+          gridSlot: 0,
+          brickIndex: w.target.brick_index,
+          componentType: w.target.component_type,
+          port: w.target.port,
+        },
+      })),
+      microchipLinks: [],
+      prefab: null,
+    },
+    options
+  );
+}
+
+function modelToPendingFs(
+  model: WorldModel,
+  options: WriteBrzOptions = {}
+): PendingEntry[] {
+  // Registration order: grids in slot order (main grid first), matching
+  // the reference writer's meta pre-pass over bricks then sub-grids.
+  const allBricks = model.grids.flat();
 
   // Registry pre-pass: material THEN asset, per brick, in brick order.
   // Registration must complete before any chunk packs — procedural type
@@ -458,7 +567,7 @@ export function saveToPendingFs(
   const materials = new Registry();
   const basic = new Registry();
   const procedural = new Registry();
-  for (const b of bricks) {
+  for (const b of allBricks) {
     materials.add(b.materialName);
     (b.procedural ? procedural : basic).add(b.assetName);
   }
@@ -474,39 +583,43 @@ export function saveToPendingFs(
   // them (matching the reference writer's used-only registration).
   const componentTypes = new Registry();
   const componentStructNames: string[] = [];
-  for (const b of bricks)
+  for (const b of allBricks)
     for (const c of b.components) {
       const before = componentTypes.size;
       if (componentTypes.add(c.type) === before)
         componentStructNames.push(COMPONENT_TYPE_STRUCTS.get(c.type)!);
     }
 
-  // Legacy .brs wires name endpoints by brs component; only modern-shaped
-  // wires (component_type) are written, matching the components handling.
-  const wires = (save.wires ?? []).filter(
-    (w): w is BrdbWireInput => 'component_type' in w.source
-  );
   const ports = new Registry();
-  wires.forEach((wire, wi) => {
+  model.wires.forEach((wire, wi) => {
     for (const [role, end] of [
       ['source', wire.source],
       ['target', wire.target],
     ] as const) {
+      const gridLen = model.grids[end.gridSlot]?.length ?? 0;
       if (
-        !Number.isInteger(end.brick_index) ||
-        end.brick_index < 0 ||
-        end.brick_index >= bricks.length
+        !Number.isInteger(end.brickIndex) ||
+        end.brickIndex < 0 ||
+        end.brickIndex >= gridLen
       )
         throw new Error(
-          `brdb: wires[${wi}].${role}: brick_index ${end.brick_index} out of range`
+          `brdb: wires[${wi}].${role}: brick_index ${end.brickIndex} out of range`
         );
-      if (!componentTypes.has(end.component_type))
+      if (!componentTypes.has(end.componentType))
         throw new Error(
-          `brdb: wires[${wi}].${role}: component type '${end.component_type}' is not used by any brick`
+          `brdb: wires[${wi}].${role}: component type '${end.componentType}' is not used by any brick`
         );
       ports.add(end.port);
     }
   });
+
+  // Entity type registry: first-seen, with the parallel class-name column.
+  const entityTypes = new Registry();
+  const entityClassNames: string[] = [];
+  for (const e of model.entities) {
+    const before = entityTypes.size;
+    if (entityTypes.add(e.type) === before) entityClassNames.push(e.className);
+  }
 
   // ComponentsShared.schema: the minimal SoA scaffolding, plus (when
   // components are used) the data structs actually referenced and their
@@ -526,88 +639,109 @@ export function saveToPendingFs(
     );
   }
 
-  // Owner table: row 0 = PUBLIC, then brick_owners
-  const ownerRows: { guid: BrGuid; name: string; display: string }[] = [
-    { guid: PUBLIC_GUID, name: 'PUBLIC', display: 'PUBLIC' },
-  ];
-  for (const o of save.brick_owners ?? []) {
-    ownerRows.push({
-      guid: uuidToGuid(o.id ?? DEFAULT_UUID),
-      name: o.name ?? 'Unknown',
-      display: o.display_name ?? o.name ?? 'Unknown',
-    });
-  }
+  // Owner table: row 0 = PUBLIC, then the save's owners.
+  const ownerRows = model.ownerRows;
   const brickCounts = ownerRows.map(() => 0);
   const componentCounts = ownerRows.map(() => 0);
+  const entityCounts = ownerRows.map(() => 0);
+  for (const e of model.entities) entityCounts[e.ownerIndex] += 1;
 
-  // Chunking: first-seen chunk order (deterministic; the ChunkIndex SoA
-  // rows use the same order)
-  const chunkOrder: string[] = [];
-  const chunks = new Map<
-    string,
-    { index: [number, number, number]; builder: ChunkBuilder }
-  >();
-  const componentChunks = new Map<string, ComponentChunkBuilder>();
-  const brickLocations: {
-    key: string;
-    chunk: [number, number, number];
-    localIndex: number;
-  }[] = [];
-  for (const b of bricks) {
-    const { chunk, rel } = toRelative(b.position);
-    const key = chunk.join('_');
-    let entry = chunks.get(key);
-    if (!entry) {
-      entry = { index: chunk, builder: new ChunkBuilder() };
-      chunks.set(key, entry);
-      chunkOrder.push(key);
-    }
-    const localIndex = entry.builder.numBricks;
-    entry.builder.addBrick(b, rel, reg, basicCount);
-    brickLocations.push({ key, chunk, localIndex });
-    brickCounts[b.ownerIndex] += 1;
-    if (b.components.length > 0) {
-      componentCounts[b.ownerIndex] += b.components.length;
-      let componentBuilder = componentChunks.get(key);
-      if (!componentBuilder)
-        componentChunks.set(
-          key,
-          (componentBuilder = new ComponentChunkBuilder())
-        );
-      for (const c of b.components) {
-        const typeIndex = componentTypes.indexOf(c.type);
-        componentBuilder.add(
-          typeIndex,
-          localIndex,
-          componentStructNames[typeIndex],
-          c.data ?? {}
-        );
-      }
-    }
-  }
-
-  // Wires live in the TARGET's chunk. Local rows are same-chunk sources
-  // (the legacy writer is single-grid); anything else is a remote source
-  // carrying the source grid + chunk.
+  // Chunking, per grid: first-seen chunk order (deterministic; each grid's
+  // ChunkIndex SoA rows use the same order).
   interface WireRows {
     remoteSources: Record<string, BrdbValue>[];
     localSources: Record<string, BrdbValue>[];
     remoteTargets: Record<string, BrdbValue>[];
     localTargets: Record<string, BrdbValue>[];
   }
-  const wireChunks = new Map<string, WireRows>();
-  const chunkWireCounts = new Map<string, number>();
-  for (const wire of wires) {
-    const source = brickLocations[wire.source.brick_index];
-    const targetLoc = brickLocations[wire.target.brick_index];
+  interface GridPack {
+    chunkOrder: string[];
+    chunks: Map<
+      string,
+      { index: [number, number, number]; builder: ChunkBuilder }
+    >;
+    componentChunks: Map<string, ComponentChunkBuilder>;
+    brickLocations: {
+      key: string;
+      chunk: [number, number, number];
+      localIndex: number;
+    }[];
+    wireChunks: Map<string, WireRows>;
+    chunkWireCounts: Map<string, number>;
+  }
+  const packs: GridPack[] = model.grids.map(gridBricks => {
+    const pack: GridPack = {
+      chunkOrder: [],
+      chunks: new Map(),
+      componentChunks: new Map(),
+      brickLocations: [],
+      wireChunks: new Map(),
+      chunkWireCounts: new Map(),
+    };
+    for (const b of gridBricks) {
+      const { chunk, rel } = toRelative(b.position);
+      const key = chunk.join('_');
+      let entry = pack.chunks.get(key);
+      if (!entry) {
+        entry = { index: chunk, builder: new ChunkBuilder() };
+        pack.chunks.set(key, entry);
+        pack.chunkOrder.push(key);
+      }
+      const localIndex = entry.builder.numBricks;
+      entry.builder.addBrick(b, rel, reg, basicCount);
+      pack.brickLocations.push({ key, chunk, localIndex });
+      brickCounts[b.ownerIndex] += 1;
+      if (b.components.length > 0) {
+        componentCounts[b.ownerIndex] += b.components.length;
+        let componentBuilder = pack.componentChunks.get(key);
+        if (!componentBuilder)
+          pack.componentChunks.set(
+            key,
+            (componentBuilder = new ComponentChunkBuilder())
+          );
+        for (const c of b.components) {
+          const typeIndex = componentTypes.indexOf(c.type);
+          componentBuilder.add(
+            typeIndex,
+            localIndex,
+            componentStructNames[typeIndex],
+            c.data ?? {}
+          );
+        }
+      }
+    }
+    return pack;
+  });
+
+  // Microchip links land on the chunk holding the outer shell brick.
+  for (const link of model.microchipLinks) {
+    const pack = packs[link.gridSlot];
+    const loc = pack?.brickLocations[link.brickIndex];
+    if (!loc)
+      throw new Error(
+        `brdb: microchip link brick index ${link.brickIndex} out of range`
+      );
+    let cb = pack.componentChunks.get(loc.key);
+    if (!cb) pack.componentChunks.set(loc.key, (cb = new ComponentChunkBuilder()));
+    cb.addMicrochipLink(loc.localIndex, link.gridReference);
+  }
+
+  // Wires live in the TARGET's grid + chunk. Local rows are
+  // same-grid-same-chunk sources; anything else is a remote source
+  // carrying the source grid + chunk.
+  for (const wire of model.wires) {
+    const source =
+      packs[wire.source.gridSlot].brickLocations[wire.source.brickIndex];
+    const targetPack = packs[wire.target.gridSlot];
+    const targetLoc = targetPack.brickLocations[wire.target.brickIndex];
     const target = {
       BrickIndexInChunk: targetLoc.localIndex,
-      ComponentTypeIndex: componentTypes.indexOf(wire.target.component_type),
+      ComponentTypeIndex: componentTypes.indexOf(wire.target.componentType),
       PortIndex: ports.indexOf(wire.target.port),
     };
-    let rows = wireChunks.get(targetLoc.key);
+    let rows = targetPack.wireChunks.get(targetLoc.key);
     if (!rows)
-      wireChunks.set(
+      targetPack.wireChunks.set(
         targetLoc.key,
         (rows = {
           remoteSources: [],
@@ -616,27 +750,30 @@ export function saveToPendingFs(
           localTargets: [],
         })
       );
-    chunkWireCounts.set(
+    targetPack.chunkWireCounts.set(
       targetLoc.key,
-      (chunkWireCounts.get(targetLoc.key) ?? 0) + 1
+      (targetPack.chunkWireCounts.get(targetLoc.key) ?? 0) + 1
     );
-    if (source.key === targetLoc.key) {
+    if (
+      wire.source.gridSlot === wire.target.gridSlot &&
+      source.key === targetLoc.key
+    ) {
       rows.localSources.push({
         BrickIndexInChunk: source.localIndex,
-        ComponentTypeIndex: componentTypes.indexOf(wire.source.component_type),
+        ComponentTypeIndex: componentTypes.indexOf(wire.source.componentType),
         PortIndex: ports.indexOf(wire.source.port),
       });
       rows.localTargets.push(target);
     } else {
       rows.remoteSources.push({
-        GridPersistentIndex: 1, // single (main) grid in the legacy writer
+        GridPersistentIndex: model.gridIds[wire.source.gridSlot],
         ChunkIndex: {
           X: source.chunk[0],
           Y: source.chunk[1],
           Z: source.chunk[2],
         },
         BrickIndexInChunk: source.localIndex,
-        ComponentTypeIndex: componentTypes.indexOf(wire.source.component_type),
+        ComponentTypeIndex: componentTypes.indexOf(wire.source.componentType),
         PortIndex: ports.indexOf(wire.source.port),
       });
       rows.remoteTargets.push(target);
@@ -652,8 +789,8 @@ export function saveToPendingFs(
   const entitySchema = embeddedSchema('BRSavedEntityChunkSoA');
 
   const globalDataMps = globalDataSchema.encode('BRSavedGlobalDataSoA', {
-    EntityTypeNames: [],
-    EntityDataClassNames: [],
+    EntityTypeNames: entityTypes.names,
+    EntityDataClassNames: entityClassNames,
     BasicBrickAssetNames: basic.names,
     ProceduralBrickAssetNames: procedural.names,
     MaterialAssetNames: materials.names,
@@ -673,51 +810,85 @@ export function saveToPendingFs(
     })),
     UserNames: ownerRows.map(r => r.name),
     DisplayNames: ownerRows.map(r => r.display),
-    EntityCounts: ownerRows.map(() => 0),
+    EntityCounts: entityCounts,
     BrickCounts: brickCounts,
     ComponentCounts: componentCounts,
     WireCounts: ownerRows.map(() => 0),
   });
 
-  const chunkIndexMps = chunkIndexSchema.encode('BRSavedBrickChunkIndexSoA', {
-    Chunk3DIndices: chunkOrder.map(k => {
-      const [X, Y, Z] = chunks.get(k)!.index;
-      return { X, Y, Z };
-    }),
-    // origin chunk gets zero offsets; every other chunk (CHUNK_HALF)³
-    ChunkOffsets: chunkOrder.map(k => {
-      const zero = chunks.get(k)!.index.every(v => v === 0);
-      const off = zero ? 0 : CHUNK_HALF;
-      return { X: off, Y: off, Z: off };
-    }),
-    ChunkSizes: chunkOrder.map(() => CHUNK_SIZE),
-    NumBricks: chunkOrder.map(k => chunks.get(k)!.builder.numBricks),
-    NumComponents: chunkOrder.map(
-      k => componentChunks.get(k)?.numComponents ?? 0
-    ),
-    NumWires: chunkOrder.map(k => chunkWireCounts.get(k) ?? 0),
-  });
-
+  // Entities: one chunk at (0,0,0) holding every entity, persistent
+  // indices 2..; empty tables when there are none.
+  const totalEntities = model.entities.length;
   const entityChunkIndexMps = entityChunkIndexSchema.encode(
     'BRSavedEntityChunkIndexSoA',
     {
-      NextPersistentIndex: 2, // sub-grids/entities start at 2; none in phase 1
-      Chunk3DIndices: [],
-      NumEntities: [],
+      NextPersistentIndex: 2 + totalEntities,
+      Chunk3DIndices: totalEntities ? [{ X: 0, Y: 0, Z: 0 }] : [],
+      NumEntities: totalEntities ? [totalEntities] : [],
     }
   );
+  let entityChunkMps: Uint8Array | null = null;
+  if (totalEntities > 0) {
+    const counters: { TypeIndex: number; NumEntities: number }[] = [];
+    const locked = new BitFlags();
+    const sleepingFlags = new BitFlags();
+    for (const e of model.entities) {
+      const typeIndex = entityTypes.indexOf(e.type);
+      const last = counters[counters.length - 1];
+      if (last && last.TypeIndex === typeIndex) last.NumEntities += 1;
+      else counters.push({ TypeIndex: typeIndex, NumEntities: 1 });
+      locked.push(e.frozen);
+      sleepingFlags.push(e.sleeping);
+    }
+    const w = new ByteWriter();
+    entitySchema.writeValue(w, 'BRSavedEntityChunkSoA', {
+      TypeCounters: counters,
+      PersistentIndices: model.entities.map((_, i) => 2 + i),
+      OwnerIndices: model.entities.map(e => e.ownerIndex),
+      OriginalOwnerIndices: model.entities.map(e => e.ownerIndex),
+      Locations: model.entities.map(e => e.location),
+      Rotations: model.entities.map(e => e.rotation),
+      WeldParentFlags: { Flags: [] },
+      PhysicsLockedFlags: locked.toValue(),
+      PhysicsSleepingFlags: sleepingFlags.toValue(),
+      WeldParentIndices: [],
+      LinearVelocities: model.entities.map(e => e.velocity),
+      AngularVelocities: model.entities.map(e => e.angularVelocity),
+      ColorsAndAlphas: model.entities.map(e =>
+        Object.fromEntries(e.colors.map((c, ci) => [`Color${ci}`, c]))
+      ),
+      RemainingLifeSpans: model.entities.map(() => 0),
+      bColorsAreLinear: false, // new saves always store sRGB
+    });
+    // Trailing per-entity data structs, in SoA order.
+    model.entities.forEach((e, i) => {
+      if (e.className === 'None') return;
+      try {
+        entitySchema.writeValue(
+          w,
+          e.className,
+          entitySchema.fillStruct(e.className, e.data)
+        );
+      } catch (err) {
+        throw new Error(
+          `brdb: entities[${i}] (${e.type}) data: ${(err as Error).message}`
+        );
+      }
+    });
+    entityChunkMps = w.toBytes();
+  }
 
   const utf8 = new TextEncoder();
   const bundle: BundleJson = {
-    type: 'World',
+    type: model.prefab ? 'Prefab' : 'World',
     iD: '00000000-0000-0000-0000-000000000000',
     name: '',
     version: '',
     tags: [],
-    authors: save.author?.name ? [save.author.name] : [],
+    authors: model.authorName ? [model.authorName] : [],
     createdAt: '0001.01.01-00.00.00',
     updatedAt: '0001.01.01-00.00.00',
-    description: save.description ?? 'A Generated World',
+    description: model.description ?? 'A Generated World',
     dependencies: [],
     gameVersion: 'CL0',
     ...options.bundle,
@@ -725,76 +896,115 @@ export function saveToPendingFs(
 
   // Tree creation order below defines archive ids — it is part of the
   // byte format; do not reorder.
-  const gridDir: PendingEntry[] = [['ChunkIndex.mps', file(chunkIndexMps)]];
-  if (chunkOrder.length > 0) {
-    gridDir.push([
-      'Chunks',
-      folder(
-        chunkOrder.map(k => [
-          `${k}.mps`,
-          file(
-            chunkSchema.encode(
-              'BRSavedBrickChunkSoA',
-              chunks.get(k)!.builder.toValue(basicCount)
-            )
-          ),
-        ])
+  const makeGridDir = (pack: GridPack): PendingEntry[] => {
+    const chunkIndexMps = chunkIndexSchema.encode('BRSavedBrickChunkIndexSoA', {
+      Chunk3DIndices: pack.chunkOrder.map(k => {
+        const [X, Y, Z] = pack.chunks.get(k)!.index;
+        return { X, Y, Z };
+      }),
+      // origin chunk gets zero offsets; every other chunk (CHUNK_HALF)³
+      ChunkOffsets: pack.chunkOrder.map(k => {
+        const zero = pack.chunks.get(k)!.index.every(v => v === 0);
+        const off = zero ? 0 : CHUNK_HALF;
+        return { X: off, Y: off, Z: off };
+      }),
+      ChunkSizes: pack.chunkOrder.map(() => CHUNK_SIZE),
+      NumBricks: pack.chunkOrder.map(
+        k => pack.chunks.get(k)!.builder.numBricks
       ),
-    ]);
-  }
-  if (componentChunks.size > 0) {
-    gridDir.push([
-      'Components',
-      folder(
-        chunkOrder
-          .filter(k => componentChunks.has(k))
-          .map(k => [
+      NumComponents: pack.chunkOrder.map(
+        k => pack.componentChunks.get(k)?.numComponents ?? 0
+      ),
+      NumWires: pack.chunkOrder.map(k => pack.chunkWireCounts.get(k) ?? 0),
+    });
+    const gridDir: PendingEntry[] = [['ChunkIndex.mps', file(chunkIndexMps)]];
+    if (pack.chunkOrder.length > 0) {
+      gridDir.push([
+        'Chunks',
+        folder(
+          pack.chunkOrder.map(k => [
             `${k}.mps`,
-            file(componentChunks.get(k)!.toBytes(componentsSchema)),
+            file(
+              chunkSchema.encode(
+                'BRSavedBrickChunkSoA',
+                pack.chunks.get(k)!.builder.toValue(basicCount)
+              )
+            ),
           ])
-      ),
-    ]);
-  }
-  if (wireChunks.size > 0) {
-    gridDir.push([
-      'Wires',
-      folder(
-        chunkOrder
-          .filter(k => wireChunks.has(k))
-          .map(k => {
-            const rows = wireChunks.get(k)!;
-            return [
+        ),
+      ]);
+    }
+    if (pack.componentChunks.size > 0) {
+      gridDir.push([
+        'Components',
+        folder(
+          pack.chunkOrder
+            .filter(k => pack.componentChunks.has(k))
+            .map(k => [
               `${k}.mps`,
-              file(
-                wiresSchema.encode('BRSavedWireChunkSoA', {
-                  RemoteWireSources: rows.remoteSources,
-                  LocalWireSources: rows.localSources,
-                  RemoteWireTargets: rows.remoteTargets,
-                  LocalWireTargets: rows.localTargets,
-                  PendingPropagationFlags: { Flags: [] },
-                })
-              ),
-            ];
-          })
+              file(pack.componentChunks.get(k)!.toBytes(componentsSchema)),
+            ])
+        ),
+      ]);
+    }
+    if (pack.wireChunks.size > 0) {
+      gridDir.push([
+        'Wires',
+        folder(
+          pack.chunkOrder
+            .filter(k => pack.wireChunks.has(k))
+            .map(k => {
+              const rows = pack.wireChunks.get(k)!;
+              return [
+                `${k}.mps`,
+                file(
+                  wiresSchema.encode('BRSavedWireChunkSoA', {
+                    RemoteWireSources: rows.remoteSources,
+                    LocalWireSources: rows.localSources,
+                    RemoteWireTargets: rows.remoteTargets,
+                    LocalWireTargets: rows.localTargets,
+                    PendingPropagationFlags: { Flags: [] },
+                  })
+                ),
+              ];
+            })
+        ),
+      ]);
+    }
+    return gridDir;
+  };
+
+  const metaDir: PendingEntry[] = [
+    ['Bundle.json', file(utf8.encode(JSON.stringify(bundle)))],
+    // Screenshot.jpg / Thumbnail.png: no content -> omitted entirely
+  ];
+  if (model.prefab) {
+    // Prefabs write Prefab.json and omit World.json.
+    metaDir.push([
+      'Prefab.json',
+      file(utf8.encode(JSON.stringify(model.prefab))),
+    ]);
+  } else {
+    metaDir.push([
+      'World.json',
+      file(
+        utf8.encode(
+          JSON.stringify({ environment: options.environment ?? 'Plate' })
+        )
       ),
     ]);
   }
+
+  const entitiesDir: PendingEntry[] = [
+    ['ChunkIndex.schema', file(entityChunkIndexSchema.toBinary())],
+    ['ChunkIndex.mps', file(entityChunkIndexMps)],
+    ['ChunksShared.schema', file(entitySchema.toBinary())],
+  ];
+  if (entityChunkMps)
+    entitiesDir.push(['Chunks', folder([['0_0_0.mps', file(entityChunkMps)]])]);
+
   return [
-    [
-      'Meta',
-      folder([
-        ['Bundle.json', file(utf8.encode(JSON.stringify(bundle)))],
-        // Screenshot.jpg / Thumbnail.png: no content -> omitted entirely
-        [
-          'World.json',
-          file(
-            utf8.encode(
-              JSON.stringify({ environment: options.environment ?? 'Plate' })
-            )
-          ),
-        ],
-      ]),
-    ],
+    ['Meta', folder(metaDir)],
     [
       'World',
       folder([
@@ -812,17 +1022,18 @@ export function saveToPendingFs(
                 ['ChunksShared.schema', file(chunkSchema.toBinary())],
                 ['WiresShared.schema', file(wiresSchema.toBinary())],
                 ['ComponentsShared.schema', file(componentsSchema.toBinary())],
-                ['Grids', folder([['1', folder(gridDir)]])],
+                [
+                  'Grids',
+                  folder(
+                    packs.map((pack, slot) => [
+                      String(model.gridIds[slot]),
+                      folder(makeGridDir(pack)),
+                    ])
+                  ),
+                ],
               ]),
             ],
-            [
-              'Entities',
-              folder([
-                ['ChunkIndex.schema', file(entityChunkIndexSchema.toBinary())],
-                ['ChunkIndex.mps', file(entityChunkIndexMps)],
-                ['ChunksShared.schema', file(entitySchema.toBinary())],
-              ]),
-            ],
+            ['Entities', folder(entitiesDir)],
           ]),
         ],
       ]),
@@ -830,9 +1041,375 @@ export function saveToPendingFs(
   ];
 }
 
-/** Write a .brz world from a legacy .brs-shaped WriteSaveObject. A
- * builder-style world API for authoring saves from scratch is planned;
- * this entry point exists for converting existing saves. */
+// ---- World builder (mirrors the reference crate's wrapper::World) ----
+
+/** An entity to place in the world. Grid entities (dynamic/microchip brick
+ * grids) come from `World.addBrickGrid`/`World.addMicrochip`. */
+export interface BrdbEntityInput {
+  /** entity type name; default 'Entity_DynamicBrickGrid' */
+  type?: string;
+  location?: { X: number; Y: number; Z: number };
+  rotation?: { X: number; Y: number; Z: number; W: number };
+  owner_index?: number;
+  frozen?: boolean;
+  sleeping?: boolean;
+  linear_velocity?: { X: number; Y: number; Z: number };
+  angular_velocity?: { X: number; Y: number; Z: number };
+  /** up to 8 entity palette colors; missing slots default to white */
+  colors?: { R: number; G: number; B: number; A: number }[];
+  /** fields of the entity's data class struct; omitted fields zero-fill */
+  data?: Record<string, BrdbValue>;
+}
+
+/** A brick for the World builder: the legacy brick shape with the asset
+ * and material referenced by NAME instead of by table index. */
+export type WorldBrickInput = Omit<
+  WriteBrzSave['bricks'][number],
+  'asset_name_index' | 'material_index' | 'color' | 'owner_index'
+> & {
+  /** brick asset name; default 'PB_DefaultBrick' */
+  asset?: string;
+  /** material asset name; default 'BMC_Plastic' */
+  material?: string;
+  color?: [number, number, number];
+  /** index returned by `World.addOwner` (0 = the built-in PUBLIC) */
+  owner_index?: number;
+};
+
+export interface WorldBrickHandle {
+  /** grid slot (0 = main grid) */
+  readonly grid: number;
+  /** index within that grid's brick list */
+  readonly index: number;
+}
+export interface WorldGridHandle {
+  readonly grid: number;
+  readonly entityOrder: number;
+}
+export interface WorldEntityHandle {
+  readonly entityOrder: number;
+}
+export interface WorldWireEndpoint {
+  brick: WorldBrickHandle;
+  component_type: string;
+  port: string;
+}
+
+export interface WorldPrefabOptions {
+  isMicrochipPrefab?: boolean;
+  isPhysicsGrid?: boolean;
+  freezePhysicsGrid?: boolean;
+  freezeGlobalGrid?: boolean;
+  addedGlobalGridOffset?: { x: number; y: number; z: number };
+}
+
+export interface WorldMicrochipOptions {
+  /** world position of the outer microchip shell brick */
+  position: [number, number, number];
+  color?: [number, number, number];
+  owner_index?: number;
+  /** inner grid entity location; default {X:0, Y:0, Z:40} */
+  entityLocation?: { X: number; Y: number; Z: number };
+  /** inner grid plane half-extent in grid units; default {X:14, Y:14, Z:2}
+   * (matches in-game placement) */
+  planeExtent?: { X: number; Y: number; Z: number };
+  /** whether the chip starts collapsed; default true */
+  collapsed?: boolean;
+}
+
+function normalizeEntity(
+  e: BrdbEntityInput,
+  i: number,
+  numOwners: number
+): NormEntity {
+  const type = e.type ?? 'Entity_DynamicBrickGrid';
+  const className = ENTITY_TYPE_STRUCTS.get(type);
+  if (className === undefined)
+    throw new Error(`brdb: entities[${i}]: unknown entity type '${type}'`);
+  const ownerIndex = e.owner_index ?? 0;
+  if (
+    !Number.isInteger(ownerIndex) ||
+    ownerIndex < 0 ||
+    ownerIndex > numOwners
+  )
+    throw new Error(
+      `brdb: entities[${i}]: owner_index ${ownerIndex} out of range (0..${numOwners})`
+    );
+  const colors = [...(e.colors ?? [])];
+  if (colors.length > 8)
+    throw new Error(`brdb: entities[${i}]: at most 8 colors, got ${colors.length}`);
+  while (colors.length < 8) colors.push({ R: 255, G: 255, B: 255, A: 255 });
+  return {
+    type,
+    className,
+    location: e.location ?? { X: 0, Y: 0, Z: 0 },
+    rotation: e.rotation ?? { X: 0, Y: 0, Z: 0, W: 1 },
+    ownerIndex,
+    frozen: e.frozen ?? false,
+    sleeping: e.sleeping ?? false,
+    velocity: e.linear_velocity ?? { X: 0, Y: 0, Z: 0 },
+    angularVelocity: e.angular_velocity ?? { X: 0, Y: 0, Z: 0 },
+    colors,
+    data: e.data ?? {},
+  };
+}
+
+/** Meta/Prefab.json from the main-grid brick bounding box: all four pivots
+ * are the bounds box (in brick units), like the reference crate's
+ * PrefabJson::from_bounds. Sub-grids are excluded — their bricks live
+ * inside an entity. */
+function computePrefabJson(
+  mainBricks: Brick[],
+  opts: WorldPrefabOptions
+): Record<string, unknown> {
+  const min = [0, 0, 0];
+  const max = [0, 0, 0];
+  mainBricks.forEach((b, i) => {
+    // A brick's local bounds: procedural size, the 1x1 plate footprint for
+    // the collapsed microchip shell, or a 1x1 brick footprint fallback.
+    const half = b.procedural
+      ? b.size
+      : b.assetName === 'B_1x1_Microchip'
+      ? [5, 5, 2]
+      : [5, 5, 6];
+    for (let ax = 0; ax < 3; ax++) {
+      const lo = b.position[ax] - half[ax];
+      const hi = b.position[ax] + half[ax];
+      if (i === 0 || lo < min[ax]) min[ax] = lo;
+      if (i === 0 || hi > max[ax]) max[ax] = hi;
+    }
+  });
+  const pivot = {
+    center: {
+      x: (min[0] + max[0]) / 2,
+      y: (min[1] + max[1]) / 2,
+      z: (min[2] + max[2]) / 2,
+    },
+    halfExtent: {
+      x: (max[0] - min[0]) / 2,
+      y: (max[1] - min[1]) / 2,
+      z: (max[2] - min[2]) / 2,
+    },
+  };
+  return {
+    pivots: {
+      bottomStudsPivot: pivot,
+      studsExpandedPivot: pivot,
+      topStudsPivot: pivot,
+      boundsPivot: pivot,
+      bottomStudsDirection: 'Z_Negative',
+      topStudsDirection: 'Z_Positive',
+      bBottomStudsValid: true,
+      bTopStudsValid: true,
+    },
+    addedGlobalGridOffset: opts.addedGlobalGridOffset ?? { x: 0, y: 0, z: 0 },
+    bIsPhysicsGrid: opts.isPhysicsGrid ?? false,
+    bFreezePhysicsGrid: opts.freezePhysicsGrid ?? false,
+    bFreezeGlobalGrid: opts.freezeGlobalGrid ?? false,
+    bIsMicrochipPrefab: opts.isMicrochipPrefab ?? false,
+  };
+}
+
+/** Builder for multi-grid worlds: bricks, components, wires (including
+ * cross-grid), entities, microchips with linked inner grids, and prefab
+ * metadata. Write with `toBrz` / `toPendingFs`.
+ *
+ * ```js
+ * const w = new World();
+ * const { grid } = w.addMicrochip({ position: [0, 0, 2] });
+ * const gate = w.addBrick({ asset: ..., components: [...] }, grid);
+ * w.addWire({ brick: gate, component_type, port }, ...);
+ * w.makePrefab({ isMicrochipPrefab: true });
+ * writeFileSync('chip.brz', w.toBrz());
+ * ```
+ */
+export class World {
+  private gridBrickInputs: WorldBrickInput[][] = [[]];
+  /** per sub-grid slot (1..): the grid entity's insertion order */
+  private gridEntityOrders: number[] = [];
+  private entityInputs: BrdbEntityInput[] = [];
+  private wireList: { source: WorldWireEndpoint; target: WorldWireEndpoint }[] =
+    [];
+  private chipLinks: { brick: WorldBrickHandle; grid: WorldGridHandle }[] = [];
+  private ownerList: NonNullable<WriteSaveObject['brick_owners']> = [];
+  private prefabOptions: WorldPrefabOptions | null = null;
+
+  /** Register an owner; returns its owner_index (0 is the built-in PUBLIC
+   * owner, so the first added owner is index 1). */
+  addOwner(owner: { id?: string; name?: string; display_name?: string }): number {
+    this.ownerList.push(owner);
+    return this.ownerList.length;
+  }
+
+  /** Add a brick to the main grid, or to a sub-grid via its handle. */
+  addBrick(brick: WorldBrickInput, grid?: WorldGridHandle): WorldBrickHandle {
+    const slot = grid?.grid ?? 0;
+    const list = this.gridBrickInputs[slot];
+    if (!list) throw new Error(`brdb: unknown grid handle (slot ${slot})`);
+    list.push(brick);
+    return { grid: slot, index: list.length - 1 };
+  }
+
+  addBricks(
+    bricks: Iterable<WorldBrickInput>,
+    grid?: WorldGridHandle
+  ): WorldBrickHandle[] {
+    return [...bricks].map(b => this.addBrick(b, grid));
+  }
+
+  /** Add a standalone (non-grid) entity. */
+  addEntity(entity: BrdbEntityInput = {}): WorldEntityHandle {
+    this.entityInputs.push(entity);
+    return { entityOrder: this.entityInputs.length - 1 };
+  }
+
+  /** Create a sub-grid backed by a grid entity (a dynamic brick grid by
+   * default). Brick positions in sub-grids are grid-local; the writer
+   * shifts them by -CHUNK_HALF per axis to the chunk-center convention,
+   * matching the reference writer. */
+  addBrickGrid(entity: BrdbEntityInput = {}): WorldGridHandle {
+    const handle = this.addEntity({
+      type: 'Entity_DynamicBrickGrid',
+      ...entity,
+    });
+    this.gridBrickInputs.push([]);
+    this.gridEntityOrders.push(handle.entityOrder);
+    return {
+      grid: this.gridBrickInputs.length - 1,
+      entityOrder: handle.entityOrder,
+    };
+  }
+
+  /** Wire two component ports together; endpoints may be in different
+   * grids (the writer emits remote wire rows for cross-grid sources). */
+  addWire(source: WorldWireEndpoint, target: WorldWireEndpoint): void {
+    this.wireList.push({ source, target });
+  }
+
+  /** Pair an outer microchip shell brick with its inner grid. Most callers
+   * get this for free via `addMicrochip`. */
+  registerMicrochipLink(
+    brick: WorldBrickHandle,
+    grid: WorldGridHandle
+  ): void {
+    this.chipLinks.push({ brick, grid });
+  }
+
+  /** Build a microchip: places the outer B_1x1_Microchip shell brick on
+   * the main grid (with its Component_Internal_Microchip), creates the
+   * linked inner grid entity, and returns both handles. Add the chip's
+   * contents with `addBrick(..., grid)`. */
+  addMicrochip(opts: WorldMicrochipOptions): {
+    brick: WorldBrickHandle;
+    grid: WorldGridHandle;
+  } {
+    const brick = this.addBrick({
+      asset: 'B_1x1_Microchip',
+      position: opts.position,
+      color: opts.color,
+      owner_index: opts.owner_index,
+      components: [{ type: 'Component_Internal_Microchip' }],
+    });
+    const grid = this.addBrickGrid({
+      type: 'Entity_MicrochipDynamicBrickGrid',
+      location: opts.entityLocation ?? { X: 0, Y: 0, Z: 40 },
+      data: {
+        bCollapsed: opts.collapsed ?? true,
+        PlaneCenter: { X: 0, Y: 0, Z: 0 },
+        PlaneExtent: opts.planeExtent ?? { X: 14, Y: 14, Z: 2 },
+      },
+    });
+    this.registerMicrochipLink(brick, grid);
+    return { brick, grid };
+  }
+
+  /** Mark this world as a prefab bundle: Bundle.json type "Prefab" plus
+   * Meta/Prefab.json with pivots/bounds computed from the main-grid brick
+   * bounding box (World.json is omitted). */
+  makePrefab(options: WorldPrefabOptions = {}): void {
+    this.prefabOptions = options;
+  }
+
+  toPendingFs(options: WriteBrzOptions = {}): PendingEntry[] {
+    // Shared name tables across grids.
+    const assetNames = new Registry();
+    const materialNames = new Registry();
+    for (const list of this.gridBrickInputs)
+      for (const b of list) {
+        assetNames.add(b.asset ?? 'PB_DefaultBrick');
+        materialNames.add(b.material ?? 'BMC_Plastic');
+      }
+    const grids = this.gridBrickInputs.map((list, slot) =>
+      normalizeBricks({
+        brick_assets: assetNames.names,
+        materials: materialNames.names,
+        brick_owners: this.ownerList,
+        bricks: list.map(b => ({
+          ...b,
+          asset_name_index: assetNames.indexOf(b.asset ?? 'PB_DefaultBrick'),
+          material_index: materialNames.indexOf(b.material ?? 'BMC_Plastic'),
+          // the default (asset omitted) brick is a 1x1: PB_DefaultBrick 5,5,6
+          size: b.size ?? (b.asset === undefined ? [5, 5, 6] : undefined),
+          // sub-grid bricks are chunk-centered on disk
+          position:
+            slot === 0
+              ? b.position
+              : (b.position.map(v => v - CHUNK_HALF) as [
+                  number,
+                  number,
+                  number
+                ]),
+          color: b.color ?? [255, 255, 255],
+        })),
+      } as WriteBrzInput)
+    );
+    const entities = this.entityInputs.map((e, i) =>
+      normalizeEntity(e, i, this.ownerList.length)
+    );
+    const gridIds = [1, ...this.gridEntityOrders.map(o => 2 + o)];
+    return modelToPendingFs(
+      {
+        ownerRows: ownerRowsFrom(this.ownerList),
+        grids,
+        gridIds,
+        entities,
+        wires: this.wireList.map(w => ({
+          source: {
+            gridSlot: w.source.brick.grid,
+            brickIndex: w.source.brick.index,
+            componentType: w.source.component_type,
+            port: w.source.port,
+          },
+          target: {
+            gridSlot: w.target.brick.grid,
+            brickIndex: w.target.brick.index,
+            componentType: w.target.component_type,
+            port: w.target.port,
+          },
+        })),
+        microchipLinks: this.chipLinks.map(l => ({
+          gridSlot: l.brick.grid,
+          brickIndex: l.brick.index,
+          gridReference: 2 + l.grid.entityOrder,
+        })),
+        prefab: this.prefabOptions
+          ? computePrefabJson(grids[0], this.prefabOptions)
+          : null,
+      },
+      options
+    );
+  }
+
+  /** Serialize to an in-memory .brz archive. */
+  toBrz(options: WriteBrzOptions = {}): Uint8Array {
+    return writeBrzContainer(this.toPendingFs(options), {
+      compress: options.compress,
+    });
+  }
+}
+
+/** Write a .brz world from a legacy .brs-shaped WriteSaveObject; for
+ * authoring multi-grid worlds from scratch use the World builder. */
 export function writeBrzLegacy(
   save: WriteBrzInput,
   options: WriteBrzOptions = {}

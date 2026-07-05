@@ -30,12 +30,13 @@ const bytesOf = (fn: (w: ByteWriter) => void): number[] => {
 };
 
 describe('writer deviations', () => {
-  test('mpU8 (u8-typed): pfix / u8-marker / negative-fixint bands', () => {
+  test('mpU8 (u8-typed): pfix / i8-marker / negative-fixint bands', () => {
     expect(bytesOf(w => mpU8(w, 0))).toEqual([0x00]);
     expect(bytesOf(w => mpU8(w, 127))).toEqual([0x7f]);
-    expect(bytesOf(w => mpU8(w, 128))).toEqual([0xcc, 0x80]);
-    // 224 takes the u8 marker (the encoder tests value > 224, strictly)
-    expect(bytesOf(w => mpU8(w, 224))).toEqual([0xcc, 0xe0]);
+    // 128..=224 use the I8 marker (the game casts u8 through i8 on write;
+    // its field SKIPPER rejects the 0xcc uint8 form with mpack_error_type)
+    expect(bytesOf(w => mpU8(w, 128))).toEqual([0xd0, 0x80]);
+    expect(bytesOf(w => mpU8(w, 224))).toEqual([0xd0, 0xe0]);
     // 225..255 are single negative-fixint bytes
     expect(bytesOf(w => mpU8(w, 225))).toEqual([0xe1]);
     expect(bytesOf(w => mpU8(w, 255))).toEqual([0xff]);

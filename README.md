@@ -1,8 +1,6 @@
 # brs.js
 
-Read and write Brickadia save files (.brs, .brz)
-
-Currently supports all BRS save versions. BRS Files are no longer supported as of Brickadia EA3.
+Read and write Brickadia save files (.brz, .brdb, .brs)
 
 **Warning:** **Unreal Engine uses numbers potentially larger than Javascript can handle.**
 
@@ -28,7 +26,217 @@ Script: `window.BRS`
 
 ### Examples
 
-Examples are available in the `examples/` directory. All `.js` examples are for node, `.html` are for web.
+Examples are available in the `examples/` directory. All `.mjs` examples are for node, `.html` are for web.
+
+## Brickadia Worlds (.brz, .brdb)
+
+brs-js reads and writes both Brickadia World formats — the `.brz` archive
+and the live `.brdb` SQLite database ([see below](#brdb-sqlite-worlds)) —
+covering bricks, components, wires, entities, multiple grids
+(microchips), and prefab metadata. There are two writers, and each can
+target either format:
+
+- the `World` builder — author worlds from scratch, including sub-grids,
+  entities, microchips, and prefabs (`w.toBrz()` or `db.save(desc, w)`);
+- `writeBrzLegacy` — convert the same legacy `WriteSaveObject` that
+  `write()` takes, except that `components` on bricks is a modern typed
+  array (the legacy .brs component map is not converted) and `wires` on
+  the save uses modern component and port names.
+
+```js
+import { writeBrzLegacy, WorldReader } from 'brs-js';
+
+const brz = writeBrzLegacy({
+  description: 'my world',
+  bricks: [{ size: [5, 5, 6], position: [0, 0, 6], color: [255, 0, 0] }],
+});
+
+// WorldReader is lazy: schemas are parsed once and cached, and chunk
+// payloads are only decoded when you ask for them.
+const world = WorldReader.from(brz);
+world.bundle(); // Meta/Bundle.json
+world.brickAssets(); // basic asset names followed by procedural
+world.brickOwners(); // owner rows (PUBLIC excluded)
+world.gridIds(); // [1] plus any entity sub-grids
+for (const brick of world.bricks()) {
+  // decoded chunk by chunk
+}
+for (const entity of world.entities()) {
+  // dynamic grids, microchip grids, ...
+}
+```
+
+### World builder
+
+`World` mirrors the reference Rust crate's `wrapper::World`: add bricks,
+components, wires, entities, and microchip grids, then serialize with
+`toBrz()`. Brick assets and materials are referenced by name, and the
+generated `COMPONENTS`/`BRICK_ASSETS` catalogs provide typo-safe names
+with editor completion.
+
+```js
+import { Brdb, World, brdb } from 'brs-js';
+const { COMPONENTS, BRICK_ASSETS } = brdb;
+
+const w = new World();
+
+// Main-grid bricks. addBrick returns a handle used by wires and links.
+const light = w.addBrick({
+  position: [0, 0, 6], // default asset is a 1x1 PB_DefaultBrick
+  color: [255, 255, 255],
+  components: [
+    // omitted data fields take the game's default values
+    { type: COMPONENTS.PointLight.NAME, data: { Brightness: 200 } },
+  ],
+});
+w.addBrick({
+  asset: BRICK_ASSETS.B_2x2F_Round,
+  position: [20, 0, 2],
+});
+
+// serialize to a .brz archive...
+const bytes = w.toBrz({ bundle: { description: 'My World' } });
+
+// ...or write the same World into a .brdb as a revision
+const db = await Brdb.openOrCreate('My World.brdb');
+db.save('built with brs-js', w);
+```
+
+Wires connect component ports by name; endpoints may be in different
+grids or chunks (the writer emits remote wire rows automatically):
+
+```js
+const TARGET = COMPONENTS.Target;
+const PRINT = COMPONENTS.Exec_PrintToConsole;
+
+const sensor = w.addBrick({
+  asset: TARGET.BRICK,
+  position: [0, 0, 6],
+  components: [{ type: TARGET.NAME }],
+});
+const printer = w.addBrick({
+  asset: PRINT.BRICK,
+  position: [20, 0, 2],
+  components: [{ type: PRINT.NAME, data: { Text: 'hit!' } }],
+});
+w.addWire(
+  { brick: sensor, component_type: TARGET.NAME, port: TARGET.PORTS.bJustHit },
+  { brick: printer, component_type: PRINT.NAME, port: PRINT.PORTS.Exec }
+);
+```
+
+Microchips place an outer shell brick linked to an inner brick grid.
+`makePrefab` turns the bundle into a prefab (`Meta/Prefab.json` with
+pivots/bounds from the main-grid bricks) so the `.brz` pastes like a
+native copied selection — see `examples/writeMicrochip.mjs`:
+
+```js
+const CHIP_IN = COMPONENTS.MicrochipInput;
+const CHIP_OUT = COMPONENTS.MicrochipOutput;
+
+const w = new World();
+const { grid } = w.addMicrochip({ position: [0, 0, 2] });
+
+// chip contents live in the inner grid (positions are grid-local)
+const input = w.addBrick(
+  {
+    asset: CHIP_IN.BRICK,
+    position: [0, 0, 2],
+    components: [{ type: CHIP_IN.NAME, data: { PortLabel: 'In' } }],
+  },
+  grid
+);
+const output = w.addBrick(
+  {
+    asset: CHIP_OUT.BRICK,
+    position: [20, 0, 2],
+    components: [{ type: CHIP_OUT.NAME, data: { PortLabel: 'Out' } }],
+  },
+  grid
+);
+w.addWire(
+  { brick: input, component_type: CHIP_IN.NAME, port: CHIP_IN.PORTS.RER_Output },
+  { brick: output, component_type: CHIP_OUT.NAME, port: CHIP_OUT.PORTS.RER_Input }
+);
+
+w.makePrefab({ isMicrochipPrefab: true });
+writeFileSync('chip.brz', w.toBrz());
+```
+
+Standalone entities and dynamic sub-grids:
+
+```js
+const owner = w.addOwner({ id: '...uuid...', name: 'cake' });
+
+// a frozen dynamic brick grid floating at Z 40, holding one brick
+const grid = w.addBrickGrid({ frozen: true, location: { X: 0, Y: 0, Z: 40 } });
+w.addBrick({ position: [0, 0, 3], owner_index: owner }, grid);
+
+// or a bare entity
+w.addEntity({ type: 'Entity_DynamicBrickGrid', frozen: true });
+```
+
+### Compression
+
+Blobs are stored uncompressed by default, which is valid and matches the
+reference implementation byte for byte. To compress with zstd (Node 22.15
+or newer):
+
+```js
+import { zstdCompressSync, constants } from 'node:zlib';
+const brz = writeBrzLegacy(save, {
+  compress: data =>
+    zstdCompressSync(data, {
+      params: { [constants.ZSTD_c_compressionLevel]: 14 },
+    }),
+});
+```
+
+### Reading notes
+
+Reading applies a few normalizations:
+
+- Brick order round-trips per chunk rather than in global save order.
+- `collision.tool` always reads `true` because the format does not store it.
+- Palette color indices are resolved to `[r, g, b]` at write time.
+- `save.map` is not mapped; pass `{ environment }` in the options instead.
+
+The cross-language fixture tests skip unless fixtures have been generated.
+To enable them, run `just fixtures` with a crate checkout at `../brdb` (or
+set `BRDB_CRATE`).
+
+### .brdb (SQLite worlds)
+
+`.brdb` is the game's live world format: the same virtual filesystem as
+`.brz`, stored in SQLite with full revision history. Reading and writing
+requires `better-sqlite3` (an optional peer dependency, node only):
+
+    npm install better-sqlite3
+
+```js
+import { Brdb } from 'brs-js';
+
+const db = await Brdb.open('MyWorld.brdb');
+const reader = db.worldReader(); // same surface as WorldReader.from(brz)
+for (const brick of reader.bricks()) console.log(brick.position);
+
+const out = await Brdb.create('New.brdb');
+// save() takes a World builder instance or a legacy save object
+out.save('initial save', {
+  bricks: [{ size: [5, 5, 6], position: [0, 0, 6] }],
+});
+```
+
+Every `save`/`writePending` call is one revision: unchanged files are shared,
+changed files are soft-deleted and reinserted, and blobs are deduplicated by
+BLAKE3 hash. Blobs compress with zstd level 14 when node's zlib supports it
+(pass `compress: null` to store raw). Advanced: `new Brdb(db)` wraps any
+SQLite handle with a compatible synchronous API, with no dependency at all.
+
+## Legacy saves (.brs)
+
+Supports all BRS save versions. BRS files are no longer supported by the
+game as of Brickadia EA3 — use `.brz`/`.brdb` above for current builds.
 
 ### Save Object
 
@@ -338,88 +546,6 @@ Notes:
 | B_1x1_Gate_AND                    |            |
 | B_1x1_Gate_Equal                  |            |
 | B_1x1_Gate_NOT_Bitwise            |            |
-
-## Brickadia Worlds (.brz)
-
-brs-js can write and read the Brickadia World archive format (`.brz`).
-Writing covers bricks, components, and wires; entities can be read but not
-yet written. `writeBrzLegacy` converts the same legacy `WriteSaveObject`
-that `write()` takes, except that `components` on bricks is a modern typed
-array (the legacy .brs component map is not converted) and `wires` on the
-save uses modern component and port names. A builder-style world API for
-authoring saves from scratch is planned:
-
-```js
-import { writeBrzLegacy, WorldReader } from 'brs-js';
-
-const brz = writeBrzLegacy({
-  description: 'my world',
-  bricks: [{ size: [5, 5, 6], position: [0, 0, 6], color: [255, 0, 0] }],
-});
-
-// WorldReader is lazy: schemas are parsed once and cached, and chunk
-// payloads are only decoded when you ask for them.
-const world = WorldReader.from(brz);
-world.bundle(); // Meta/Bundle.json
-world.brickAssets(); // basic asset names followed by procedural
-world.brickOwners(); // owner rows (PUBLIC excluded)
-world.gridIds(); // [1] plus any entity sub-grids
-for (const brick of world.bricks()) {
-  // decoded chunk by chunk
-}
-```
-
-Blobs are stored uncompressed by default, which is valid and matches the
-reference implementation byte for byte. To compress with zstd (Node 22.15
-or newer):
-
-```js
-import { zstdCompressSync, constants } from 'node:zlib';
-const brz = writeBrzLegacy(save, {
-  compress: data =>
-    zstdCompressSync(data, {
-      params: { [constants.ZSTD_c_compressionLevel]: 14 },
-    }),
-});
-```
-
-Reading applies a few normalizations:
-
-- Brick order round-trips per chunk rather than in global save order.
-- `collision.tool` always reads `true` because the format does not store it.
-- Palette color indices are resolved to `[r, g, b]` at write time.
-- `save.map` is not mapped; pass `{ environment }` in the options instead.
-
-The cross-language fixture tests skip unless fixtures have been generated.
-To enable them, run `just fixtures` with a crate checkout at `../brdb` (or
-set `BRDB_CRATE`).
-
-### .brdb (SQLite worlds)
-
-`.brdb` is the game's live world format: the same virtual filesystem as
-`.brz`, stored in SQLite with full revision history. Reading and writing
-requires `better-sqlite3` (an optional peer dependency, node only):
-
-    npm install better-sqlite3
-
-```js
-import { Brdb } from 'brs-js';
-
-const db = await Brdb.open('MyWorld.brdb');
-const reader = db.worldReader(); // same surface as WorldReader.from(brz)
-for (const brick of reader.bricks()) console.log(brick.position);
-
-const out = await Brdb.create('New.brdb');
-out.save('initial save', {
-  bricks: [{ size: [5, 5, 6], position: [0, 0, 6] }],
-});
-```
-
-Every `save`/`writePending` call is one revision: unchanged files are shared,
-changed files are soft-deleted and reinserted, and blobs are deduplicated by
-BLAKE3 hash. Blobs compress with zstd level 14 when node's zlib supports it
-(pass `compress: null` to store raw). Advanced: `new Brdb(db)` wraps any
-SQLite handle with a compatible synchronous API, with no dependency at all.
 
 ## Development
 

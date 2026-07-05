@@ -9,7 +9,12 @@ import type { Compressor } from './brz';
 import type { FoundFile, WorldFs } from './fs';
 import type { PendingEntry, PendingNode } from './pending';
 import { WorldReader } from './reader';
-import { saveToPendingFs, WriteBrzInput, WriteBrzOptions } from './world';
+import {
+  saveToPendingFs,
+  World,
+  WriteBrzInput,
+  WriteBrzOptions,
+} from './world';
 
 export interface BrdbStatement {
   run(...params: unknown[]): { lastInsertRowid: number | bigint };
@@ -250,13 +255,20 @@ export class Brdb implements WorldFs {
     return new Uint8Array(serialize.call(this.db));
   }
 
-  /** Write a world save as one revision. */
+  /** Write a world save as one revision: a World builder instance or a
+   * legacy .brs-shaped save object. */
   save(
     description: string,
-    save: WriteBrzInput,
+    save: WriteBrzInput | World,
     options: Omit<WriteBrzOptions, 'compress'> & WritePendingOptions = {}
   ): void {
-    this.writePending(description, saveToPendingFs(save, options), options);
+    this.writePending(
+      description,
+      save instanceof World
+        ? save.toPendingFs(options)
+        : saveToPendingFs(save, options),
+      options
+    );
   }
 
   /** Lazy world reader over this database (same surface as .brz reading).

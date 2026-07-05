@@ -14,7 +14,11 @@ export const mpNil = (w: ByteWriter) => w.u8(0xc0);
 export const mpBool = (w: ByteWriter, v: boolean) => w.u8(v ? 0xc3 : 0xc2);
 
 // The 'u8' schema type only. 0..=127 pfix; 225..=255 negative fixint
-// (0xe1..0xff); 128..=224 u8 marker.
+// (0xe1..0xff); 128..=224 I8 marker (0xd0) with the raw byte. The game
+// casts u8 through i8 before encoding, and its field skipper REJECTS the
+// standard 0xcc uint8 form with mpack_error_type, so the i8 form is
+// required for saves the game can load (the reference Rust crate's
+// write_u8 emits 0xcc here and has the same in-game bug).
 export function mpU8(w: ByteWriter, v: number) {
   if (v < 0 || v > 255 || !Number.isInteger(v))
     throw new RangeError(`brdb: u8 value out of range: ${v}`);
@@ -22,7 +26,7 @@ export function mpU8(w: ByteWriter, v: number) {
   // reinterpreted as negative fixint on the wire
   else if (v > 224) w.u8(v);
   else {
-    w.u8(0xcc);
+    w.u8(0xd0);
     w.u8(v);
   }
 }
