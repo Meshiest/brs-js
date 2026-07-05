@@ -163,6 +163,15 @@ describe('reader', () => {
     expect(rdUint(new ByteReader(new Uint8Array([0xe0])))).toBe(224);
   });
 
+  test('rdUint reinterprets negative I8 marker as 128-255', () => {
+    // The game's own encoder casts u8 to i8 before writing, so a u8 field
+    // holding 128 arrives as d0 80 (seen in real saves: MaterialAlpha on
+    // Component_BrickPropertyChanger).
+    expect(rdUint(new ByteReader(new Uint8Array([0xd0, 0x80])))).toBe(128);
+    expect(rdUint(new ByteReader(new Uint8Array([0xd0, 0xdf])))).toBe(223);
+    expect(rdUint(new ByteReader(new Uint8Array([0xd0, 0x05])))).toBe(5);
+  });
+
   test('rdUint accepts unsigned markers, rejects I16/I32/I64', () => {
     expect(rdUint(new ByteReader(new Uint8Array([0xcc, 0x80])))).toBe(128);
     expect(rdUint(new ByteReader(new Uint8Array([0xcd, 0x01, 0x00])))).toBe(

@@ -203,16 +203,19 @@ export function rdInt(r: ByteReader): number {
   }
 }
 
-// Negative fixint bytes are unsigned 224..255 in this format (256+v).
-// The reference encoder sign-extends an explicit negative I8 marker into
-// a huge u64; that only occurs on malformed data, so we throw instead
-// (documented deviation).
+// Negative fixint bytes are unsigned 224..255 in this format (256+v), and
+// an explicit I8 marker's payload is likewise reinterpreted as 0..255: the
+// game's encoder casts u8 to i8 before writing, so u8 values 128..=224
+// arrive as d0 XX in real saves (e.g. MaterialAlpha=128 is d0 80). The
+// reference decoder sign-extends the i8 to u64 and its u8 field cast
+// truncates back to the same byte.
 export function rdUint(r: ByteReader): number {
   const m = r.u8();
   if (isFixPos(m)) return m;
   if (isFixNeg(m)) return m; // 0xe0..0xff read back as 224..255
   switch (m) {
     case 0xcc:
+    case 0xd0:
       return r.u8();
     case 0xcd:
       return r.u16be();
@@ -220,12 +223,6 @@ export function rdUint(r: ByteReader): number {
       return r.u32be();
     case 0xcf:
       return fromBigint(r.u64be());
-    case 0xd0: {
-      const v = r.i8();
-      if (v < 0)
-        throw new RangeError(`brdb: negative i8 marker for uint field`);
-      return v;
-    }
     default:
       return badMarker(m, 'uint');
   }
