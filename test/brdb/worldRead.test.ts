@@ -97,9 +97,10 @@ describe.skipIf(!hasFixtures)('WorldReader (lazy)', () => {
       [1, 0, 0],
       [-1, 2, 0],
     ]);
-    // non-origin chunks carry the half-size offset
+    // main-grid chunks always carry zero offsets (the game's convention;
+    // sub-grid chunks carry (1024,1024,1024))
     expect(refs[0].offset).toEqual({ x: 0, y: 0, z: 0 });
-    expect(refs[1].offset).toEqual({ x: 1024, y: 1024, z: 1024 });
+    expect(refs[1].offset).toEqual({ x: 0, y: 0, z: 0 });
     // per-chunk lazy decode agrees with the ref counts
     for (const ref of refs)
       expect(reader.brickChunkSoa(1, ref.index).BrickTypeIndices).toHaveLength(

@@ -495,7 +495,11 @@ interface WorldModel {
   wires: { source: ModelWireEnd; target: ModelWireEnd }[];
   /** outer-microchip-brick -> inner-grid pairings; gridReference is the
    * inner grid entity's persistent index */
-  microchipLinks: { gridSlot: number; brickIndex: number; gridReference: number }[];
+  microchipLinks: {
+    gridSlot: number;
+    brickIndex: number;
+    gridReference: number;
+  }[];
   /** Meta/Prefab.json content; non-null switches the bundle to a prefab
    * (Bundle.json type "Prefab" + Prefab.json, no World.json) */
   prefab: Record<string, unknown> | null;
@@ -722,7 +726,8 @@ function modelToPendingFs(
         `brdb: microchip link brick index ${link.brickIndex} out of range`
       );
     let cb = pack.componentChunks.get(loc.key);
-    if (!cb) pack.componentChunks.set(loc.key, (cb = new ComponentChunkBuilder()));
+    if (!cb)
+      pack.componentChunks.set(loc.key, (cb = new ComponentChunkBuilder()));
     cb.addMicrochipLink(loc.localIndex, link.gridReference);
   }
 
@@ -896,18 +901,18 @@ function modelToPendingFs(
 
   // Tree creation order below defines archive ids — it is part of the
   // byte format; do not reorder.
-  const makeGridDir = (pack: GridPack): PendingEntry[] => {
+  const makeGridDir = (pack: GridPack, isMainGrid: boolean): PendingEntry[] => {
+    // The game writes ChunkOffsets (0,0,0) for every main-grid chunk and
+    // (CHUNK_HALF)^3 for every sub-grid chunk, regardless of coordinate
+    // (surveyed across game-authored worlds). Anything else displaces
+    // bricks across chunk borders in-game.
+    const off = isMainGrid ? 0 : CHUNK_HALF;
     const chunkIndexMps = chunkIndexSchema.encode('BRSavedBrickChunkIndexSoA', {
       Chunk3DIndices: pack.chunkOrder.map(k => {
         const [X, Y, Z] = pack.chunks.get(k)!.index;
         return { X, Y, Z };
       }),
-      // origin chunk gets zero offsets; every other chunk (CHUNK_HALF)³
-      ChunkOffsets: pack.chunkOrder.map(k => {
-        const zero = pack.chunks.get(k)!.index.every(v => v === 0);
-        const off = zero ? 0 : CHUNK_HALF;
-        return { X: off, Y: off, Z: off };
-      }),
+      ChunkOffsets: pack.chunkOrder.map(() => ({ X: off, Y: off, Z: off })),
       ChunkSizes: pack.chunkOrder.map(() => CHUNK_SIZE),
       NumBricks: pack.chunkOrder.map(
         k => pack.chunks.get(k)!.builder.numBricks
@@ -1027,7 +1032,7 @@ function modelToPendingFs(
                   folder(
                     packs.map((pack, slot) => [
                       String(model.gridIds[slot]),
-                      folder(makeGridDir(pack)),
+                      folder(makeGridDir(pack, model.gridIds[slot] === 1)),
                     ])
                   ),
                 ],
@@ -1127,17 +1132,15 @@ function normalizeEntity(
   if (className === undefined)
     throw new Error(`brdb: entities[${i}]: unknown entity type '${type}'`);
   const ownerIndex = e.owner_index ?? 0;
-  if (
-    !Number.isInteger(ownerIndex) ||
-    ownerIndex < 0 ||
-    ownerIndex > numOwners
-  )
+  if (!Number.isInteger(ownerIndex) || ownerIndex < 0 || ownerIndex > numOwners)
     throw new Error(
       `brdb: entities[${i}]: owner_index ${ownerIndex} out of range (0..${numOwners})`
     );
   const colors = [...(e.colors ?? [])];
   if (colors.length > 8)
-    throw new Error(`brdb: entities[${i}]: at most 8 colors, got ${colors.length}`);
+    throw new Error(
+      `brdb: entities[${i}]: at most 8 colors, got ${colors.length}`
+    );
   while (colors.length < 8) colors.push({ R: 255, G: 255, B: 255, A: 255 });
   return {
     type,
@@ -1236,7 +1239,11 @@ export class World {
 
   /** Register an owner; returns its owner_index (0 is the built-in PUBLIC
    * owner, so the first added owner is index 1). */
-  addOwner(owner: { id?: string; name?: string; display_name?: string }): number {
+  addOwner(owner: {
+    id?: string;
+    name?: string;
+    display_name?: string;
+  }): number {
     this.ownerList.push(owner);
     return this.ownerList.length;
   }
@@ -1288,10 +1295,7 @@ export class World {
 
   /** Pair an outer microchip shell brick with its inner grid. Most callers
    * get this for free via `addMicrochip`. */
-  registerMicrochipLink(
-    brick: WorldBrickHandle,
-    grid: WorldGridHandle
-  ): void {
+  registerMicrochipLink(brick: WorldBrickHandle, grid: WorldGridHandle): void {
     this.chipLinks.push({ brick, grid });
   }
 
