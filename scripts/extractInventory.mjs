@@ -69,8 +69,9 @@ for (const gridId of reader.gridIds()) {
 db?.close();
 
 const out = {
-  allBrickAssets: globalData.BasicBrickAssetNames,
-  proceduralBrickAssets: globalData.ProceduralBrickAssetNames,
+  // sorted for stable diffs. the save lists these in game-registration order
+  allBrickAssets: [...globalData.BasicBrickAssetNames].sort(),
+  proceduralBrickAssets: [...globalData.ProceduralBrickAssetNames].sort(),
   components: [...components.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([cls, e]) => ({

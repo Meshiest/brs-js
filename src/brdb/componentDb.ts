@@ -559,6 +559,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
     'BrickComponentData_WireGraph_Expr_ChangeDetector',
   ],
   [
+    'BrickComponentType_WireGraph_Expr_ChangeDetectorExec',
+    'BrickComponentData_WireGraph_Expr_ChangeDetectorExec',
+  ],
+  [
     'BrickComponentType_WireGraph_Expr_ColorBlend',
     'BrickComponentData_WireGraph_Expr_ColorBlend',
   ],
@@ -605,6 +609,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
   [
     'BrickComponentType_WireGraph_Expr_EdgeDetector',
     'BrickComponentData_WireGraph_Expr_EdgeDetector',
+  ],
+  [
+    'BrickComponentType_WireGraph_Expr_EdgeDetectorExec',
+    'BrickComponentData_WireGraph_Expr_EdgeDetectorExec',
   ],
   [
     'BrickComponentType_WireGraph_Expr_Floor',
@@ -1229,7 +1237,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PickupSpinSpeed: 0.2,
       PickupBobSpeed: 0.1,
       PickupBobHeight: 4,
-      PickupAnimationPhase: 0.61543626,
+      PickupAnimationPhase: 0.6645405,
     },
     BrickComponentData_Joint_Wheel: {
       bEnabled: true,
@@ -1761,6 +1769,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
     BrickComponentData_WireGraph_Expr_Bool_Bool: {
       bInput: false,
     },
+    BrickComponentData_WireGraph_Expr_ChangeDetector: {
+      bPulseOnChange: false,
+    },
     BrickComponentData_WireGraph_Expr_ColorBlend: {
       Alpha: 0.5,
       BlendSpace: 0,
@@ -1771,6 +1782,11 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       ToSpace: 0,
     },
     BrickComponentData_WireGraph_Expr_EdgeDetector: {
+      Input: 0,
+      bPulseOnRisingEdge: false,
+      bPulseOnFallingEdge: false,
+    },
+    BrickComponentData_WireGraph_Expr_EdgeDetectorExec: {
       Input: 0,
     },
     BrickComponentData_WireGraph_Expr_Float_Float: {
@@ -2451,6 +2467,9 @@ export const WIRE_PORT_NAMES: readonly string[] = [
   'bPinned',
   'bPositionsArePercentages',
   'bPressedJump',
+  'bPulseOnChange',
+  'bPulseOnFallingEdge',
+  'bPulseOnRisingEdge',
   'bRelative',
   'bRenderTranslucentWhenDisabled',
   'bReversed',
@@ -3366,6 +3385,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
       BrickComponentType_WireGraph_Expr_ChangeDetector: {
         bricks: ['B_1x1_Gate_Expr_ChangeDetector'],
         inputs: ['Input'],
+        outputs: ['bPulseOnChange'],
+      },
+      BrickComponentType_WireGraph_Expr_ChangeDetectorExec: {
+        bricks: ['B_1x1_Gate_Expr_ChangeDetectorExec'],
+        inputs: ['Input'],
         outputs: ['OnChanged'],
       },
       BrickComponentType_WireGraph_Expr_ColorBlend: {
@@ -3437,6 +3461,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
       },
       BrickComponentType_WireGraph_Expr_EdgeDetector: {
         bricks: ['B_1x1_Gate_Expr_EdgeDetector'],
+        inputs: ['Input'],
+        outputs: ['bPulseOnFallingEdge', 'bPulseOnRisingEdge'],
+      },
+      BrickComponentType_WireGraph_Expr_EdgeDetectorExec: {
+        bricks: ['B_1x1_Gate_Expr_EdgeDetectorExec'],
         inputs: ['Input'],
         outputs: ['OnFallingEdge', 'OnRisingEdge'],
       },
@@ -6372,6 +6401,15 @@ export const COMPONENTS = {
     BRICKS: ['B_1x1_Gate_Expr_ChangeDetector'],
     PORTS: {
       Input: 'Input',
+      bPulseOnChange: 'bPulseOnChange',
+    },
+  },
+  Expr_ChangeDetectorExec: {
+    NAME: 'BrickComponentType_WireGraph_Expr_ChangeDetectorExec',
+    BRICK: 'B_1x1_Gate_Expr_ChangeDetectorExec',
+    BRICKS: ['B_1x1_Gate_Expr_ChangeDetectorExec'],
+    PORTS: {
+      Input: 'Input',
       OnChanged: 'OnChanged',
     },
   },
@@ -6505,6 +6543,16 @@ export const COMPONENTS = {
     NAME: 'BrickComponentType_WireGraph_Expr_EdgeDetector',
     BRICK: 'B_1x1_Gate_Expr_EdgeDetector',
     BRICKS: ['B_1x1_Gate_Expr_EdgeDetector'],
+    PORTS: {
+      Input: 'Input',
+      bPulseOnFallingEdge: 'bPulseOnFallingEdge',
+      bPulseOnRisingEdge: 'bPulseOnRisingEdge',
+    },
+  },
+  Expr_EdgeDetectorExec: {
+    NAME: 'BrickComponentType_WireGraph_Expr_EdgeDetectorExec',
+    BRICK: 'B_1x1_Gate_Expr_EdgeDetectorExec',
+    BRICKS: ['B_1x1_Gate_Expr_EdgeDetectorExec'],
     PORTS: {
       Input: 'Input',
       OnFallingEdge: 'OnFallingEdge',
