@@ -19,6 +19,7 @@ export type BrickComponentData_AudioEmitter = {
 export type BrickComponentData_Bearing = {
   bLimitAngle: boolean;
   LimitAngle: number;
+  CurrentAngle: number;
   bAnglesArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
@@ -100,6 +101,7 @@ export type BrickComponentData_Motor = {
   Power: number;
   bLimitAngle: boolean;
   LimitAngle: number;
+  CurrentAngle: number;
   bAnglesArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
@@ -149,6 +151,7 @@ export type BrickComponentData_RigidBearing = {
   TargetAngle: number;
   bAnglesArePercentages: boolean;
   bReversed: boolean;
+  CurrentAngle: number;
   InterpMode: number;
   SmoothTime: number;
   TopSpeed: number;
@@ -158,6 +161,7 @@ export type BrickComponentData_RigidSlider = {
   TargetPosition: number;
   bPositionsArePercentages: boolean;
   bReversed: boolean;
+  CurrentPosition: number;
   InterpMode: number;
   SmoothTime: number;
   TopSpeed: number;
@@ -171,6 +175,7 @@ export type BrickComponentData_Servo = {
   ForceLimit: number;
   bLimitAngle: boolean;
   LimitAngle: number;
+  CurrentAngle: number;
   bAnglesArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
@@ -246,6 +251,7 @@ export type BrickComponentData_WireGraph_EntityTypeReference = {
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Average = {
   Value: BrdbVariant;
+  bIsEmpty: boolean;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Base = {};
@@ -258,26 +264,34 @@ export type BrickComponentData_WireGraph_Exec_ArrayVar_ElementOp = {
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Find = {
+  Index: number;
+  bFound: boolean;
   Value: BrdbVariant;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Get = {
+  bOutOfBounds: boolean;
   Index: number;
   Value: BrdbVariant;
 };
 
-export type BrickComponentData_WireGraph_Exec_ArrayVar_GetLength = {};
+export type BrickComponentData_WireGraph_Exec_ArrayVar_GetLength = {
+  Length: number;
+};
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Insert = {
+  bOutOfBounds: boolean;
   Index: number;
   Value: BrdbVariant;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_MinMax = {
   Value: BrdbVariant;
+  bIsEmpty: boolean;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Pop = {
+  bIsEmpty: boolean;
   Value: BrdbVariant;
 };
 
@@ -287,6 +301,7 @@ export type BrickComponentData_WireGraph_Exec_ArrayVar_Push = {
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_RemoveAtIndex = {
   Index: number;
+  bOutOfBounds: boolean;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Resize = {
@@ -297,6 +312,7 @@ export type BrickComponentData_WireGraph_Exec_ArrayVar_Resize = {
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Slice = {
   Start: number;
   Count: number;
+  bOutOfBounds: boolean;
 };
 
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Sort = {
@@ -310,11 +326,16 @@ export type BrickComponentData_WireGraph_Exec_ArrayVar_Sum = {
 export type BrickComponentData_WireGraph_Exec_ArrayVar_Swap = {
   IndexA: number;
   IndexB: number;
+  bOutOfBounds: boolean;
 };
 
-export type BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity = {};
+export type BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity = {
+  EntityType: number | null;
+};
 
-export type BrickComponentData_WireGraph_Exec_Character_AddInventoryItem = {};
+export type BrickComponentData_WireGraph_Exec_Character_AddInventoryItem = {
+  Item: number | null;
+};
 
 export type BrickComponentData_WireGraph_Exec_Character_GetAim = {};
 
@@ -332,10 +353,12 @@ export type BrickComponentData_WireGraph_Exec_Character_SetDamage = {
 
 export type BrickComponentData_WireGraph_Exec_Character_SetInventoryEntity = {
   Slot: number;
+  EntityType: number | null;
 };
 
 export type BrickComponentData_WireGraph_Exec_Character_SetInventoryItem = {
   Slot: number;
+  Item: number | null;
 };
 
 export type BrickComponentData_WireGraph_Exec_Character_SetTempPermission = {
@@ -380,26 +403,23 @@ export type BrickComponentData_WireGraph_Exec_Controller_ShowChatMessage = {
   Message: string;
 };
 
-export type BrickComponentData_WireGraph_Exec_Controller_ShowStatusMessage = {};
+export type BrickComponentData_WireGraph_Exec_Controller_ShowMessageBox = {
+  Title: string;
+  Message: string;
+};
+
+export type BrickComponentData_WireGraph_Exec_Controller_ShowStatusMessage = {
+  Message: string;
+};
 
 export type BrickComponentData_WireGraph_Exec_Cycle = {
   Count: number;
   Value: number;
 };
 
-export type BrickComponentData_WireGraph_Exec_Entity_GetAngularVelocity = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetLinearVelocity = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetLocation = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetLocationRotation = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetRotation = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetTag = {};
-
-export type BrickComponentData_WireGraph_Exec_Entity_GetVelocity = {};
+export type BrickComponentData_WireGraph_Exec_Entity_GetTag = {
+  Tag: string;
+};
 
 export type BrickComponentData_WireGraph_Exec_Entity_PlayAudioAt = {
   AudioDescriptor: number | null;
@@ -516,19 +536,23 @@ export type BrickComponentData_WireGraph_Expr_BoolBool_Bool = {
   bInputB: boolean;
 };
 
+export type BrickComponentData_WireGraph_Expr_ChangeDetector = {
+  Input: BrdbVariant;
+};
+
 export type BrickComponentData_WireGraph_Expr_Compare = {
   InputA: BrdbVariant;
   InputB: BrdbVariant;
 };
 
 export type BrickComponentData_WireGraph_Expr_Convert = {
+  Input: BrdbVariant;
+  Output: BrdbVariant;
   TargetType: BrdbVariant;
 };
 
 export type BrickComponentData_WireGraph_Expr_EdgeDetector = {
   Input: number;
-  bPulseOnRisingEdge: boolean;
-  bPulseOnFallingEdge: boolean;
 };
 
 export type BrickComponentData_WireGraph_Expr_Float_Float = {
@@ -835,7 +859,15 @@ export type BrickComponentWireControl_DriveAndSteer = {};
 
 export type BrickComponentWirePortControl_TeleportDestination = {};
 
-export type BRInventoryEntryVariant = {};
+export type BRInventoryEntryConfig = {
+  Item: BrdbVariant;
+};
+
+export type BRInventoryEntryEntity = {
+  EntityType: number | null;
+};
+
+export type BRInventoryEntryNothing = {};
 
 export type BRQueueSecondsEntry = {
   Data: BrdbVariant[];
@@ -1219,12 +1251,41 @@ export type BrickComponentData_WheelEngine_V2 = {
 };
 
 export type BrickComponentData_WireGraph_Exec_Character_AddInventoryBrick = {
+  BrickAsset: number | null;
   ProceduralSize: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry = {
+  Entry: BRInventoryEntryConfig;
+};
+
+export type BrickComponentData_WireGraph_Exec_Character_AddInventoryItemAdv = {
+  ItemType: number | null;
+  DamageMultiplier: number;
+  WeaponSpeedMultiplier: number;
+  ItemScale: number;
+  ItemNameOverride: string;
+  ProjectileOverride: number | null;
+  bOverrideColors: boolean;
+  MeshColors: Color[];
 };
 
 export type BrickComponentData_WireGraph_Exec_Character_SetInventoryBrick = {
   Slot: number;
+  BrickAsset: number | null;
   ProceduralSize: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Character_SetInventoryItemAdv = {
+  Slot: number;
+  ItemType: number | null;
+  DamageMultiplier: number;
+  WeaponSpeedMultiplier: number;
+  ItemScale: number;
+  ItemNameOverride: string;
+  ProjectileOverride: number | null;
+  bOverrideColors: boolean;
+  MeshColors: Color[];
 };
 
 export type BrickComponentData_WireGraph_Exec_Controller_DisplayText = {
@@ -1253,6 +1314,32 @@ export type BrickComponentData_WireGraph_Exec_Entity_AddLocationRotation = {
 };
 
 export type BrickComponentData_WireGraph_Exec_Entity_AddVelocity = {
+  Vector: Vector;
+  Rotation: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetAngularVelocity = {
+  AngularVelocity: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetLinearVelocity = {
+  LinearVelocity: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetLocation = {
+  Vector: Vector;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetLocationRotation = {
+  Vector: Vector;
+  Rotation: Rotator;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetRotation = {
+  Rotation: Rotator;
+};
+
+export type BrickComponentData_WireGraph_Exec_Entity_GetVelocity = {
   Vector: Vector;
   Rotation: Vector;
 };
@@ -1320,6 +1407,9 @@ export type BrickComponentData_WireGraph_Exec_Sweep = {
   bDetectMap: boolean;
   bRelative: boolean;
   bIgnoreOwningGrid: boolean;
+  HitLocation: Vector;
+  HitNormal: Vector;
+  HitDistance: number;
 };
 
 export type BrickComponentData_WireGraph_Expr_ColorBlend = {
@@ -1486,8 +1576,15 @@ export type BrickTypeNetWrapper = {
   ProceduralSize: IntVector;
 };
 
-export type BRInventoryEntryConfig = {
-  Item: BRInventoryEntryVariant;
+export type BRInventoryEntryItem = {
+  ItemType: number | null;
+  bOverrideColors: boolean;
+  MeshColors: Color[];
+  DamageMultiplier: number;
+  WeaponSpeedMultiplier: number;
+  ItemScale: number;
+  ItemNameOverride: string;
+  ProjectileOverride: number | null;
 };
 
 export type BRPlayerPartCustomizationV3 = {
@@ -1524,8 +1621,8 @@ export type WireGraphVectorArray = {
   Values: Vector[];
 };
 
-export type BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry = {
-  Entry: BRInventoryEntryConfig;
+export type BRInventoryEntryBrick = {
+  BrickType: BrickTypeNetWrapper;
 };
 
 export type BRInventoryEntryPlan = {
@@ -1635,10 +1732,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Exec_Character_AddInventoryEntity: BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity;
   BrickComponentType_WireGraph_Exec_Character_AddInventoryEntry: BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry;
   BrickComponentType_WireGraph_Exec_Character_AddInventoryItem: BrickComponentData_WireGraph_Exec_Character_AddInventoryItem;
-  BrickComponentType_WireGraph_Exec_Character_AddInventoryItemAdv: Record<
-    string,
-    BrdbValue
-  >;
+  BrickComponentType_WireGraph_Exec_Character_AddInventoryItemAdv: BrickComponentData_WireGraph_Exec_Character_AddInventoryItemAdv;
   BrickComponentType_WireGraph_Exec_Character_GetAim: BrickComponentData_WireGraph_Exec_Character_GetAim;
   BrickComponentType_WireGraph_Exec_Character_GetDamage: BrickComponentData_WireGraph_Exec_Character_GetDamage;
   BrickComponentType_WireGraph_Exec_Character_GetFromController: BrickComponentData_WireGraph_Exec_Character_GetFromController;
@@ -1648,10 +1742,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Exec_Character_SetInventoryEntity: BrickComponentData_WireGraph_Exec_Character_SetInventoryEntity;
   BrickComponentType_WireGraph_Exec_Character_SetInventoryEntry: BrickComponentData_WireGraph_Exec_Character_SetInventoryEntry;
   BrickComponentType_WireGraph_Exec_Character_SetInventoryItem: BrickComponentData_WireGraph_Exec_Character_SetInventoryItem;
-  BrickComponentType_WireGraph_Exec_Character_SetInventoryItemAdv: Record<
-    string,
-    BrdbValue
-  >;
+  BrickComponentType_WireGraph_Exec_Character_SetInventoryItemAdv: BrickComponentData_WireGraph_Exec_Character_SetInventoryItemAdv;
   BrickComponentType_WireGraph_Exec_Character_SetTempPermission: BrickComponentData_WireGraph_Exec_Character_SetTempPermission;
   BrickComponentType_WireGraph_Exec_Character_ShowHint: BrickComponentData_WireGraph_Exec_Character_ShowHint;
   BrickComponentType_WireGraph_Exec_ChatCommand: BrickComponentData_WireGraph_Exec_ChatCommand;
@@ -1665,10 +1756,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Exec_Controller_IsTrustedByBrickOwner: BrickComponentData_WireGraph_Exec_Controller_IsTrustedByBrickOwner;
   BrickComponentType_WireGraph_Exec_Controller_SetCanRespawn: BrickComponentData_WireGraph_Exec_Controller_SetCanRespawn;
   BrickComponentType_WireGraph_Exec_Controller_ShowChatMessage: BrickComponentData_WireGraph_Exec_Controller_ShowChatMessage;
-  BrickComponentType_WireGraph_Exec_Controller_ShowMessageBox: Record<
-    string,
-    BrdbValue
-  >;
+  BrickComponentType_WireGraph_Exec_Controller_ShowMessageBox: BrickComponentData_WireGraph_Exec_Controller_ShowMessageBox;
   BrickComponentType_WireGraph_Exec_Controller_ShowStatusMessage: BrickComponentData_WireGraph_Exec_Controller_ShowStatusMessage;
   BrickComponentType_WireGraph_Exec_Cycle: BrickComponentData_WireGraph_Exec_Cycle;
   BrickComponentType_WireGraph_Exec_Entity_AddLocationRotation: BrickComponentData_WireGraph_Exec_Entity_AddLocationRotation;
@@ -1729,7 +1817,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Expr_BitwiseShiftRight: BrickComponentData_WireGraph_Expr_IntInt_Int;
   BrickComponentType_WireGraph_Expr_BitwiseXOR: BrickComponentData_WireGraph_Expr_IntInt_Int;
   BrickComponentType_WireGraph_Expr_Ceil: BrickComponentData_WireGraph_Expr_Float_Float;
-  BrickComponentType_WireGraph_Expr_ChangeDetector: Record<string, BrdbValue>;
+  BrickComponentType_WireGraph_Expr_ChangeDetector: BrickComponentData_WireGraph_Expr_ChangeDetector;
   BrickComponentType_WireGraph_Expr_ColorBlend: BrickComponentData_WireGraph_Expr_ColorBlend;
   BrickComponentType_WireGraph_Expr_ColorConvert: BrickComponentData_WireGraph_Expr_ColorConvert;
   BrickComponentType_WireGraph_Expr_ColorToHex: BrickComponentData_WireGraph_Expr_ColorToHex;

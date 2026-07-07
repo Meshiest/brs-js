@@ -334,6 +334,12 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
     },
     variants: {
+      BRInventoryEntryVariant: [
+        'BRInventoryEntryNothing',
+        'BRInventoryEntryBrick',
+        'BRInventoryEntryEntity',
+        'BRInventoryEntryItem',
+      ],
       WireGraphArrayVariant: [
         'WireGraphDoubleArray',
         'WireGraphInt64Array',
@@ -420,6 +426,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BrickComponentData_Bearing: {
         bLimitAngle: 'bool',
         LimitAngle: 'f32',
+        CurrentAngle: 'f32',
         bAnglesArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
@@ -486,6 +493,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Power: 'f32',
         bLimitAngle: 'bool',
         LimitAngle: 'f32',
+        CurrentAngle: 'f32',
         bAnglesArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
@@ -530,6 +538,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         TargetAngle: 'f32',
         bAnglesArePercentages: 'bool',
         bReversed: 'bool',
+        CurrentAngle: 'f32',
         InterpMode: 'EBrickRigidJointInterpMode',
         SmoothTime: 'f32',
         TopSpeed: 'f32',
@@ -538,6 +547,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         TargetPosition: 'f32',
         bPositionsArePercentages: 'bool',
         bReversed: 'bool',
+        CurrentPosition: 'f32',
         InterpMode: 'EBrickRigidJointInterpMode',
         SmoothTime: 'f32',
         TopSpeed: 'f32',
@@ -550,6 +560,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         ForceLimit: 'f32',
         bLimitAngle: 'bool',
         LimitAngle: 'f32',
+        CurrentAngle: 'f32',
         bAnglesArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
@@ -612,6 +623,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Average: {
         Value: 'WireGraphVariant',
+        bIsEmpty: 'bool',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Base: {},
       BrickComponentData_WireGraph_Exec_ArrayVar_DualRef: {},
@@ -620,21 +632,29 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Value: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Find: {
+        Index: 'i64',
+        bFound: 'bool',
         Value: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Get: {
+        bOutOfBounds: 'bool',
         Index: 'i64',
         Value: 'WireGraphVariant',
       },
-      BrickComponentData_WireGraph_Exec_ArrayVar_GetLength: {},
+      BrickComponentData_WireGraph_Exec_ArrayVar_GetLength: {
+        Length: 'i64',
+      },
       BrickComponentData_WireGraph_Exec_ArrayVar_Insert: {
+        bOutOfBounds: 'bool',
         Index: 'i64',
         Value: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_MinMax: {
         Value: 'WireGraphVariant',
+        bIsEmpty: 'bool',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Pop: {
+        bIsEmpty: 'bool',
         Value: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Push: {
@@ -642,6 +662,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_RemoveAtIndex: {
         Index: 'i64',
+        bOutOfBounds: 'bool',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Resize: {
         Size: 'i64',
@@ -650,6 +671,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BrickComponentData_WireGraph_Exec_ArrayVar_Slice: {
         Start: 'i64',
         Count: 'i64',
+        bOutOfBounds: 'bool',
       },
       BrickComponentData_WireGraph_Exec_ArrayVar_Sort: {
         bDescending: 'bool',
@@ -660,9 +682,14 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BrickComponentData_WireGraph_Exec_ArrayVar_Swap: {
         IndexA: 'i64',
         IndexB: 'i64',
+        bOutOfBounds: 'bool',
       },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity: {},
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryItem: {},
+      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity: {
+        EntityType: 'class',
+      },
+      BrickComponentData_WireGraph_Exec_Character_AddInventoryItem: {
+        Item: 'class',
+      },
       BrickComponentData_WireGraph_Exec_Character_GetAim: {},
       BrickComponentData_WireGraph_Exec_Character_GetDamage: {},
       BrickComponentData_WireGraph_Exec_Character_GetFromController: {},
@@ -674,9 +701,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_WireGraph_Exec_Character_SetInventoryEntity: {
         Slot: 'i32',
+        EntityType: 'class',
       },
       BrickComponentData_WireGraph_Exec_Character_SetInventoryItem: {
         Slot: 'i32',
+        Item: 'class',
       },
       BrickComponentData_WireGraph_Exec_Character_SetTempPermission: {
         PermissionTagStr: 'str',
@@ -707,18 +736,20 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BrickComponentData_WireGraph_Exec_Controller_ShowChatMessage: {
         Message: 'str',
       },
-      BrickComponentData_WireGraph_Exec_Controller_ShowStatusMessage: {},
+      BrickComponentData_WireGraph_Exec_Controller_ShowMessageBox: {
+        Title: 'str',
+        Message: 'str',
+      },
+      BrickComponentData_WireGraph_Exec_Controller_ShowStatusMessage: {
+        Message: 'str',
+      },
       BrickComponentData_WireGraph_Exec_Cycle: {
         Count: 'i64',
         Value: 'i64',
       },
-      BrickComponentData_WireGraph_Exec_Entity_GetAngularVelocity: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetLinearVelocity: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetLocation: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetLocationRotation: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetRotation: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetTag: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetVelocity: {},
+      BrickComponentData_WireGraph_Exec_Entity_GetTag: {
+        Tag: 'str',
+      },
       BrickComponentData_WireGraph_Exec_Entity_PlayAudioAt: {
         AudioDescriptor: 'object',
         VolumeMultiplier: 'f32',
@@ -803,17 +834,20 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bInputA: 'bool',
         bInputB: 'bool',
       },
+      BrickComponentData_WireGraph_Expr_ChangeDetector: {
+        Input: 'WireGraphVariant',
+      },
       BrickComponentData_WireGraph_Expr_Compare: {
         InputA: 'WireGraphVariant',
         InputB: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Expr_Convert: {
+        Input: 'WireGraphVariant',
+        Output: 'WireGraphVariant',
         TargetType: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Expr_EdgeDetector: {
         Input: 'f64',
-        bPulseOnRisingEdge: 'bool',
-        bPulseOnFallingEdge: 'bool',
       },
       BrickComponentData_WireGraph_Expr_Float_Float: {
         Input: 'f64',
@@ -1059,7 +1093,13 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentWireControl_DriveAndSteer: {},
       BrickComponentWirePortControl_TeleportDestination: {},
-      BRInventoryEntryVariant: {},
+      BRInventoryEntryConfig: {
+        Item: 'BRInventoryEntryVariant',
+      },
+      BRInventoryEntryEntity: {
+        EntityType: 'class',
+      },
+      BRInventoryEntryNothing: {},
       BRQueueSecondsEntry: {
         Data: ['WireGraphVariant'],
         RemainingTime: 'f32',
@@ -1392,11 +1432,37 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         AudioDescriptor: 'object',
       },
       BrickComponentData_WireGraph_Exec_Character_AddInventoryBrick: {
+        BrickAsset: 'object',
         ProceduralSize: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry: {
+        Entry: 'BRInventoryEntryConfig',
+      },
+      BrickComponentData_WireGraph_Exec_Character_AddInventoryItemAdv: {
+        ItemType: 'class',
+        DamageMultiplier: 'f64',
+        WeaponSpeedMultiplier: 'f64',
+        ItemScale: 'f64',
+        ItemNameOverride: 'str',
+        ProjectileOverride: 'class',
+        bOverrideColors: 'bool',
+        MeshColors: ['Color'],
       },
       BrickComponentData_WireGraph_Exec_Character_SetInventoryBrick: {
         Slot: 'i32',
+        BrickAsset: 'object',
         ProceduralSize: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Character_SetInventoryItemAdv: {
+        Slot: 'i32',
+        ItemType: 'class',
+        DamageMultiplier: 'f64',
+        WeaponSpeedMultiplier: 'f64',
+        ItemScale: 'f64',
+        ItemNameOverride: 'str',
+        ProjectileOverride: 'class',
+        bOverrideColors: 'bool',
+        MeshColors: ['Color'],
       },
       BrickComponentData_WireGraph_Exec_Controller_DisplayText: {
         Text: 'str',
@@ -1422,6 +1488,26 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Rotation: 'Rotator',
       },
       BrickComponentData_WireGraph_Exec_Entity_AddVelocity: {
+        Vector: 'Vector',
+        Rotation: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetAngularVelocity: {
+        AngularVelocity: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetLinearVelocity: {
+        LinearVelocity: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetLocation: {
+        Vector: 'Vector',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetLocationRotation: {
+        Vector: 'Vector',
+        Rotation: 'Rotator',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetRotation: {
+        Rotation: 'Rotator',
+      },
+      BrickComponentData_WireGraph_Exec_Entity_GetVelocity: {
         Vector: 'Vector',
         Rotation: 'Vector',
       },
@@ -1478,6 +1564,9 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bDetectMap: 'bool',
         bRelative: 'bool',
         bIgnoreOwningGrid: 'bool',
+        HitLocation: 'Vector',
+        HitNormal: 'Vector',
+        HitDistance: 'f64',
       },
       BrickComponentData_WireGraph_Expr_ColorBlend: {
         ColorA: 'LinearColor',
@@ -1616,8 +1705,15 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         BrickAsset: 'object',
         ProceduralSize: 'IntVector',
       },
-      BRInventoryEntryConfig: {
-        Item: 'BRInventoryEntryVariant',
+      BRInventoryEntryItem: {
+        ItemType: 'class',
+        bOverrideColors: 'bool',
+        MeshColors: ['Color'],
+        DamageMultiplier: 'f32',
+        WeaponSpeedMultiplier: 'f32',
+        ItemScale: 'f32',
+        ItemNameOverride: 'str',
+        ProjectileOverride: 'class',
       },
       BRPlayerPartCustomizationV3: {
         PartDescriptor: 'object',
@@ -1647,8 +1743,8 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       WireGraphVectorArray: {
         Values: ['Vector'],
       },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry: {
-        Entry: 'BRInventoryEntryConfig',
+      BRInventoryEntryBrick: {
+        BrickType: 'BrickTypeNetWrapper',
       },
       BRInventoryEntryPlan: {
         Type: 'EBRInventoryEntryPlanType',
