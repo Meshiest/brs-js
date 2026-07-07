@@ -2,6 +2,8 @@
 // writeBrzLegacy converts a legacy .brs-shaped save (single grid), and the
 // World builder authors multi-grid worlds with entities, microchips, and
 // prefab metadata, mirroring the reference crate's wrapper::World.
+import { blake3 } from '@noble/hashes/blake3.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { DEFAULT_UUID } from '../brs/constants';
 import type { WriteSaveObject } from '../brs/types';
 import { BitFlags } from './bits';
@@ -22,16 +24,33 @@ import { SCHEMAS } from './schemas';
 export const CHUNK_SIZE = 2048;
 export const CHUNK_HALF = 1024;
 
+/** One entry of Bundle.json's `authors` array as the game writes it. */
+export interface BundleAuthor {
+  iD: string;
+  name: string;
+}
+
+/** Bundle.json `color` (RGBA, 0..=1 floats; the game writes whole numbers
+ * for white). */
+export interface BundleColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
 export interface BundleJson {
   type: string;
   iD: string;
   name: string;
   version: string;
   tags: string[];
-  authors: string[];
+  authors: BundleAuthor[];
   createdAt: string;
   updatedAt: string;
   description: string;
+  /** Absent in older generated bundles; the game always writes it. */
+  color?: BundleColor;
   dependencies: unknown[];
   gameVersion: string;
 }
@@ -44,6 +63,8 @@ export interface WriteBrzOptions {
   environment?: string;
   /** Meta/Bundle.json field overrides. */
   bundle?: Partial<BundleJson>;
+  /** Meta/Thumbnail.png content; omitted -> file not written. */
+  thumbnail?: Uint8Array;
 }
 
 /** A brdb-native component on a brick. Legacy brs components
@@ -482,7 +503,7 @@ interface NormEntity {
 
 interface WorldModel {
   description?: string;
-  authorName?: string;
+  author?: { id?: string; name: string };
   /** owner table rows; row 0 is the built-in PUBLIC owner */
   ownerRows: { guid: BrGuid; name: string; display: string }[];
   /** normalized bricks per grid; slot 0 is the main grid (grid id 1) */
@@ -503,6 +524,9 @@ interface WorldModel {
   /** Meta/Prefab.json content; non-null switches the bundle to a prefab
    * (Bundle.json type "Prefab" + Prefab.json, no World.json) */
   prefab: Record<string, unknown> | null;
+  /** Prefabs/ — embedded prefab archives: [root-relative path, raw .brz
+   * bytes], insertion-ordered (order defines archive ids). */
+  prefabs: [string, Uint8Array][];
 }
 
 function ownerRowsFrom(
@@ -531,7 +555,10 @@ export function saveToPendingFs(
   return modelToPendingFs(
     {
       description: save.description,
-      authorName: save.author?.name,
+      author: save.author?.name
+        ? { id: save.author.id, name: save.author.name }
+        : undefined,
+      prefabs: [],
       ownerRows: ownerRowsFrom(save.brick_owners),
       grids: [bricks],
       gridIds: [1],
@@ -886,11 +913,14 @@ function modelToPendingFs(
   const utf8 = new TextEncoder();
   const bundle: BundleJson = {
     type: model.prefab ? 'Prefab' : 'World',
-    iD: '00000000-0000-0000-0000-000000000000',
+    iD: DEFAULT_UUID,
     name: '',
     version: '',
     tags: [],
-    authors: model.authorName ? [model.authorName] : [],
+    // The game writes authors as { iD, name } objects.
+    authors: model.author
+      ? [{ iD: model.author.id ?? DEFAULT_UUID, name: model.author.name }]
+      : [],
     createdAt: '0001.01.01-00.00.00',
     updatedAt: '0001.01.01-00.00.00',
     description: model.description ?? 'A Generated World',
@@ -981,15 +1011,19 @@ function modelToPendingFs(
 
   const metaDir: PendingEntry[] = [
     ['Bundle.json', file(utf8.encode(JSON.stringify(bundle)))],
-    // Screenshot.jpg / Thumbnail.png: no content -> omitted entirely
+    // Screenshot.jpg: no content -> omitted entirely
   ];
   if (model.prefab) {
-    // Prefabs write Prefab.json and omit World.json.
+    // Prefabs write Prefab.json (+ Thumbnail.png) and omit World.json.
     metaDir.push([
       'Prefab.json',
-      file(utf8.encode(JSON.stringify(model.prefab))),
+      file(utf8.encode(serializePrefabJson(model.prefab))),
     ]);
+    if (options.thumbnail)
+      metaDir.push(['Thumbnail.png', file(options.thumbnail)]);
   } else {
+    if (options.thumbnail)
+      metaDir.push(['Thumbnail.png', file(options.thumbnail)]);
     metaDir.push([
       'World.json',
       file(
@@ -1008,7 +1042,7 @@ function modelToPendingFs(
   if (entityChunkMps)
     entitiesDir.push(['Chunks', folder([['0_0_0.mps', file(entityChunkMps)]])]);
 
-  return [
+  const root: PendingEntry[] = [
     ['Meta', folder(metaDir)],
     [
       'World',
@@ -1044,6 +1078,28 @@ function modelToPendingFs(
       ]),
     ],
   ];
+  // Embedded prefabs (root Prefabs/ folder), only when present — bundles
+  // with no prefab references have no Prefabs folder at all. Paths nest
+  // generically so future subpaths beyond Uploads/ survive.
+  if (model.prefabs.length > 0) {
+    for (const [path, bytes] of model.prefabs) {
+      const segments = path.split('/');
+      let children = root;
+      for (let i = 0; i < segments.length - 1; i++) {
+        let entry = children.find(
+          ([n, node]) => n === segments[i] && node.type === 'folder'
+        );
+        if (!entry) {
+          entry = [segments[i], folder([])];
+          children.push(entry);
+        }
+        children = (entry[1] as { type: 'folder'; children: PendingEntry[] })
+          .children;
+      }
+      children.push([segments[segments.length - 1], file(bytes)]);
+    }
+  }
+  return root;
 }
 
 // ---- World builder (mirrors the reference crate's wrapper::World) ----
@@ -1157,6 +1213,38 @@ function normalizeEntity(
   };
 }
 
+// serde_json prints whole f64 values with a trailing ".0" (5 -> "5.0") where
+// JSON.stringify prints "5". JSON numbers can't carry the ".0", so pivot
+// vectors (the only f64 fields in Prefab.json) are wrapped in F64: it tags the
+// value with a sentinel during stringify, which serializePrefabJson rewrites
+// to serde's format. This keeps the JSON SHAPE driven entirely by
+// computePrefabJson — only float formatting is special-cased.
+const F64_SENTINEL = '@@f64:';
+
+class F64 {
+  constructor(readonly value: number) {}
+  toJSON(): string {
+    return `${F64_SENTINEL}${this.value}`;
+  }
+}
+
+const f64vec = (x: number, y: number, z: number) => ({
+  x: new F64(x),
+  y: new F64(y),
+  z: new F64(z),
+});
+
+/** Serialize a Prefab.json object to bytes matching the reference crate:
+ * field order comes from object insertion order (see computePrefabJson) and
+ * f64-tagged values (F64) get serde's trailing-".0" whole-number formatting.
+ * Non-integral values (2.5) print identically in both writers. */
+function serializePrefabJson(prefab: Record<string, unknown>): string {
+  return JSON.stringify(prefab).replace(
+    new RegExp(`"${F64_SENTINEL}(-?[\\d.eE+-]+)"`, 'g'),
+    (_, n) => (Number.isInteger(Number(n)) ? `${n}.0` : n)
+  );
+}
+
 /** Meta/Prefab.json from the main-grid brick bounding box: all four pivots
  * are the bounds box (in brick units), like the reference crate's
  * PrefabJson::from_bounds. Sub-grids are excluded — their bricks live
@@ -1182,17 +1270,18 @@ function computePrefabJson(
       if (i === 0 || hi > max[ax]) max[ax] = hi;
     }
   });
+  // f64 pivot components (serde formatting handled by serializePrefabJson).
   const pivot = {
-    center: {
-      x: (min[0] + max[0]) / 2,
-      y: (min[1] + max[1]) / 2,
-      z: (min[2] + max[2]) / 2,
-    },
-    halfExtent: {
-      x: (max[0] - min[0]) / 2,
-      y: (max[1] - min[1]) / 2,
-      z: (max[2] - min[2]) / 2,
-    },
+    center: f64vec(
+      (min[0] + max[0]) / 2,
+      (min[1] + max[1]) / 2,
+      (min[2] + max[2]) / 2
+    ),
+    halfExtent: f64vec(
+      (max[0] - min[0]) / 2,
+      (max[1] - min[1]) / 2,
+      (max[2] - min[2]) / 2
+    ),
   };
   return {
     pivots: {
@@ -1236,6 +1325,7 @@ export class World {
   private chipLinks: { brick: WorldBrickHandle; grid: WorldGridHandle }[] = [];
   private ownerList: NonNullable<WriteSaveObject['brick_owners']> = [];
   private prefabOptions: WorldPrefabOptions | null = null;
+  private prefabList: [string, Uint8Array][] = [];
 
   /** Register an owner; returns its owner_index (0 is the built-in PUBLIC
    * owner, so the first added owner is index 1). */
@@ -1334,6 +1424,19 @@ export class World {
     this.prefabOptions = options;
   }
 
+  /** Embed a prefab archive, content-addressed the way the game does:
+   * `Prefabs/Uploads/<BLAKE3-uppercase-hex>.brz`. Returns that path — the
+   * exact string a `Prefab` component property (`bundle_path_ref`) should
+   * carry, e.g. on BrickComponentType_WireGraph_Exec_PrefabSpawner or
+   * BrickComponentType_PrefabSpawn. Identical bytes dedupe to one entry. */
+  addPrefab(bytes: Uint8Array): string {
+    const hash = bytesToHex(blake3(bytes)).toUpperCase();
+    const path = `Prefabs/Uploads/${hash}.brz`;
+    if (!this.prefabList.some(([p]) => p === path))
+      this.prefabList.push([path, bytes]);
+    return path;
+  }
+
   toPendingFs(options: WriteBrzOptions = {}): PendingEntry[] {
     // Shared name tables across grids.
     const assetNames = new Registry();
@@ -1399,6 +1502,7 @@ export class World {
         prefab: this.prefabOptions
           ? computePrefabJson(grids[0], this.prefabOptions)
           : null,
+        prefabs: this.prefabList,
       },
       options
     );

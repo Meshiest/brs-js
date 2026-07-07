@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { BrzWorldBrick, WorldReader } from '../../src/brdb/reader';
-import { writeBrzLegacy } from '../../src/brdb/world';
+import { World, writeBrzLegacy } from '../../src/brdb/world';
 import { chunksSave, dump, exampleBrickSave, featuresSave } from './fixtures';
 
 const hasFixtures = existsSync(new URL('../fixtures/brdb/', import.meta.url));
@@ -140,8 +140,8 @@ describe.skipIf(!hasFixtures)('WorldReader(features_raw.brz)', () => {
     expect(reader().brickOwners()).toEqual([
       {
         id: 'a1b2c3d4-e5f6-4789-8abc-def012345678',
-        name: 'cake',
-        display_name: 'Cake',
+        name: 'alice',
+        display_name: 'Alice',
         bricks: 4,
       },
       {
@@ -326,5 +326,54 @@ describe('write -> read round-trips', () => {
     expect(bricks).toHaveLength(1);
     expect(bricks[0].position).toEqual([0, 0, 6]);
     expect(bricks[0].size).toEqual([5, 5, 6]);
+  });
+});
+
+describe('embedded prefabs (read side)', () => {
+  test('reads embedded prefabs and prefab meta', () => {
+    const inner = new World();
+    inner.addBrick({ position: [0, 0, 6] });
+    inner.makePrefab();
+    const innerBytes = inner.toBrz();
+
+    const outer = new World();
+    const path = outer.addPrefab(innerBytes);
+    outer.addBrick({
+      asset: 'B_1x1_Gate_Exec_PrefabSpawner',
+      position: [0, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_WireGraph_Exec_PrefabSpawner',
+          data: { Prefab: path },
+        },
+      ],
+    });
+    outer.makePrefab();
+
+    const r = WorldReader.from(
+      outer.toBrz({ thumbnail: new Uint8Array([7, 8, 9]) })
+    );
+    expect(r.bundle().type).toBe('Prefab');
+    expect(r.prefabJson()).not.toBeNull();
+    expect(r.thumbnail()).toEqual(new Uint8Array([7, 8, 9]));
+    expect(r.prefabPaths()).toEqual([path]);
+    expect(r.readPrefab(path)).toEqual(innerBytes);
+
+    // The component's Prefab property references the enumerated path.
+    const { components } = r.componentChunk(1, { x: 0, y: 0, z: 0 });
+    expect(components[0].data?.Prefab).toBe(path);
+
+    // Nested read: the embedded archive is its own readable bundle.
+    const innerReader = r.prefabReader(path);
+    expect(innerReader.bundle().type).toBe('Prefab');
+    expect(innerReader.prefabPaths()).toEqual([]);
+    expect(innerReader.thumbnail()).toBeNull();
+
+    // No-prefab worlds enumerate empty.
+    const plain = new World();
+    plain.addBrick({ position: [0, 0, 6] });
+    const plainReader = WorldReader.from(plain.toBrz());
+    expect(plainReader.prefabPaths()).toEqual([]);
+    expect(plainReader.prefabJson()).toBeNull();
   });
 });

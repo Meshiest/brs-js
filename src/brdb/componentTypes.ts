@@ -538,6 +538,11 @@ export type BrickComponentData_WireGraph_Expr_BoolBool_Bool = {
 
 export type BrickComponentData_WireGraph_Expr_ChangeDetector = {
   Input: BrdbVariant;
+  bPulseOnChange: boolean;
+};
+
+export type BrickComponentData_WireGraph_Expr_ChangeDetectorExec = {
+  Input: BrdbVariant;
 };
 
 export type BrickComponentData_WireGraph_Expr_Compare = {
@@ -552,6 +557,12 @@ export type BrickComponentData_WireGraph_Expr_Convert = {
 };
 
 export type BrickComponentData_WireGraph_Expr_EdgeDetector = {
+  Input: number;
+  bPulseOnRisingEdge: boolean;
+  bPulseOnFallingEdge: boolean;
+};
+
+export type BrickComponentData_WireGraph_Expr_EdgeDetectorExec = {
   Input: number;
 };
 
@@ -1818,10 +1829,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Expr_BitwiseXOR: BrickComponentData_WireGraph_Expr_IntInt_Int;
   BrickComponentType_WireGraph_Expr_Ceil: BrickComponentData_WireGraph_Expr_Float_Float;
   BrickComponentType_WireGraph_Expr_ChangeDetector: BrickComponentData_WireGraph_Expr_ChangeDetector;
-  BrickComponentType_WireGraph_Expr_ChangeDetectorExec: Record<
-    string,
-    BrdbValue
-  >;
+  BrickComponentType_WireGraph_Expr_ChangeDetectorExec: BrickComponentData_WireGraph_Expr_ChangeDetectorExec;
   BrickComponentType_WireGraph_Expr_ColorBlend: BrickComponentData_WireGraph_Expr_ColorBlend;
   BrickComponentType_WireGraph_Expr_ColorConvert: BrickComponentData_WireGraph_Expr_ColorConvert;
   BrickComponentType_WireGraph_Expr_ColorToHex: BrickComponentData_WireGraph_Expr_ColorToHex;
@@ -1834,7 +1842,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_WireGraph_Expr_Convert: BrickComponentData_WireGraph_Expr_Convert;
   BrickComponentType_WireGraph_Expr_DirectionToRotation: BrickComponentData_WireGraph_Expr_DirectionToRotation;
   BrickComponentType_WireGraph_Expr_EdgeDetector: BrickComponentData_WireGraph_Expr_EdgeDetector;
-  BrickComponentType_WireGraph_Expr_EdgeDetectorExec: Record<string, BrdbValue>;
+  BrickComponentType_WireGraph_Expr_EdgeDetectorExec: BrickComponentData_WireGraph_Expr_EdgeDetectorExec;
   BrickComponentType_WireGraph_Expr_Floor: BrickComponentData_WireGraph_Expr_Float_Float;
   BrickComponentType_WireGraph_Expr_InvertRotation: BrickComponentData_WireGraph_Expr_InvertRotation;
   BrickComponentType_WireGraph_Expr_LogicalAND: BrickComponentData_WireGraph_Expr_BoolBool_Bool;

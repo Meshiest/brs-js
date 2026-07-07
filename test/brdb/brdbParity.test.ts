@@ -21,6 +21,7 @@ const WORLDS = [
   'components',
   'entities',
   'features',
+  'spawner',
   'wires',
 ];
 

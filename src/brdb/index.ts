@@ -13,6 +13,8 @@ export type {
   BrdbSaveExtras,
   BrdbWireEndpointInput,
   BrdbWireInput,
+  BundleAuthor,
+  BundleColor,
   BundleJson,
   WorldBrickHandle,
   WorldBrickInput,

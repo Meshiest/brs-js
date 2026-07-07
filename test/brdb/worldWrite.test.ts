@@ -108,6 +108,46 @@ describe('basic (non-procedural) asset bricks', () => {
   });
 });
 
+describe('bundle meta', () => {
+  test('bundle authors are written as game-shaped objects', () => {
+    const save = {
+      author: { id: '12345678-9abc-4def-8123-456789abcdef', name: 'author' },
+      bricks: [
+        {
+          position: [0, 0, 6] as [number, number, number],
+          size: [5, 5, 6] as [number, number, number],
+        },
+      ],
+    };
+    const entries = saveToPendingFs(save as any);
+    const meta = entries.find(([n]) => n === 'Meta')![1] as any;
+    const bundleBytes = meta.children.find(([n]: any) => n === 'Bundle.json')[1]
+      .content;
+    const bundle = JSON.parse(new TextDecoder().decode(bundleBytes));
+    expect(bundle.authors).toEqual([
+      { iD: '12345678-9abc-4def-8123-456789abcdef', name: 'author' },
+    ]);
+    // Default output shape is otherwise unchanged (fixture-byte stability).
+    expect(bundle).not.toHaveProperty('color');
+  });
+
+  test('author without id falls back to the zero guid', () => {
+    const entries = saveToPendingFs({
+      author: { name: 'author' },
+      bricks: [],
+    } as any);
+    const meta = entries.find(([n]) => n === 'Meta')![1] as any;
+    const bundle = JSON.parse(
+      new TextDecoder().decode(
+        meta.children.find(([n]: any) => n === 'Bundle.json')[1].content
+      )
+    );
+    expect(bundle.authors).toEqual([
+      { iD: '00000000-0000-0000-0000-000000000000', name: 'author' },
+    ]);
+  });
+});
+
 describe('edge cases', () => {
   test('bundle_path_ref fields (PrefabSpawn) round-trip as strings', () => {
     const bytes = writeBrzLegacy({
@@ -156,7 +196,10 @@ describe('edge cases', () => {
         {
           bricks: [],
           description: 'Hello',
-          author: { id: '0-0-0-0-0', name: 'cake' },
+          author: {
+            id: '12345678-9abc-4def-8123-456789abcdef',
+            name: 'author',
+          },
         },
         { environment: 'Space', bundle: { name: 'My World' } }
       )
@@ -170,7 +213,8 @@ describe('edge cases', () => {
       name: 'My World',
       version: '',
       tags: [],
-      authors: ['cake'],
+      // authors are game-shaped { iD, name } objects
+      authors: [{ iD: '12345678-9abc-4def-8123-456789abcdef', name: 'author' }],
       createdAt: '0001.01.01-00.00.00',
       updatedAt: '0001.01.01-00.00.00',
       description: 'Hello',

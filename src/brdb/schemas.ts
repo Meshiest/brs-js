@@ -836,6 +836,10 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_WireGraph_Expr_ChangeDetector: {
         Input: 'WireGraphVariant',
+        bPulseOnChange: 'bool',
+      },
+      BrickComponentData_WireGraph_Expr_ChangeDetectorExec: {
+        Input: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Expr_Compare: {
         InputA: 'WireGraphVariant',
@@ -847,6 +851,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         TargetType: 'WireGraphVariant',
       },
       BrickComponentData_WireGraph_Expr_EdgeDetector: {
+        Input: 'f64',
+        bPulseOnRisingEdge: 'bool',
+        bPulseOnFallingEdge: 'bool',
+      },
+      BrickComponentData_WireGraph_Expr_EdgeDetectorExec: {
         Input: 'f64',
       },
       BrickComponentData_WireGraph_Expr_Float_Float: {

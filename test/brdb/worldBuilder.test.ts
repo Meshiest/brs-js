@@ -1,4 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { blake3 } from '@noble/hashes/blake3.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import Database from 'better-sqlite3';
 import { describe, expect, test } from 'vitest';
 import { Brdb } from '../../src/brdb/brdb';
@@ -151,7 +153,10 @@ describe('World builder', () => {
 
   test('owner table counts entities; wires validate handles', () => {
     const w = new World();
-    const owner = w.addOwner({ id: '6-0-0-0-0', name: 'cake' });
+    const owner = w.addOwner({
+      id: 'a1b2c3d4-e5f6-4789-8abc-def012345678',
+      name: 'alice',
+    });
     w.addBrick({ position: [0, 0, 6], owner_index: owner });
     w.addEntity({ owner_index: owner, frozen: true });
     const reader = WorldReader.from(w.toBrz());
@@ -194,4 +199,85 @@ describe('World builder', () => {
     ]);
     db.close();
   });
+});
+
+describe('embedded prefabs', () => {
+  test('addPrefab embeds content-addressed archives under Prefabs/Uploads', () => {
+    const inner = new World();
+    inner.addBrick({ position: [0, 0, 6] });
+    inner.makePrefab();
+    const innerBytes = inner.toBrz();
+    const hash = bytesToHex(blake3(innerBytes)).toUpperCase();
+
+    const outer = new World();
+    const path = outer.addPrefab(innerBytes);
+    expect(path).toBe(`Prefabs/Uploads/${hash}.brz`);
+    outer.addBrick({ position: [0, 0, 6] });
+    outer.makePrefab();
+
+    const entries = outer.toPendingFs({
+      thumbnail: new Uint8Array([1, 2, 3]),
+    });
+    expect(entries.map(([n]) => n)).toEqual(['Meta', 'World', 'Prefabs']);
+
+    const prefabs = entries[2][1] as any;
+    const uploads = prefabs.children[0];
+    expect(uploads[0]).toBe('Uploads');
+    const [fileName, fileNode] = uploads[1].children[0];
+    expect(fileName).toBe(`${hash}.brz`);
+    expect(fileNode.content).toEqual(innerBytes);
+
+    // Prefab Meta order: Bundle.json, Prefab.json, Thumbnail.png.
+    const meta = entries[0][1] as any;
+    expect(meta.children.map(([n]: any) => n)).toEqual([
+      'Bundle.json',
+      'Prefab.json',
+      'Thumbnail.png',
+    ]);
+  });
+
+  test('worlds without prefabs have no Prefabs folder', () => {
+    const w = new World();
+    w.addBrick({ position: [0, 0, 6] });
+    expect(w.toPendingFs().map(([n]) => n)).toEqual(['Meta', 'World']);
+  });
+
+  test.skipIf(!hasFixtures)(
+    'spawner: embedded prefab byte-matches the oracle fixture',
+    () => {
+      // Mirror of the crate's spawner_world() fixture: the js-built inner
+      // prefab must be byte-identical to the archive rust embedded, so the
+      // BLAKE3 content-addressed path matches too.
+      const inner = new World();
+      inner.addBrick({ position: [0, 0, 6], color: [255, 0, 0] });
+      inner.makePrefab();
+      const innerBytes = inner.toBrz({
+        bundle: { description: 'Inner prefab' },
+      });
+
+      const oracle = WorldReader.from(fixture('spawner_raw.brz'));
+      const [oraclePath] = oracle.prefabPaths();
+      expect(oracle.readPrefab(oraclePath)).toEqual(innerBytes);
+
+      const outer = new World();
+      const path = outer.addPrefab(innerBytes);
+      expect(path).toBe(oraclePath);
+
+      // The oracle's spawner component references the same path.
+      const { components } = oracle.componentChunk(1, { x: 0, y: 0, z: 0 });
+      expect(components[0].typeName).toBe(
+        'BrickComponentType_WireGraph_Exec_PrefabSpawner'
+      );
+      expect(components[0].data?.Prefab).toBe(oraclePath);
+
+      // Oracle meta: prefab bundle with Prefab.json, no World.json.
+      expect(oracle.bundle().type).toBe('Prefab');
+      expect(oracle.prefabJson()).not.toBeNull();
+
+      // The embedded archive parses as its own prefab bundle.
+      const innerReader = oracle.prefabReader(oraclePath);
+      expect(innerReader.bundle().description).toBe('Inner prefab');
+      expect(innerReader.prefabPaths()).toEqual([]);
+    }
+  );
 });

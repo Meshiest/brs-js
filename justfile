@@ -76,3 +76,7 @@ example-write-brick:
 # Write a brick carrying a point light component to example_component.brz
 example-write-component:
     node examples/writeComponent.mjs
+
+# Write a button wired to a prefab spawner to example_prefab_spawner.brz
+example-write-prefab-spawner:
+    node examples/writePrefabSpawner.mjs

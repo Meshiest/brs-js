@@ -17,4 +17,6 @@ export interface WorldFs {
   readFile(path: string): Uint8Array;
   /** Names of the subfolders of a folder path ('' = root). */
   childFolders(path: string): string[];
+  /** Names of the files directly inside a folder path ('' = root). */
+  childFiles(path: string): string[];
 }

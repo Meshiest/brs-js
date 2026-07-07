@@ -40,7 +40,7 @@ export const payloadDump = (fs: {
   return out;
 };
 
-export const CAKE_UUID = 'a1b2c3d4-e5f6-4789-8abc-def012345678';
+export const ALICE_UUID = 'a1b2c3d4-e5f6-4789-8abc-def012345678';
 export const BOB_UUID = '00112233-4455-6677-8899-aabbccddeeff';
 
 export const exampleBrickSave: WriteSaveObject = {
@@ -60,7 +60,7 @@ export const featuresSave: WriteSaveObject = {
   brick_assets: ['PB_DefaultBrick', 'PB_DefaultTile', 'B_2x2_Overhang'],
   materials: ['BMC_Plastic', 'BMC_Metallic', 'BMC_Glow'],
   brick_owners: [
-    { id: CAKE_UUID, name: 'cake', display_name: 'Cake' },
+    { id: ALICE_UUID, name: 'alice', display_name: 'Alice' },
     { id: BOB_UUID, name: 'bob', display_name: 'Bob' },
   ],
   bricks: [

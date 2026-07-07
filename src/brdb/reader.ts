@@ -281,6 +281,47 @@ export class WorldReader {
     );
   }
 
+  /** Meta/Prefab.json parsed, or null for world bundles. */
+  prefabJson(): Record<string, unknown> | null {
+    return this.cached('Meta/Prefab.json', () =>
+      this.fs.findFileByPath('Meta/Prefab.json')
+        ? JSON.parse(
+            new TextDecoder().decode(this.fs.readFile('Meta/Prefab.json'))
+          )
+        : null
+    );
+  }
+
+  /** Meta/Thumbnail.png bytes, or null when absent. */
+  thumbnail(): Uint8Array | null {
+    return this.fs.findFileByPath('Meta/Thumbnail.png')
+      ? this.fs.readFile('Meta/Thumbnail.png')
+      : null;
+  }
+
+  /** Root-relative paths of embedded prefabs (files under Prefabs/), e.g.
+   * Prefabs/Uploads/<HASH>.brz — the exact strings Prefab component
+   * properties (bundle_path_ref) reference. Empty when none are embedded. */
+  prefabPaths(): string[] {
+    const out: string[] = [];
+    const walk = (dir: string) => {
+      for (const f of this.fs.childFiles(dir)) out.push(`${dir}/${f}`);
+      for (const d of this.fs.childFolders(dir)) walk(`${dir}/${d}`);
+    };
+    if (this.fs.childFolders('').includes('Prefabs')) walk('Prefabs');
+    return out;
+  }
+
+  /** Raw bytes of an embedded prefab archive. */
+  readPrefab(path: string): Uint8Array {
+    return this.fs.readFile(path);
+  }
+
+  /** Open an embedded prefab as its own WorldReader. */
+  prefabReader(path: string): WorldReader {
+    return WorldReader.from(this.readPrefab(path));
+  }
+
   globalData(): any {
     return this.cached(this.path('GlobalData.mps'), () =>
       this.decode(
