@@ -332,6 +332,160 @@ describe('unbounded-counter guards on hostile input', () => {
   });
 });
 
+// Some game-produced files (observed in prefab exports with joints) write
+// ComponentBrickIndices as k identical copies back-to-back while the
+// counters, and the trailing per-instance data, describe a single copy. The
+// game itself reads such files fine (it walks the counters and ignores the
+// tail), so the reader must tolerate exact self-repetition — but ONLY that;
+// any other mismatch is still hostile/corrupt input.
+describe('duplicated ComponentBrickIndices tolerance', () => {
+  const emptyComponentSoa: Record<string, BrdbValue> = {
+    ComponentTypeCounters: [],
+    ComponentBrickIndices: [],
+    JointBrickIndices: [],
+    JointEntityReferences: [],
+    JointInitialRelativeOffsets: [],
+    JointInitialRelativeRotations: [],
+    MicrochipBrickIndices: [],
+    MicrochipBrickGridReferences: [],
+  };
+
+  function componentFs(opts: {
+    soa: Record<string, BrdbValue>;
+    globalData?: Record<string, BrdbValue>;
+    schema?: BrdbSchema;
+    trailing?: (w: ByteWriter, schema: BrdbSchema) => void;
+  }): MemFs {
+    const schema = opts.schema ?? embeddedSchema('BRSavedComponentChunkSoA');
+    const fs = withGlobalData(
+      opts.globalData ?? {
+        ComponentTypeNames: ['Component_Test'],
+        ComponentDataStructNames: ['None'],
+      }
+    );
+    fs.set('World/0/Bricks/ComponentsShared.schema', schema.toBinary());
+    const w = new ByteWriter();
+    schema.writeValue(w, 'BRSavedComponentChunkSoA', {
+      ...emptyComponentSoa,
+      ...opts.soa,
+    });
+    opts.trailing?.(w, schema);
+    fs.set('World/0/Bricks/Grids/1/Components/0_0_0.mps', w.toBytes());
+    return fs;
+  }
+
+  test('accepts an exactly-duplicated index array and uses the first copy', () => {
+    const fs = componentFs({
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 2 }],
+        ComponentBrickIndices: [5, 9, 5, 9],
+      },
+    });
+    const { components } = new WorldReader(fs).componentChunk(1, {
+      x: 0,
+      y: 0,
+      z: 0,
+    });
+    expect(components.map(c => c.brickIndex)).toEqual([5, 9]);
+    expect(components.map(c => c.typeName)).toEqual([
+      'Component_Test',
+      'Component_Test',
+    ]);
+  });
+
+  test('accepts a triplicated index array', () => {
+    const fs = componentFs({
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 2 }],
+        ComponentBrickIndices: [5, 9, 5, 9, 5, 9],
+      },
+    });
+    const { components } = new WorldReader(fs).componentChunk(1, {
+      x: 0,
+      y: 0,
+      z: 0,
+    });
+    expect(components.map(c => c.brickIndex)).toEqual([5, 9]);
+  });
+
+  test('duplicated indices with single-copy trailing data (zertz.brz shape) decode fully', () => {
+    // Mirror of the real failing file: doubled indices, trailing struct data
+    // present exactly once, and an i64 constant beyond the safe range.
+    const src = SCHEMAS.BRSavedComponentChunkSoA;
+    const schema = BrdbSchema.fromData({
+      ...src,
+      structs: {
+        ...src.structs,
+        TestComponentData: { Value: 'i64' },
+      },
+    } as any);
+    const big = 33891734021675012n;
+    const fs = componentFs({
+      schema,
+      globalData: {
+        ComponentTypeNames: ['Component_Test'],
+        ComponentDataStructNames: ['TestComponentData'],
+      },
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 2 }],
+        ComponentBrickIndices: [5, 9, 5, 9],
+      },
+      trailing: (w, s) => {
+        s.writeValue(w, 'TestComponentData', { Value: 12 });
+        s.writeValue(w, 'TestComponentData', { Value: big });
+      },
+    });
+    const { components } = new WorldReader(fs).componentChunk(1, {
+      x: 0,
+      y: 0,
+      z: 0,
+    });
+    expect(components.map(c => c.brickIndex)).toEqual([5, 9]);
+    expect(components[0].data).toEqual({ Value: 12 });
+    expect(components[1].data).toEqual({
+      Value: { $bigint: big.toString() },
+    });
+  });
+
+  test('still throws when the repeated segments differ', () => {
+    const fs = componentFs({
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 2 }],
+        ComponentBrickIndices: [5, 9, 5, 8],
+      },
+    });
+    expect(() =>
+      new WorldReader(fs).componentChunk(1, { x: 0, y: 0, z: 0 })
+    ).toThrow(/component counters do not match brick index count/);
+  });
+
+  test('still throws when the length is not an exact multiple', () => {
+    const fs = componentFs({
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 2 }],
+        ComponentBrickIndices: [5, 9, 5],
+      },
+    });
+    expect(() =>
+      new WorldReader(fs).componentChunk(1, { x: 0, y: 0, z: 0 })
+    ).toThrow(/component counters do not match brick index count/);
+  });
+
+  test('still throws when counters exceed the index table (vacuous-multiple guard)', () => {
+    // 0 % totalInstances === 0 and [].every() is true; the tolerance must
+    // not resurrect the unbounded-allocation hole the strict check closes.
+    const fs = componentFs({
+      soa: {
+        ComponentTypeCounters: [{ TypeIndex: 0, NumInstances: 1_000_000 }],
+        ComponentBrickIndices: [],
+      },
+    });
+    expect(() =>
+      new WorldReader(fs).componentChunk(1, { x: 0, y: 0, z: 0 })
+    ).toThrow(/component counters do not match brick index count/);
+  });
+});
+
 describe('entityChunk legacy field fallbacks', () => {
   test('originalOwnerIndex mirrors ownerIndex when OriginalOwnerIndices is absent', () => {
     const entitySchema = schemaWithout(

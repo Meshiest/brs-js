@@ -10,6 +10,10 @@ const checkSafe = (v: number, what: string) => {
     throw new RangeError(`brdb: ${what} ${v} is not a safe integer`);
 };
 
+const I64_MIN = -(2n ** 63n);
+const I64_MAX = 2n ** 63n - 1n;
+const U64_MAX = 2n ** 64n - 1n;
+
 export const mpNil = (w: ByteWriter) => w.u8(0xc0);
 export const mpBool = (w: ByteWriter, v: boolean) => w.u8(v ? 0xc3 : 0xc2);
 
@@ -31,8 +35,20 @@ export function mpU8(w: ByteWriter, v: number) {
   }
 }
 
-// u16/u32/u64 schema types.
-export function mpUint(w: ByteWriter, v: number) {
+// u16/u32/u64 schema types. BigInt is accepted for u64 values beyond the
+// safe-integer range; safe-range BigInts normalize to the same shrunken
+// encodings a plain number gets.
+export function mpUint(w: ByteWriter, v: number | bigint) {
+  if (typeof v === 'bigint') {
+    if (v < 0n) throw new RangeError(`brdb: uint value negative: ${v}`);
+    if (v > U64_MAX) throw new RangeError(`brdb: u64 value out of range: ${v}`);
+    if (v > BigInt(Number.MAX_SAFE_INTEGER)) {
+      w.u8(0xcf);
+      w.u64be(v);
+      return;
+    }
+    v = Number(v);
+  }
   checkSafe(v, 'uint');
   if (v < 0) throw new RangeError(`brdb: uint value negative: ${v}`);
   if (v <= 127) w.u8(v);
@@ -52,8 +68,23 @@ export function mpUint(w: ByteWriter, v: number) {
 }
 
 // i8..i64 schema types. Positive values use SIGNED markers (never 0xcc+),
-// and positives 128..=32767 skip i8 and go straight to i16.
-export function mpInt(w: ByteWriter, v: number) {
+// and positives 128..=32767 skip i8 and go straight to i16. BigInt is
+// accepted for i64 values beyond the safe-integer range; safe-range BigInts
+// normalize to the same shrunken encodings a plain number gets.
+export function mpInt(w: ByteWriter, v: number | bigint) {
+  if (typeof v === 'bigint') {
+    if (v < I64_MIN || v > I64_MAX)
+      throw new RangeError(`brdb: i64 value out of range: ${v}`);
+    if (
+      v > BigInt(Number.MAX_SAFE_INTEGER) ||
+      v < BigInt(Number.MIN_SAFE_INTEGER)
+    ) {
+      w.u8(0xd3);
+      w.i64be(v);
+      return;
+    }
+    v = Number(v);
+  }
   checkSafe(v, 'int');
   if (v >= 0) {
     if (v < 128) w.u8(v);
@@ -160,14 +191,20 @@ export function mpMapHeader(w: ByteWriter, len: number) {
 
 // ---- readers ----
 
-const fromBigint = (v: bigint): number => {
+// Out-of-safe-range 64-bit payloads either surface as BigInt (data-value
+// contexts: i64/u64 fields, where a full-width bitmask constant is legal)
+// or throw (structural contexts: tags, ordinals, ids, which must be
+// indexable numbers).
+const fromBigint = (v: bigint, allowBigint?: boolean): number | bigint => {
   if (
     v > BigInt(Number.MAX_SAFE_INTEGER) ||
     v < BigInt(Number.MIN_SAFE_INTEGER)
-  )
+  ) {
+    if (allowBigint) return v;
     throw new RangeError(
       `brdb: 64-bit value ${v} exceeds JS safe integer range`
     );
+  }
   return Number(v);
 };
 
@@ -180,8 +217,11 @@ const badMarker = (marker: number, expected: string): never => {
 const isFixPos = (m: number) => (m & 0x80) === 0;
 const isFixNeg = (m: number) => (m & 0xe0) === 0xe0;
 
-// Accepts every int marker, signed and unsigned.
-export function rdInt(r: ByteReader): number {
+// Accepts every int marker, signed and unsigned. With allowBigint,
+// out-of-safe-range 64-bit payloads return BigInt instead of throwing.
+export function rdInt(r: ByteReader): number;
+export function rdInt(r: ByteReader, allowBigint: true): number | bigint;
+export function rdInt(r: ByteReader, allowBigint?: boolean): number | bigint {
   const m = r.u8();
   if (isFixPos(m)) return m;
   if (isFixNeg(m)) return m - 256;
@@ -193,7 +233,7 @@ export function rdInt(r: ByteReader): number {
     case 0xce:
       return r.u32be();
     case 0xcf:
-      return fromBigint(r.u64be());
+      return fromBigint(r.u64be(), allowBigint);
     case 0xd0:
       return r.i8();
     case 0xd1:
@@ -201,7 +241,7 @@ export function rdInt(r: ByteReader): number {
     case 0xd2:
       return r.i32be();
     case 0xd3:
-      return fromBigint(r.i64be());
+      return fromBigint(r.i64be(), allowBigint);
     default:
       return badMarker(m, 'integer');
   }
@@ -213,7 +253,9 @@ export function rdInt(r: ByteReader): number {
 // arrive as d0 XX in real saves (e.g. MaterialAlpha=128 is d0 80). The
 // reference decoder sign-extends the i8 to u64 and its u8 field cast
 // truncates back to the same byte.
-export function rdUint(r: ByteReader): number {
+export function rdUint(r: ByteReader): number;
+export function rdUint(r: ByteReader, allowBigint: true): number | bigint;
+export function rdUint(r: ByteReader, allowBigint?: boolean): number | bigint {
   const m = r.u8();
   if (isFixPos(m)) return m;
   if (isFixNeg(m)) return m; // 0xe0..0xff read back as 224..255
@@ -226,7 +268,7 @@ export function rdUint(r: ByteReader): number {
     case 0xce:
       return r.u32be();
     case 0xcf:
-      return fromBigint(r.u64be());
+      return fromBigint(r.u64be(), allowBigint);
     default:
       return badMarker(m, 'uint');
   }

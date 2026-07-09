@@ -471,10 +471,25 @@ export class WorldReader {
     let totalInstances = 0;
     for (const counter of soa.ComponentTypeCounters)
       totalInstances += counter.NumInstances;
-    if (totalInstances !== soa.ComponentBrickIndices.length)
-      throw new Error(
-        'brdb: component counters do not match brick index count'
-      );
+    const brickIndices: number[] = soa.ComponentBrickIndices;
+    if (totalInstances !== brickIndices.length) {
+      // Some game-written files (observed in prefab exports with joints)
+      // store this one array as k identical copies back-to-back while the
+      // counters and the trailing per-instance data describe a single copy.
+      // The game walks the counters and never reads the tail, so accept
+      // exact self-repetition (strictly longer, whole multiple, every
+      // segment identical) and use the first copy; anything else is
+      // hostile/corrupt. length > totalInstances keeps the unbounded-
+      // allocation guard: 0 rows against a huge claimed total stays fatal.
+      const duplicated =
+        brickIndices.length > totalInstances &&
+        brickIndices.length % totalInstances === 0 &&
+        brickIndices.every((v, i) => v === brickIndices[i % totalInstances]);
+      if (!duplicated)
+        throw new Error(
+          'brdb: component counters do not match brick index count'
+        );
+    }
 
     const components: ComponentInstance[] = [];
     let stream = 0;

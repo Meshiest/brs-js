@@ -46,6 +46,7 @@ export { BrzReader, writeBrzContainer } from './brz';
 export type { BrzContainerOptions, Compressor } from './brz';
 export { BrdbSchema, embeddedSchema } from './schema';
 export type {
+  BrdbBigint,
   BrdbValue,
   BrdbVariant,
   PropDesc,

@@ -3,6 +3,10 @@
 Read and write Brickadia save files (.brz, .brdb, .brs)
 
 **Warning:** **Unreal Engine uses numbers potentially larger than Javascript can handle.**
+64-bit integer fields outside the safe-integer range (±2⁵³−1) decode as JSON-safe
+`{ $bigint: '<decimal>' }` wrappers instead of plain numbers; the write path accepts the
+wrapper, a raw `bigint`, or a number interchangeably, so decoded data round-trips losslessly
+(including through `JSON.stringify`/`parse`).
 
 ## Install
 
@@ -155,8 +159,16 @@ const output = w.addBrick(
   grid
 );
 w.addWire(
-  { brick: input, component_type: CHIP_IN.NAME, port: CHIP_IN.PORTS.RER_Output },
-  { brick: output, component_type: CHIP_OUT.NAME, port: CHIP_OUT.PORTS.RER_Input }
+  {
+    brick: input,
+    component_type: CHIP_IN.NAME,
+    port: CHIP_IN.PORTS.RER_Output,
+  },
+  {
+    brick: output,
+    component_type: CHIP_OUT.NAME,
+    port: CHIP_OUT.PORTS.RER_Input,
+  }
 );
 
 w.makePrefab({ isMicrochipPrefab: true });

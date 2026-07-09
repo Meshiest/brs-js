@@ -63,11 +63,47 @@ function propFromSource(source: SchemaSourceProp, ctx: string): PropDesc {
 
 export type BrdbValue =
   | number
+  | bigint // accepted on encode; decode always produces { $bigint } wrappers
   | boolean
   | string
   | null
   | BrdbValue[]
   | { [field: string]: BrdbValue };
+
+/** A 64-bit integer outside the JS safe-integer range, decoded as a
+ * JSON-safe wrapper (decimal string payload) so values survive
+ * JSON.stringify/parse. In-range values stay plain numbers; encode accepts
+ * the wrapper, a raw bigint, or a number interchangeably. */
+export type BrdbBigint = { $bigint: string };
+
+const asBigintWrapper = (value: BrdbValue): BrdbBigint | null =>
+  value !== null &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  typeof (value as { $bigint?: unknown }).$bigint === 'string'
+    ? (value as unknown as BrdbBigint)
+    : null;
+
+/** Wrap an out-of-safe-range 64-bit read; in-range values pass through. */
+const wrapBig = (v: number | bigint): number | BrdbBigint =>
+  typeof v === 'bigint' ? { $bigint: v.toString() } : v;
+
+/** Narrow a caller-supplied integer value (number, bigint, or { $bigint }
+ * wrapper) to what the msgpack integer encoders take. */
+function asInt64(value: BrdbValue, ctx: string): number | bigint {
+  if (typeof value === 'number' || typeof value === 'bigint') return value;
+  const wrapped = asBigintWrapper(value);
+  if (wrapped) {
+    try {
+      return BigInt(wrapped.$bigint);
+    } catch {
+      throw new RangeError(
+        `brdb: invalid $bigint payload '${wrapped.$bigint}' for ${ctx}`
+      );
+    }
+  }
+  throw new Error(`brdb: expected an integer value for ${ctx}`);
+}
 
 /** A decoded variant value: which member the tag selected, plus its payload.
  * Kept tagged (rather than flattened like the reference reader) so that
@@ -425,12 +461,12 @@ export class BrdbSchema {
       case 'u16':
       case 'u32':
       case 'u64':
-        return mpUint(w, value as number);
+        return mpUint(w, asInt64(value, ty));
       case 'i8':
       case 'i16':
       case 'i32':
       case 'i64':
-        return mpInt(w, value as number);
+        return mpInt(w, asInt64(value, ty));
       case 'f32':
         return mpF32(w, value as number);
       case 'f64':
@@ -517,7 +553,7 @@ export class BrdbSchema {
       case 'f64':
         return mpF64(w, v.value as number);
       case 'i64':
-        return mpInt(w, v.value as number);
+        return mpInt(w, asInt64(v.value, ty));
       case 'bool':
         return mpBool(w, v.value as boolean);
       case 'weak_object':
@@ -582,9 +618,9 @@ export class BrdbSchema {
       case 'f64':
         return w.f64le(value as number);
       case 'u64':
-        return w.u64le(BigInt(value as number));
+        return w.u64le(BigInt(asInt64(value, ctx)));
       case 'i64':
-        return w.i64le(BigInt(value as number));
+        return w.i64le(BigInt(asInt64(value, ctx)));
     }
     const struct = this.structs.get(ty);
     if (!struct) throw new Error(`brdb: invalid flat type ${ty} at ${ctx}`);
@@ -612,13 +648,15 @@ export class BrdbSchema {
       case 'u8':
       case 'u16':
       case 'u32':
-      case 'u64':
         return rdUint(r);
+      case 'u64':
+        return wrapBig(rdUint(r, true));
       case 'i8':
       case 'i16':
       case 'i32':
-      case 'i64':
         return rdInt(r);
+      case 'i64':
+        return wrapBig(rdInt(r, true));
       case 'f32':
         return rdF32(r);
       case 'f64':
@@ -677,7 +715,7 @@ export class BrdbSchema {
       case 'f64':
         return { $variant: member, value: rdF64(r) };
       case 'i64':
-        return { $variant: member, value: rdInt(r) };
+        return { $variant: member, value: wrapBig(rdInt(r, true)) };
       case 'bool':
         return { $variant: member, value: rdBool(r) };
       case 'weak_object': {
@@ -747,14 +785,10 @@ export class BrdbSchema {
       case 'u64':
       case 'i64': {
         const v = ty === 'u64' ? r.u64le() : r.i64le();
-        if (
-          v > BigInt(Number.MAX_SAFE_INTEGER) ||
+        return v > BigInt(Number.MAX_SAFE_INTEGER) ||
           v < BigInt(Number.MIN_SAFE_INTEGER)
-        )
-          throw new RangeError(
-            `brdb: flat 64-bit value ${v} exceeds JS safe range`
-          );
-        return Number(v);
+          ? { $bigint: v.toString() }
+          : Number(v);
       }
     }
     const struct = this.structs.get(ty);

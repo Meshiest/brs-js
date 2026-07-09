@@ -205,6 +205,74 @@ describe('reader', () => {
     ).toBe(0.5);
   });
 
+  test('64-bit payloads outside the safe range surface as BigInt when allowed', () => {
+    // observed in a real game save: a bitwise logic gate's i64 constant
+    const big = 33891734021675012n;
+    const wi = new ByteWriter();
+    wi.u8(0xd3);
+    wi.i64be(-big);
+    expect(rdInt(new ByteReader(wi.toBytes()), true)).toBe(-big);
+    const wu = new ByteWriter();
+    wu.u8(0xcf);
+    wu.u64be(0xffffffffffffffffn);
+    expect(rdUint(new ByteReader(wu.toBytes()), true)).toBe(
+      18446744073709551615n
+    );
+    // in-range 64-bit payloads stay plain numbers even when BigInt is allowed
+    const ws = new ByteWriter();
+    ws.u8(0xd3);
+    ws.i64be(4294967296n);
+    expect(rdInt(new ByteReader(ws.toBytes()), true)).toBe(4294967296);
+  });
+
+  test('without the flag, oversized 64-bit payloads still throw (tags/ordinals need numbers)', () => {
+    const wi = new ByteWriter();
+    wi.u8(0xd3);
+    wi.i64be(-33891734021675012n);
+    expect(() => rdInt(new ByteReader(wi.toBytes()))).toThrow(RangeError);
+    const wu = new ByteWriter();
+    wu.u8(0xcf);
+    wu.u64be(33891734021675012n);
+    expect(() => rdUint(new ByteReader(wu.toBytes()))).toThrow(RangeError);
+  });
+
+  test('mpInt/mpUint accept BigInt: safe-range values shrink, oversized emit raw 64-bit', () => {
+    expect(bytesOf(w => mpInt(w, 5n))).toEqual([0x05]);
+    expect(bytesOf(w => mpInt(w, -1n))).toEqual([0xff]);
+    expect(bytesOf(w => mpUint(w, 300n))).toEqual([0xcd, 0x01, 0x2c]);
+    expect(bytesOf(w => mpInt(w, 33891734021675012n))).toEqual([
+      0xd3, 0x00, 0x78, 0x68, 0x5a, 0x3f, 0x2f, 0x18, 0x04,
+    ]);
+    expect(bytesOf(w => mpUint(w, 0xffffffffffffffffn))).toEqual([
+      0xcf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    ]);
+  });
+
+  test('BigInt beyond 64-bit bounds throws instead of wrapping', () => {
+    expect(() => bytesOf(w => mpInt(w, 2n ** 63n))).toThrow(RangeError);
+    expect(() => bytesOf(w => mpInt(w, -(2n ** 63n) - 1n))).toThrow(RangeError);
+    expect(() => bytesOf(w => mpUint(w, 2n ** 64n))).toThrow(RangeError);
+    expect(() => bytesOf(w => mpUint(w, -1n))).toThrow(RangeError);
+  });
+
+  test('BigInt round trips', () => {
+    for (const v of [
+      33891734021675012n,
+      -33891734021675012n,
+      2n ** 63n - 1n,
+      -(2n ** 63n),
+    ]) {
+      const w = new ByteWriter();
+      mpInt(w, v);
+      expect(rdInt(new ByteReader(w.toBytes()), true)).toBe(v);
+    }
+    for (const v of [33891734021675012n, 2n ** 64n - 1n]) {
+      const w = new ByteWriter();
+      mpUint(w, v);
+      expect(rdUint(new ByteReader(w.toBytes()), true)).toBe(v);
+    }
+  });
+
   test('round trips', () => {
     for (const v of [
       0,

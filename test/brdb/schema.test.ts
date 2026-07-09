@@ -209,3 +209,87 @@ test('legacy wire_graph_variant uses fixed tags', () => {
   });
   expect(Array.from(exec)).toEqual([4, 0, 0xcb, 0x3f, 0xe0, 0, 0, 0, 0, 0, 0]);
 });
+
+describe('64-bit fields outside the JS safe-integer range', () => {
+  // observed in a real game save: a bitwise logic gate's i64 input constant
+  const BIG = 33891734021675012n;
+  const schema = BrdbSchema.fromText(`
+    struct BigHolder {
+      Signed: i64,
+      Unsigned: u64,
+      SignedFlat: i64[flat],
+      UnsignedArr: u64[],
+      Wire: wire_graph_variant,
+    }
+  `);
+
+  test('decode surfaces oversized values as JSON-safe { $bigint } wrappers', () => {
+    const bytes = schema.encode('BigHolder', {
+      Signed: -BIG,
+      Unsigned: 2n ** 64n - 1n,
+      SignedFlat: [BIG, 7],
+      UnsignedArr: [2n ** 60n, 3],
+      Wire: { $variant: 'i64', value: BIG },
+    });
+    expect(schema.decode(bytes, 'BigHolder')).toEqual({
+      Signed: { $bigint: '-33891734021675012' },
+      Unsigned: { $bigint: '18446744073709551615' },
+      // in-range values stay plain numbers
+      SignedFlat: [{ $bigint: '33891734021675012' }, 7],
+      UnsignedArr: [{ $bigint: '1152921504606846976' }, 3],
+      Wire: { $variant: 'i64', value: { $bigint: '33891734021675012' } },
+    });
+  });
+
+  test('encode accepts raw bigint and { $bigint } wrappers identically', () => {
+    const fromBigints = schema.encode('BigHolder', {
+      Signed: BIG,
+      Unsigned: BIG,
+      SignedFlat: [-BIG],
+      UnsignedArr: [BIG],
+      Wire: { $variant: 'i64', value: -BIG },
+    });
+    const fromWrappers = schema.encode('BigHolder', {
+      Signed: { $bigint: BIG.toString() },
+      Unsigned: { $bigint: BIG.toString() },
+      SignedFlat: [{ $bigint: (-BIG).toString() }],
+      UnsignedArr: [{ $bigint: BIG.toString() }],
+      Wire: { $variant: 'i64', value: { $bigint: (-BIG).toString() } },
+    });
+    expect(Array.from(fromWrappers)).toEqual(Array.from(fromBigints));
+  });
+
+  test('decode -> JSON round-trip -> encode is byte-identical', () => {
+    const bytes = schema.encode('BigHolder', {
+      Signed: BIG,
+      Unsigned: BIG,
+      SignedFlat: [-BIG],
+      UnsignedArr: [BIG],
+      Wire: { $variant: 'i64', value: -BIG },
+    });
+    // the wrapper's whole point: decoded values survive JSON serialization
+    const jsonned = JSON.parse(
+      JSON.stringify(schema.decode(bytes, 'BigHolder'))
+    );
+    expect(Array.from(schema.encode('BigHolder', jsonned))).toEqual(
+      Array.from(bytes)
+    );
+  });
+
+  test('in-range values decode as plain numbers everywhere', () => {
+    const bytes = schema.encode('BigHolder', {
+      Signed: -12,
+      Unsigned: 4294967296,
+      SignedFlat: [1, -2],
+      UnsignedArr: [3],
+      Wire: { $variant: 'i64', value: 42 },
+    });
+    expect(schema.decode(bytes, 'BigHolder')).toEqual({
+      Signed: -12,
+      Unsigned: 4294967296,
+      SignedFlat: [1, -2],
+      UnsignedArr: [3],
+      Wire: { $variant: 'i64', value: 42 },
+    });
+  });
+});
