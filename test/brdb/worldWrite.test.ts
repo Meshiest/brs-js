@@ -466,6 +466,49 @@ describe('brdb components and wires (write -> read round-trip)', () => {
     ]);
   });
 
+  test('interleaved component types regroup into one counter run per type', () => {
+    // Brick 0 carries two types and brick 1 repeats the first, so add order
+    // would produce runs [PL, CI, PL]. The game reads each counter run's
+    // data as a single type, so duplicate runs desync its data stream; the
+    // writer must emit one contiguous run per type (ascending brick index
+    // within each type, data staying paired with its brick).
+    const r = WorldReader.from(
+      writeBrzLegacy({
+        bricks: [
+          {
+            size: [5, 5, 6],
+            position: [0, 0, 6],
+            components: [
+              { type: POINT_LIGHT, data: { Brightness: 100 } },
+              { type: CHIP_IN, data: { PortLabel: 'In' } },
+            ],
+          },
+          {
+            size: [5, 5, 6],
+            position: [20, 0, 6],
+            components: [{ type: POINT_LIGHT, data: { Brightness: 200 } }],
+          },
+        ],
+      })
+    );
+    const { soa, components } = r.componentChunk(1, { x: 0, y: 0, z: 0 });
+    expect(soa.ComponentTypeCounters).toEqual([
+      { TypeIndex: 0, NumInstances: 2 },
+      { TypeIndex: 1, NumInstances: 1 },
+    ]);
+    expect(
+      components.map(c => [
+        c.typeName,
+        c.brickIndex,
+        c.data.Brightness ?? c.data.PortLabel,
+      ])
+    ).toEqual([
+      [POINT_LIGHT, 0, 100],
+      [POINT_LIGHT, 1, 200],
+      [CHIP_IN, 0, 'In'],
+    ]);
+  });
+
   test('wire chunks: local vs remote with resolved names', () => {
     const r = reader();
     expect(r.wireChunk(1, { x: 0, y: 0, z: 0 })).toEqual({

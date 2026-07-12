@@ -65,6 +65,9 @@ export interface WriteBrzOptions {
   bundle?: Partial<BundleJson>;
   /** Meta/Thumbnail.png content; omitted -> file not written. */
   thumbnail?: Uint8Array;
+  /** Meta/Screenshot.jpg content; omitted -> file not written. The game
+   * reads it for world previews, and for prefab previews when present. */
+  screenshot?: Uint8Array;
 }
 
 /** A brdb-native component on a brick. Legacy brs components
@@ -423,14 +426,21 @@ class ChunkBuilder {
 // per-instance data structs (appended back-to-back after the SoA; a type
 // whose data-struct slot is "None" contributes no trailing bytes).
 class ComponentChunkBuilder {
-  private counters: { TypeIndex: number; NumInstances: number }[] = [];
-  private brickIndices: number[] = [];
-  private trailing: { structName: string; data: Record<string, BrdbValue> }[] =
-    [];
+  // per-instance records in add (brick) order; the SoA columns are derived
+  // at toBytes time so instances can be regrouped by type first
+  private instances: {
+    typeIndex: number;
+    brickIndex: number;
+    structName: string;
+    data: Record<string, BrdbValue>;
+  }[] = [];
   // outer-microchip-brick <-> inner-grid-entity pairings on this chunk
   private microchipBrickIndices: number[] = [];
   private microchipGridReferences: number[] = [];
-  numComponents = 0;
+
+  get numComponents(): number {
+    return this.instances.length;
+  }
 
   add(
     typeIndex: number,
@@ -438,13 +448,7 @@ class ComponentChunkBuilder {
     structName: string,
     data: Record<string, BrdbValue>
   ) {
-    // run-length counters merge only consecutive same-type instances
-    const last = this.counters[this.counters.length - 1];
-    if (last && last.TypeIndex === typeIndex) last.NumInstances += 1;
-    else this.counters.push({ TypeIndex: typeIndex, NumInstances: 1 });
-    this.brickIndices.push(brickIndex);
-    if (structName !== 'None') this.trailing.push({ structName, data });
-    this.numComponents += 1;
+    this.instances.push({ typeIndex, brickIndex, structName, data });
   }
 
   addMicrochipLink(brickIndex: number, gridReference: number) {
@@ -453,10 +457,33 @@ class ComponentChunkBuilder {
   }
 
   toBytes(schema: BrdbSchema): Uint8Array {
+    // Run-length counters merge consecutive same-type instances. The game
+    // reads each counter run's trailing data as a single type, so a type
+    // split across multiple runs (a brick carrying several component
+    // types, or adjacent bricks differing in type) would desync its data
+    // stream. When that happens, regroup so each type forms one contiguous
+    // run — stable sort keeps ascending brick order within a type, and the
+    // per-instance records keep brick indices and data paired.
+    const runsOf = (list: typeof this.instances) => {
+      const runs: { TypeIndex: number; NumInstances: number }[] = [];
+      for (const inst of list) {
+        const last = runs[runs.length - 1];
+        if (last && last.TypeIndex === inst.typeIndex) last.NumInstances += 1;
+        else runs.push({ TypeIndex: inst.typeIndex, NumInstances: 1 });
+      }
+      return runs;
+    };
+    let instances = this.instances;
+    let counters = runsOf(instances);
+    if (new Set(counters.map(c => c.TypeIndex)).size < counters.length) {
+      instances = [...instances].sort((a, b) => a.typeIndex - b.typeIndex);
+      counters = runsOf(instances);
+    }
+
     const w = new ByteWriter();
     schema.writeValue(w, 'BRSavedComponentChunkSoA', {
-      ComponentTypeCounters: this.counters,
-      ComponentBrickIndices: this.brickIndices,
+      ComponentTypeCounters: counters,
+      ComponentBrickIndices: instances.map(i => i.brickIndex),
       JointBrickIndices: [],
       JointEntityReferences: [],
       JointInitialRelativeOffsets: [],
@@ -464,16 +491,17 @@ class ComponentChunkBuilder {
       MicrochipBrickIndices: this.microchipBrickIndices,
       MicrochipBrickGridReferences: this.microchipGridReferences,
     });
-    for (const t of this.trailing)
-      schema.writeValue(
-        w,
-        t.structName,
-        schema.fillStruct(
+    for (const t of instances)
+      if (t.structName !== 'None')
+        schema.writeValue(
+          w,
           t.structName,
-          t.data,
-          COMPONENT_STRUCT_DEFAULTS.get(t.structName)
-        )
-      );
+          schema.fillStruct(
+            t.structName,
+            t.data,
+            COMPONENT_STRUCT_DEFAULTS.get(t.structName)
+          )
+        );
     return w.toBytes();
   }
 }
@@ -1011,19 +1039,20 @@ function modelToPendingFs(
 
   const metaDir: PendingEntry[] = [
     ['Bundle.json', file(utf8.encode(JSON.stringify(bundle)))],
-    // Screenshot.jpg: no content -> omitted entirely
   ];
   if (model.prefab) {
-    // Prefabs write Prefab.json (+ Thumbnail.png) and omit World.json.
+    // Prefabs write Prefab.json (+ the optional Screenshot/Thumbnail) and
+    // omit World.json.
     metaDir.push([
       'Prefab.json',
       file(utf8.encode(serializePrefabJson(model.prefab))),
     ]);
-    if (options.thumbnail)
-      metaDir.push(['Thumbnail.png', file(options.thumbnail)]);
-  } else {
-    if (options.thumbnail)
-      metaDir.push(['Thumbnail.png', file(options.thumbnail)]);
+  }
+  if (options.screenshot)
+    metaDir.push(['Screenshot.jpg', file(options.screenshot)]);
+  if (options.thumbnail)
+    metaDir.push(['Thumbnail.png', file(options.thumbnail)]);
+  if (!model.prefab)
     metaDir.push([
       'World.json',
       file(
@@ -1032,7 +1061,6 @@ function modelToPendingFs(
         )
       ),
     ]);
-  }
 
   const entitiesDir: PendingEntry[] = [
     ['ChunkIndex.schema', file(entityChunkIndexSchema.toBinary())],

@@ -281,3 +281,40 @@ describe('embedded prefabs', () => {
     }
   );
 });
+
+describe('bundle meta screenshots', () => {
+  test('screenshot option emits Meta/Screenshot.jpg in world and prefab bundles', () => {
+    const shot = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+    const thumb = new Uint8Array([1, 2, 3]);
+    const w = new World();
+    w.addBrick({ position: [0, 0, 6] });
+
+    // World bundle order matches the crate: Bundle, Screenshot, Thumbnail,
+    // World.json.
+    const worldMeta = w.toPendingFs({
+      screenshot: shot,
+      thumbnail: thumb,
+    })[0][1] as any;
+    expect(worldMeta.children.map(([n]: any) => n)).toEqual([
+      'Bundle.json',
+      'Screenshot.jpg',
+      'Thumbnail.png',
+      'World.json',
+    ]);
+
+    // Prefab bundle: the game reads a prefab's Screenshot.jpg for previews.
+    w.makePrefab();
+    const prefabMeta = w.toPendingFs({ screenshot: shot })[0][1] as any;
+    expect(prefabMeta.children.map(([n]: any) => n)).toEqual([
+      'Bundle.json',
+      'Prefab.json',
+      'Screenshot.jpg',
+    ]);
+
+    // Round-trip through a .brz archive via the reader accessor.
+    const reader = WorldReader.from(w.toBrz({ screenshot: shot }));
+    expect(reader.screenshot()).toEqual(shot);
+    // absent -> null (and no Meta/Screenshot.jpg entry at all)
+    expect(WorldReader.from(w.toBrz()).screenshot()).toBeNull();
+  });
+});

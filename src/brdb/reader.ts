@@ -299,6 +299,13 @@ export class WorldReader {
       : null;
   }
 
+  /** Meta/Screenshot.jpg bytes, or null when absent. */
+  screenshot(): Uint8Array | null {
+    return this.fs.findFileByPath('Meta/Screenshot.jpg')
+      ? this.fs.readFile('Meta/Screenshot.jpg')
+      : null;
+  }
+
   /** Root-relative paths of embedded prefabs (files under Prefabs/), e.g.
    * Prefabs/Uploads/<HASH>.brz — the exact strings Prefab component
    * properties (bundle_path_ref) reference. Empty when none are embedded. */
