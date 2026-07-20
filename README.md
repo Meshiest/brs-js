@@ -47,6 +47,15 @@ target either format:
   array (the legacy .brs component map is not converted) and `wires` on
   the save uses modern component and port names.
 
+Both writers share the same write options: `bundle` field overrides,
+`environment`, `thumbnail`/`screenshot` bytes, the
+[external asset table](#external-asset-references), and `prefab` —
+`Meta/Prefab.json` content written verbatim. Pair `prefab` with
+`reader.prefabJson()` when round-tripping a clipboard prefab so its
+paste pivots and grid offset survive (see
+`examples/legacyRoundTrip.mjs`); the `World` builder's `makePrefab()`
+computes the same metadata from brick bounds instead.
+
 ```js
 import { writeBrzLegacy, WorldReader } from 'brs-js';
 
@@ -61,6 +70,7 @@ const world = WorldReader.from(brz);
 world.bundle(); // Meta/Bundle.json
 world.brickAssets(); // basic asset names followed by procedural
 world.brickOwners(); // owner rows (PUBLIC excluded)
+world.externalAssets(); // referenced game assets as {type, name}
 world.gridIds(); // [1] plus any entity sub-grids
 for (const brick of world.bricks()) {
   // decoded chunk by chunk
@@ -178,7 +188,7 @@ writeFileSync('chip.brz', w.toBrz());
 Standalone entities and dynamic sub-grids:
 
 ```js
-const owner = w.addOwner({ id: '...uuid...', name: 'cake' });
+const owner = w.addOwner({ id: '...uuid...', name: 'Name' });
 
 // a frozen dynamic brick grid floating at Z 40, holding one brick
 const grid = w.addBrickGrid({ frozen: true, location: { X: 0, Y: 0, Z: 40 } });
@@ -187,6 +197,45 @@ w.addBrick({ position: [0, 0, 3], owner_index: owner }, grid);
 // or a bare entity
 w.addEntity({ type: 'Entity_DynamicBrickGrid', frozen: true });
 ```
+
+### External asset references
+
+Some component data fields reference game assets (sounds, fonts, items,
+particles, ...) rather than plain values — e.g. `Component_Interact`'s
+`InteractSound`. Such a field holds an index into the world's external
+asset table, or `null` for no reference. Both writers take the table as
+the `externalAssets` option, and `WorldReader.externalAssets()` reads
+the same `{type, name}` shape back:
+
+```js
+const bytes = writeBrzLegacy(
+  {
+    bricks: [
+      {
+        size: [5, 5, 2],
+        position: [0, 0, 2],
+        components: [
+          {
+            type: brdb.COMPONENTS.Interact.NAME,
+            data: { InteractSound: 0, Message: 'ding!' }, // externalAssets[0]
+          },
+        ],
+      },
+    ],
+  },
+  {
+    externalAssets: [
+      { type: 'BrickOneShotAudioDescriptor', name: 'OBA_UI_Goal_Tune_Cue' },
+    ],
+  }
+);
+WorldReader.from(bytes).externalAssets(); // the same {type, name} rows
+```
+
+See `examples/writeInteractBrick.mjs` for building an interact brick with
+a sound from scratch, and `examples/legacyRoundTrip.mjs` for carrying the
+table (and everything else) through a read → write round trip verified
+content-identical.
 
 ### Compression
 

@@ -583,3 +583,74 @@ describe('brdb components and wires (write -> read round-trip)', () => {
     ).toThrow(/brick_index 5 out of range/);
   });
 });
+
+describe('external asset references', () => {
+  const interactSave = (
+    sound: number | null
+  ): Parameters<typeof writeBrzLegacy>[0] => ({
+    bricks: [
+      {
+        size: [5, 5, 2],
+        position: [0, 0, 2],
+        components: [
+          {
+            type: 'Component_Interact',
+            data: { InteractSound: sound, Message: 'hi' },
+          },
+        ],
+      },
+    ],
+  });
+
+  test('externalAssets rows land in GlobalData and indices round-trip', () => {
+    const assets = [
+      { type: 'BrickOneShotAudioDescriptor', name: 'OBA_UI_Goal_Tune_Cue' },
+    ];
+    const r = WorldReader.from(
+      writeBrzLegacy(interactSave(0), { externalAssets: assets })
+    );
+    expect(r.globalData().ExternalAssetReferences).toEqual([
+      {
+        PrimaryAssetType: 'BrickOneShotAudioDescriptor',
+        PrimaryAssetName: 'OBA_UI_Goal_Tune_Cue',
+      },
+    ]);
+    expect(r.externalAssets()).toEqual(assets);
+    const [c] = r.componentChunk(1, { x: 0, y: 0, z: 0 }).components;
+    expect((c.data as any).InteractSound).toBe(0);
+  });
+
+  test('default: empty table, null reference stays null', () => {
+    const r = WorldReader.from(writeBrzLegacy(interactSave(null)));
+    expect(r.externalAssets()).toEqual([]);
+    const [c] = r.componentChunk(1, { x: 0, y: 0, z: 0 }).components;
+    expect((c.data as any).InteractSound).toBeNull();
+  });
+});
+
+describe('prefab metadata passthrough', () => {
+  const save: Parameters<typeof writeBrzLegacy>[0] = {
+    bricks: [{ size: [5, 5, 2], position: [0, 0, 2] }],
+  };
+  // shape a game clipboard export writes (abridged)
+  const prefab = {
+    pivots: { bBottomStudsValid: true, bTopStudsValid: true },
+    addedGlobalGridOffset: { x: -15, y: -2635, z: -1038 },
+    bIsPhysicsGrid: false,
+    bIsMicrochipPrefab: false,
+  };
+
+  test('prefab option writes Prefab.json verbatim and flips the bundle type', () => {
+    const r = WorldReader.from(writeBrzLegacy(save, { prefab }));
+    expect(r.prefabJson()).toEqual(prefab);
+    expect(r.bundle().type).toBe('Prefab');
+    // prefab bundles carry no World.json
+    expect(r.fs.findFileByPath('Meta/World.json')).toBeNull();
+  });
+
+  test('default stays a world bundle without Prefab.json', () => {
+    const r = WorldReader.from(writeBrzLegacy(save));
+    expect(r.prefabJson()).toBeNull();
+    expect(r.bundle().type).toBe('World');
+  });
+});

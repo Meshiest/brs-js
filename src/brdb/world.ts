@@ -68,6 +68,19 @@ export interface WriteBrzOptions {
   /** Meta/Screenshot.jpg content; omitted -> file not written. The game
    * reads it for world previews, and for prefab previews when present. */
   screenshot?: Uint8Array;
+  /** External asset table ({type, name} pairs, e.g. type
+   * 'BrickOneShotAudioDescriptor', name 'OBA_UI_Goal_Tune_Cue'). Component
+   * data fields of asset type (e.g. Component_Interact's InteractSound)
+   * store an index into this table; null stays null. Default empty;
+   * WorldReader.externalAssets() reads the same shape back. */
+  externalAssets?: { type: string; name: string }[];
+  /** Meta/Prefab.json content, written verbatim; when set the bundle is a
+   * prefab (Bundle.json type "Prefab" + Prefab.json, no World.json — the
+   * `environment` option is unused). Pair with WorldReader.prefabJson()
+   * to keep a clipboard prefab's paste pivots/offset through a round
+   * trip. The World builder's makePrefab() computes this from the
+   * main-grid bounds instead and takes precedence over the option. */
+  prefab?: Record<string, unknown>;
 }
 
 /** A brdb-native component on a brick. Legacy brs components
@@ -606,7 +619,7 @@ export function saveToPendingFs(
         },
       })),
       microchipLinks: [],
-      prefab: null,
+      prefab: options.prefab ?? null,
     },
     options
   );
@@ -857,7 +870,10 @@ function modelToPendingFs(
     ComponentTypeNames: componentTypes.names,
     ComponentDataStructNames: componentStructNames,
     ComponentWirePortNames: ports.names,
-    ExternalAssetReferences: [],
+    ExternalAssetReferences: (options.externalAssets ?? []).map(a => ({
+      PrimaryAssetType: a.type,
+      PrimaryAssetName: a.name,
+    })),
     GlobalGridEntityTypeIndex: -1,
   });
 
@@ -1529,7 +1545,7 @@ export class World {
         })),
         prefab: this.prefabOptions
           ? computePrefabJson(grids[0], this.prefabOptions)
-          : null,
+          : options.prefab ?? null,
         prefabs: this.prefabList,
       },
       options

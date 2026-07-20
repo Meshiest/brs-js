@@ -363,6 +363,18 @@ export class WorldReader {
     return this.globalData().MaterialAssetNames;
   }
 
+  /** External asset table as {type, name} pairs — the shape the write
+   * options accept. Component data fields of asset type store indices
+   * into this table. */
+  externalAssets(): { type: string; name: string }[] {
+    return this.globalData().ExternalAssetReferences.map(
+      (r: { PrimaryAssetType: string; PrimaryAssetName: string }) => ({
+        type: r.PrimaryAssetType,
+        name: r.PrimaryAssetName,
+      })
+    );
+  }
+
   /** Owner rows 1.. (the PUBLIC row 0 is excluded). */
   brickOwners(): Owner[] {
     const owners = this.owners();
