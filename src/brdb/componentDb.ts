@@ -1569,7 +1569,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PickupSpinSpeed: 0.2,
       PickupBobSpeed: 0.1,
       PickupBobHeight: 4,
-      PickupAnimationPhase: 0.29441205,
+      PickupAnimationPhase: 0.991699,
     },
     BrickComponentData_Joint_Wheel: {
       bDiscoverable: true,
@@ -1988,6 +1988,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
     BrickComponentData_WireGraphPseudo_Tween: {
       Duration: 1,
       Elapsed: 0,
+      bRunning: false,
       Function: 0,
       Direction: 0,
     },

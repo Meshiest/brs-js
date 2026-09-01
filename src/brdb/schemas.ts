@@ -1455,6 +1455,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         StartValue: 'WireGraphVariant',
         Duration: 'f64',
         Elapsed: 'f64',
+        bRunning: 'bool',
         Function: 'EBREasingFunction',
         Direction: 'EBREasingDirection',
       },

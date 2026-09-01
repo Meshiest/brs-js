@@ -1045,6 +1045,7 @@ export type BrickComponentData_WireGraphPseudo_Tween = {
   StartValue: BrdbVariant;
   Duration: number;
   Elapsed: number;
+  bRunning: boolean;
   Function: number;
   Direction: number;
 };
