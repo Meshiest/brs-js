@@ -341,7 +341,7 @@ describe('edge cases', () => {
     const chunk = BrzReader.from(bytes).readFile(
       'World/0/Bricks/Grids/1/Chunks/0_0_0.mps'
     );
-    // ColorsAndAlphas flat bytes are R,G,B,A — find them via the schema
+    // ColorsAndAlphas flat bytes are R,G,B,A; find them via the schema
     // decode instead of offsets:
     const soa: any = embeddedSchema('BRSavedBrickChunkSoA').decode(
       chunk,

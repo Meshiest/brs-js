@@ -5,7 +5,7 @@ import { BrdbValue, embeddedSchema } from '../../src/brdb/schema';
 //
 // brs-js serializes maps through the generic schema engine (BrdbSchema's
 // `map` property kind), so a populated `WireGraphMapVariant` needs no
-// hand-written path the way the Rust brdb crate's `write_map_values` does —
+// hand-written path the way the Rust brdb crate's `write_map_values` does,
 // but that means it can silently break if a schema re-sync or an engine
 // change regresses the map path. These tests lock in that:
 //   * int64- and string-keyed maps round-trip read<->write with entries;
@@ -80,8 +80,8 @@ describe('WireGraphMapVariant (non-empty maps)', () => {
   });
 
   it('object-keyed map is the game empty-struct form (carries no entries)', () => {
-    // WireGraphMap_FWeakObjectPtr_int64 is `{}` in the schema — no Values
-    // field — so an object-keyed map serializes with no entry map at all.
+    // WireGraphMap_FWeakObjectPtr_int64 is `{}` in the schema (no Values
+    // field), so an object-keyed map serializes with no entry map at all.
     const v = {
       $variant: 'WireGraphMapKeyWrapper_FWeakObjectPtr',
       value: {

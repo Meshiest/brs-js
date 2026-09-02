@@ -17,10 +17,20 @@ import {
   ENTITY_TYPE_STRUCTS,
 } from './componentDb';
 import type { ComponentTypeDataMap } from './componentTypes';
+import { fastPathsEnabled } from './fastPaths';
 import { BrGuid, PUBLIC_GUID, uuidToGuid } from './guid';
 import { file, folder, PendingEntry } from './pending';
 import { BrdbSchema, BrdbValue, embeddedSchema } from './schema';
 import { SCHEMAS } from './schemas';
+import {
+  BrickChunkColumns,
+  brickChunkSchemaIsStandard,
+  WireChunkRows,
+  wireChunkSchemaIsStandard,
+  writeBrickChunk,
+  writeWireChunk,
+} from './soaWriters';
+import { WritePlanner } from './writePlan';
 
 export const CHUNK_SIZE = 2048;
 export const CHUNK_HALF = 1024;
@@ -76,7 +86,7 @@ export interface WriteBrzOptions {
    * WorldReader.externalAssets() reads the same shape back. */
   externalAssets?: { type: string; name: string }[];
   /** Meta/Prefab.json content, written verbatim; when set the bundle is a
-   * prefab (Bundle.json type "Prefab" + Prefab.json, no World.json — the
+   * prefab (Bundle.json type "Prefab" + Prefab.json, no World.json, so the
    * `environment` option is unused). Pair with WorldReader.prefabJson()
    * to keep a clipboard prefab's paste pivots/offset through a round
    * trip. The World builder's makePrefab() computes this from the
@@ -335,15 +345,17 @@ class Registry {
   }
 }
 
-// Column packer for one chunk of the brick SoA.
-class ChunkBuilder {
-  private sizeCounters: { AssetIndex: number; NumSizes: number }[] = [];
-  private sizes: { X: number; Y: number; Z: number }[] = [];
-  private typeIndices: number[] = [];
-  private ownerIndices: number[] = [];
-  private originalOwnerIndices: number[] = [];
-  private relPositions: { X: number; Y: number; Z: number }[] = [];
-  private orientations: number[] = [];
+// Column packer for one chunk of the brick SoA. The columns are public so the
+// hand-encoded writer in soaWriters.ts can read them without going through
+// toValue()'s intermediate object.
+class ChunkBuilder implements BrickChunkColumns {
+  sizeCounters: { AssetIndex: number; NumSizes: number }[] = [];
+  sizes: { X: number; Y: number; Z: number }[] = [];
+  typeIndices: number[] = [];
+  ownerIndices: number[] = [];
+  originalOwnerIndices: number[] = [];
+  relPositions: { X: number; Y: number; Z: number }[] = [];
+  orientations: number[] = [];
   private colPlayer = new BitFlags();
   private colPlayer1 = new BitFlags();
   private colPlayer2 = new BitFlags();
@@ -352,8 +364,8 @@ class ChunkBuilder {
   private colInteraction = new BitFlags();
   private colPhysics = new BitFlags();
   private visibility = new BitFlags();
-  private materialIndices: number[] = [];
-  private colors: { R: number; G: number; B: number; A: number }[] = [];
+  materialIndices: number[] = [];
+  colors: { R: number; G: number; B: number; A: number }[] = [];
   private sizeIndexMap = new Map<string, number>();
   private numBrickSizes = 0;
   numBricks = 0;
@@ -409,6 +421,38 @@ class ChunkBuilder {
       A: b.intensity,
     });
     this.numBricks += 1;
+  }
+
+  /** The eight packed boolean columns, in schema order. */
+  get bitColumns(): number[][] {
+    return [
+      this.colPlayer.bytes,
+      this.colPlayer1.bytes,
+      this.colPlayer2.bytes,
+      this.colPlayer3.bytes,
+      this.colWeapon.bytes,
+      this.colInteraction.bytes,
+      this.colPhysics.bytes,
+      this.visibility.bytes,
+    ];
+  }
+
+  /** Serialize this chunk. `fast` is the caller's once-per-write verdict from
+   * brickChunkSchemaIsStandard; when false the generic schema writer runs
+   * instead. Both paths produce identical bytes. */
+  toBytes(
+    schema: BrdbSchema,
+    proceduralBrickStartingIndex: number,
+    fast: boolean
+  ): Uint8Array {
+    if (!fast)
+      return schema.encode(
+        'BRSavedBrickChunkSoA',
+        this.toValue(proceduralBrickStartingIndex)
+      );
+    const w = new ByteWriter(32 * this.numBricks + 256);
+    writeBrickChunk(w, this, proceduralBrickStartingIndex);
+    return w.toBytes();
   }
 
   toValue(proceduralBrickStartingIndex: number): BrdbValue {
@@ -470,32 +514,70 @@ class ComponentChunkBuilder {
     this.microchipGridReferences.push(gridReference);
   }
 
-  toBytes(schema: BrdbSchema): Uint8Array {
-    // Run-length counters merge consecutive same-type instances. The game
-    // reads each counter run's trailing data as a single type, so a type
-    // split across multiple runs (a brick carrying several component
-    // types, or adjacent bricks differing in type) would desync its data
-    // stream. When that happens, regroup so each type forms one contiguous
-    // run — stable sort keeps ascending brick order within a type, and the
-    // per-instance records keep brick indices and data paired.
-    const runsOf = (list: typeof this.instances) => {
-      const runs: { TypeIndex: number; NumInstances: number }[] = [];
-      for (const inst of list) {
-        const last = runs[runs.length - 1];
-        if (last && last.TypeIndex === inst.typeIndex) last.NumInstances += 1;
-        else runs.push({ TypeIndex: inst.typeIndex, NumInstances: 1 });
-      }
-      return runs;
-    };
-    let instances = this.instances;
-    let counters = runsOf(instances);
-    if (new Set(counters.map(c => c.TypeIndex)).size < counters.length) {
-      instances = [...instances].sort((a, b) => a.typeIndex - b.typeIndex);
-      counters = runsOf(instances);
+  private runsOf(list: typeof this.instances) {
+    const runs: { TypeIndex: number; NumInstances: number }[] = [];
+    for (const inst of list) {
+      const last = runs[runs.length - 1];
+      if (last && last.TypeIndex === inst.typeIndex) last.NumInstances += 1;
+      else runs.push({ TypeIndex: inst.typeIndex, NumInstances: 1 });
     }
+    return runs;
+  }
 
-    const w = new ByteWriter();
-    schema.writeValue(w, 'BRSavedComponentChunkSoA', {
+  // Run-length counters merge consecutive same-type instances. The game
+  // reads each counter run's trailing data as a single type, so a type
+  // split across multiple runs (a brick carrying several component
+  // types, or adjacent bricks differing in type) would desync its data
+  // stream. When that happens, regroup so each type forms one contiguous
+  // run. The sort is stable, so ascending brick order survives within a
+  // type, and the per-instance records keep brick indices and data paired.
+  private grouped() {
+    const instances = this.instances;
+    const counters = this.runsOf(instances);
+    // Distinct-type check over the type-index range.
+    let numTypes = 0;
+    let indexable = true;
+    for (const c of counters) {
+      if (!Number.isInteger(c.TypeIndex) || c.TypeIndex < 0) {
+        indexable = false;
+        break;
+      }
+      if (c.TypeIndex >= numTypes) numTypes = c.TypeIndex + 1;
+    }
+    let distinct = counters.length;
+    if (indexable) {
+      const seen = new Uint8Array(numTypes);
+      distinct = 0;
+      for (const c of counters)
+        if (!seen[c.TypeIndex]) {
+          seen[c.TypeIndex] = 1;
+          distinct += 1;
+        }
+    }
+    if (distinct === counters.length) return { counters, instances };
+
+    let sorted: typeof instances;
+    if (indexable) {
+      // Stable counting sort over the type-index range.
+      const starts = new Uint32Array(numTypes + 1);
+      for (const inst of instances) starts[inst.typeIndex + 1] += 1;
+      for (let i = 1; i < starts.length; i++) starts[i] += starts[i - 1];
+      sorted = new Array(instances.length);
+      for (const inst of instances) sorted[starts[inst.typeIndex]++] = inst;
+    } else {
+      // A hand-built SoA can carry indices outside the table.
+      sorted = [...instances].sort((a, b) => a.typeIndex - b.typeIndex);
+    }
+    return { counters: this.runsOf(sorted), instances: sorted };
+  }
+
+  /** Serialize this chunk's SoA plus its trailing per-instance data structs.
+   * `planner` replays a compiled per-type plan (and precomputed field/struct
+   * defaults) instead of materializing each instance with fillStruct; the
+   * generic path below is what it must reproduce byte for byte. */
+  toBytes(schema: BrdbSchema, planner: WritePlanner): Uint8Array {
+    const { counters, instances } = this.grouped();
+    const soa: BrdbValue = {
       ComponentTypeCounters: counters,
       ComponentBrickIndices: instances.map(i => i.brickIndex),
       JointBrickIndices: [],
@@ -504,18 +586,27 @@ class ComponentChunkBuilder {
       JointInitialRelativeRotations: [],
       MicrochipBrickIndices: this.microchipBrickIndices,
       MicrochipBrickGridReferences: this.microchipGridReferences,
-    });
-    for (const t of instances)
-      if (t.structName !== 'None')
-        schema.writeValue(
-          w,
-          t.structName,
-          schema.fillStruct(
+    };
+    const w = new ByteWriter(256 + 16 * instances.length);
+    if (fastPathsEnabled()) {
+      planner.write(w, 'BRSavedComponentChunkSoA', soa);
+      for (const t of instances)
+        if (t.structName !== 'None')
+          planner.writePartialStruct(w, t.structName, t.data);
+    } else {
+      schema.writeValue(w, 'BRSavedComponentChunkSoA', soa);
+      for (const t of instances)
+        if (t.structName !== 'None')
+          schema.writeValue(
+            w,
             t.structName,
-            t.data,
-            COMPONENT_STRUCT_DEFAULTS.get(t.structName)
-          )
-        );
+            schema.fillStruct(
+              t.structName,
+              t.data,
+              COMPONENT_STRUCT_DEFAULTS.get(t.structName)
+            )
+          );
+    }
     return w.toBytes();
   }
 }
@@ -566,8 +657,8 @@ interface WorldModel {
   /** Meta/Prefab.json content; non-null switches the bundle to a prefab
    * (Bundle.json type "Prefab" + Prefab.json, no World.json) */
   prefab: Record<string, unknown> | null;
-  /** Prefabs/ — embedded prefab archives: [root-relative path, raw .brz
-   * bytes], insertion-ordered (order defines archive ids). */
+  /** Prefabs/ folder: embedded prefab archives as [root-relative path, raw
+   * .brz bytes], insertion-ordered (order defines archive ids). */
   prefabs: [string, Uint8Array][];
 }
 
@@ -635,8 +726,8 @@ function modelToPendingFs(
   const allBricks = model.grids.flat();
 
   // Registry pre-pass: material THEN asset, per brick, in brick order.
-  // Registration must complete before any chunk packs — procedural type
-  // indices embed the final basic-asset count.
+  // Registration must complete before any chunk packs, because procedural
+  // type indices embed the final basic-asset count.
   const materials = new Registry();
   const basic = new Registry();
   const procedural = new Registry();
@@ -721,12 +812,7 @@ function modelToPendingFs(
 
   // Chunking, per grid: first-seen chunk order (deterministic; each grid's
   // ChunkIndex SoA rows use the same order).
-  interface WireRows {
-    remoteSources: Record<string, BrdbValue>[];
-    localSources: Record<string, BrdbValue>[];
-    remoteTargets: Record<string, BrdbValue>[];
-    localTargets: Record<string, BrdbValue>[];
-  }
+  type WireRows = WireChunkRows;
   interface GridPack {
     chunkOrder: string[];
     chunks: Map<
@@ -862,6 +948,31 @@ function modelToPendingFs(
   const entityChunkIndexSchema = embeddedSchema('BRSavedEntityChunkIndexSoA');
   const entitySchema = embeddedSchema('BRSavedEntityChunkSoA');
 
+  // One compiled-plan cache per schema per write, and one structural verdict
+  // per chunk schema, both computed once here rather than per chunk.
+  const componentPlanner = new WritePlanner(componentsSchema, name =>
+    COMPONENT_STRUCT_DEFAULTS.get(name)
+  );
+  const entityPlanner = new WritePlanner(entitySchema);
+  const fast = fastPathsEnabled();
+  const brickFast = fast && brickChunkSchemaIsStandard(chunkSchema);
+  const wireFast = fast && wireChunkSchemaIsStandard(wiresSchema);
+  const encodeWireChunk = (rows: WireRows): Uint8Array => {
+    if (!wireFast)
+      return wiresSchema.encode('BRSavedWireChunkSoA', {
+        RemoteWireSources: rows.remoteSources,
+        LocalWireSources: rows.localSources,
+        RemoteWireTargets: rows.remoteTargets,
+        LocalWireTargets: rows.localTargets,
+        PendingPropagationFlags: { Flags: [] },
+      } as unknown as BrdbValue);
+    const w = new ByteWriter(
+      32 * rows.remoteSources.length + 16 * rows.localSources.length + 64
+    );
+    writeWireChunk(w, rows);
+    return w.toBytes();
+  };
+
   const globalDataMps = globalDataSchema.encode('BRSavedGlobalDataSoA', {
     EntityTypeNames: entityTypes.names,
     EntityDataClassNames: entityClassNames,
@@ -917,8 +1028,8 @@ function modelToPendingFs(
       locked.push(e.frozen);
       sleepingFlags.push(e.sleeping);
     }
-    const w = new ByteWriter();
-    entitySchema.writeValue(w, 'BRSavedEntityChunkSoA', {
+    const w = new ByteWriter(256 + 96 * totalEntities);
+    const entitySoa: BrdbValue = {
       TypeCounters: counters,
       PersistentIndices: model.entities.map((_, i) => 2 + i),
       OwnerIndices: model.entities.map(e => e.ownerIndex),
@@ -936,16 +1047,20 @@ function modelToPendingFs(
       ),
       RemainingLifeSpans: model.entities.map(() => 0),
       bColorsAreLinear: false, // new saves always store sRGB
-    });
+    };
+    if (fast) entityPlanner.write(w, 'BRSavedEntityChunkSoA', entitySoa);
+    else entitySchema.writeValue(w, 'BRSavedEntityChunkSoA', entitySoa);
     // Trailing per-entity data structs, in SoA order.
     model.entities.forEach((e, i) => {
       if (e.className === 'None') return;
       try {
-        entitySchema.writeValue(
-          w,
-          e.className,
-          entitySchema.fillStruct(e.className, e.data)
-        );
+        if (fast) entityPlanner.writePartialStruct(w, e.className, e.data);
+        else
+          entitySchema.writeValue(
+            w,
+            e.className,
+            entitySchema.fillStruct(e.className, e.data)
+          );
       } catch (err) {
         throw new Error(
           `brdb: entities[${i}] (${e.type}) data: ${(err as Error).message}`
@@ -974,7 +1089,7 @@ function modelToPendingFs(
     ...options.bundle,
   };
 
-  // Tree creation order below defines archive ids — it is part of the
+  // Tree creation order below defines archive ids: it is part of the
   // byte format; do not reorder.
   const makeGridDir = (pack: GridPack, isMainGrid: boolean): PendingEntry[] => {
     // The game writes ChunkOffsets (0,0,0) for every main-grid chunk and
@@ -1005,10 +1120,9 @@ function modelToPendingFs(
           pack.chunkOrder.map(k => [
             `${k}.mps`,
             file(
-              chunkSchema.encode(
-                'BRSavedBrickChunkSoA',
-                pack.chunks.get(k)!.builder.toValue(basicCount)
-              )
+              pack.chunks
+                .get(k)!
+                .builder.toBytes(chunkSchema, basicCount, brickFast)
             ),
           ])
         ),
@@ -1022,7 +1136,11 @@ function modelToPendingFs(
             .filter(k => pack.componentChunks.has(k))
             .map(k => [
               `${k}.mps`,
-              file(pack.componentChunks.get(k)!.toBytes(componentsSchema)),
+              file(
+                pack.componentChunks
+                  .get(k)!
+                  .toBytes(componentsSchema, componentPlanner)
+              ),
             ])
         ),
       ]);
@@ -1035,18 +1153,7 @@ function modelToPendingFs(
             .filter(k => pack.wireChunks.has(k))
             .map(k => {
               const rows = pack.wireChunks.get(k)!;
-              return [
-                `${k}.mps`,
-                file(
-                  wiresSchema.encode('BRSavedWireChunkSoA', {
-                    RemoteWireSources: rows.remoteSources,
-                    LocalWireSources: rows.localSources,
-                    RemoteWireTargets: rows.remoteTargets,
-                    LocalWireTargets: rows.localTargets,
-                    PendingPropagationFlags: { Flags: [] },
-                  })
-                ),
-              ];
+              return [`${k}.mps`, file(encodeWireChunk(rows))];
             })
         ),
       ]);
@@ -1123,7 +1230,7 @@ function modelToPendingFs(
       ]),
     ],
   ];
-  // Embedded prefabs (root Prefabs/ folder), only when present — bundles
+  // Embedded prefabs (root Prefabs/ folder), only when present: bundles
   // with no prefab references have no Prefabs folder at all. Paths nest
   // generically so future subpaths beyond Uploads/ survive.
   if (model.prefabs.length > 0) {
@@ -1263,7 +1370,7 @@ function normalizeEntity(
 // vectors (the only f64 fields in Prefab.json) are wrapped in F64: it tags the
 // value with a sentinel during stringify, which serializePrefabJson rewrites
 // to serde's format. This keeps the JSON SHAPE driven entirely by
-// computePrefabJson — only float formatting is special-cased.
+// computePrefabJson; only float formatting is special-cased.
 const F64_SENTINEL = '@@f64:';
 
 class F64 {
@@ -1292,8 +1399,8 @@ function serializePrefabJson(prefab: Record<string, unknown>): string {
 
 /** Meta/Prefab.json from the main-grid brick bounding box: all four pivots
  * are the bounds box (in brick units), like the reference crate's
- * PrefabJson::from_bounds. Sub-grids are excluded — their bricks live
- * inside an entity. */
+ * PrefabJson::from_bounds. Sub-grids are excluded because their bricks
+ * live inside an entity. */
 function computePrefabJson(
   mainBricks: Brick[],
   opts: WorldPrefabOptions
@@ -1471,7 +1578,7 @@ export class World {
   }
 
   /** Embed a prefab archive, content-addressed the way the game does:
-   * `Prefabs/Uploads/<BLAKE3-uppercase-hex>.brz`. Returns that path — the
+   * `Prefabs/Uploads/<BLAKE3-uppercase-hex>.brz`. Returns that path, the
    * exact string a `Prefab` component property (`bundle_path_ref`) should
    * carry, e.g. on BrickComponentType_WireGraph_Exec_PrefabSpawner or
    * BrickComponentType_PrefabSpawn. Identical bytes dedupe to one entry. */

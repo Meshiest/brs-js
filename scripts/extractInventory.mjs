@@ -1,6 +1,6 @@
-// Extract the component/brick inventory from a "zoo" world — a save with
-// every component placed and every wire port wired (built in-game by the
-// ue4ss mod's inventory tool) — into data/componentInventory.json.
+// Extract the component/brick inventory from a "zoo" world (a save with
+// every component placed and every wire port wired, built in-game by the
+// ue4ss mod's inventory tool) into data/componentInventory.json.
 //
 // The inventory feeds scripts/syncBrdbData.mjs (COMPONENTS, catalog, wire
 // ports). Regenerate when the game adds components:
@@ -56,7 +56,7 @@ for (const gridId of reader.gridIds()) {
       for (const c of reader.componentChunk(gridId, ref.index).components) {
         const asset = assets[chunkBricks[i][c.brickIndex]?.asset_name_index];
         // B_1x1F_Round is the standalone phase's throwaway host brick, never a real
-        // component host — skip it so brickless components don't list it as a host.
+        // component host, so skip it and brickless components won't list it as a host.
         if (asset && asset !== "B_1x1F_Round") entry(c.typeName).bricks.add(asset);
       }
     if (ref.numWires > 0) {

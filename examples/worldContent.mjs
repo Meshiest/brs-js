@@ -1,6 +1,6 @@
 // Shared example helper: reduce a world to an order-independent content
-// model — resolved names instead of table indices — so two archives can be
-// compared semantically with assert.deepStrictEqual. Byte comparison is a
+// model using resolved names instead of table indices, so two archives can
+// be compared semantically with assert.deepStrictEqual. Byte comparison is a
 // non-starter for game-written files (the game's newer msgpack encoder
 // shrinks scalars and duplicates one component array; Meta timestamps
 // churn every write), so content comparison is the meaningful check.
@@ -12,7 +12,7 @@ const chunkKey = index => `${index.x},${index.y},${index.z}`;
 const posKey = p => p.join(',');
 
 /** One grid's bricks in chunk-stream order, plus each chunk's base offset
- * into that list — component and wire rows store chunk-local brick
+ * into that list; component and wire rows store chunk-local brick
  * indices, and base + local resolves them to a brick. */
 export function gridBricks(reader, gridId) {
   const refs = reader.brickChunkIndex(gridId);
@@ -130,7 +130,7 @@ export function canonicalWorld(reader) {
   return {
     externalAssets: reader.externalAssets(),
     // paste pivots + global grid offset for prefab bundles (null for
-    // world bundles) — losing this breaks clipboard paste positioning
+    // world bundles); losing this breaks clipboard paste positioning
     prefab: reader.prefabJson(),
     grids,
     wires,

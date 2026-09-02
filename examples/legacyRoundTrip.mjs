@@ -1,7 +1,7 @@
 // Round-trip a world/clipboard .brz through legacy mode: read it, convert
 // to the legacy .brs-shaped save (modern component/wire arrays attached),
 // write it back with writeBrzLegacy, and verify the rewritten archive has
-// identical content — every brick, every component with its data, every
+// identical content: every brick, every component with its data, every
 // wire, and the external asset table. Content is compared decoded (see
 // worldContent.mjs for why byte parity with game files is impossible).
 // Legacy mode covers the main grid only; worlds with entities or sub-grids
@@ -27,7 +27,7 @@ function toLegacySave(reader) {
     for (const c of reader.entityChunkIndex().chunks)
       numEntities += c.numEntities;
   } catch {
-    // no Entities/ChunkIndex.mps at all — nothing to lose
+    // no Entities/ChunkIndex.mps at all, nothing to lose
   }
   if (numEntities > 0)
     throw new Error(
@@ -117,7 +117,7 @@ function toLegacySave(reader) {
     // InteractSound) are indices into the externalAssets table; carry it
     // verbatim so they keep resolving in the rewritten archive. Prefab
     // bundles (clipboard exports) carry paste pivots and the grid offset
-    // in Meta/Prefab.json — pass it through or the rewrite pastes wrong.
+    // in Meta/Prefab.json; pass it through or the rewrite pastes wrong.
     options: {
       externalAssets: reader.externalAssets(),
       prefab: reader.prefabJson() ?? undefined,

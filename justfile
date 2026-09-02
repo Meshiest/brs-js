@@ -61,6 +61,16 @@ test-oracle:
 test-oracle:
     BRDB_ORACLE=1 BRDB_CRATE={{BRDB_CRATE}} npm test
 
+# Interleaved A/B write benchmark (fast paths on vs off), min-of-N
+[windows]
+bench:
+    $env:BRS_BENCH = "1"; npx vitest run test/brdb/writeBench.test.ts --reporter=verbose
+
+# Interleaved A/B write benchmark (fast paths on vs off), min-of-N
+[unix]
+bench:
+    BRS_BENCH=1 npx vitest run test/brdb/writeBench.test.ts --reporter=verbose
+
 # Run any example by name, e.g. `just example countWires world.brdb`
 example NAME *ARGS:
     node examples/{{NAME}}.mjs {{ARGS}}

@@ -336,7 +336,7 @@ describe('unbounded-counter guards on hostile input', () => {
 // ComponentBrickIndices as k identical copies back-to-back while the
 // counters, and the trailing per-instance data, describe a single copy. The
 // game itself reads such files fine (it walks the counters and ignores the
-// tail), so the reader must tolerate exact self-repetition — but ONLY that;
+// tail), so the reader must tolerate exact self-repetition, but ONLY that;
 // any other mismatch is still hostile/corrupt input.
 describe('duplicated ComponentBrickIndices tolerance', () => {
   const emptyComponentSoa: Record<string, BrdbValue> = {

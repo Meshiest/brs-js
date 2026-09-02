@@ -2,9 +2,16 @@
 // msgpack multi-byte values are big-endian; brdb flat arrays are little-endian.
 
 export class ByteWriter {
-  private buf = new Uint8Array(256);
-  private view = new DataView(this.buf.buffer);
+  private buf: Uint8Array;
+  private view: DataView;
   private len = 0;
+
+  /** `capacity` pre-sizes the backing buffer. Growing copies, so callers that
+   * can cheaply compute (or bound) their output size should pass it. */
+  constructor(capacity = 256) {
+    this.buf = new Uint8Array(Math.max(capacity, 16));
+    this.view = new DataView(this.buf.buffer);
+  }
 
   private ensure(n: number) {
     if (this.len + n <= this.buf.length) return;

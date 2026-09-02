@@ -9,6 +9,8 @@ import { PendingEntry, PendingNode } from './pending';
 
 export type Compressor = (data: Uint8Array) => Uint8Array | null;
 
+const BRZ_MAGIC = new Uint8Array([0x42, 0x52, 0x5a]);
+
 export interface BrzContainerOptions {
   /** zstd compressor (e.g. node:zlib zstdCompressSync); return null to skip.
    * Omitted -> every blob stored raw (still a valid archive, and what the
@@ -89,17 +91,33 @@ export function writeBrzContainer(
   }
 
   const utf8 = new TextEncoder();
-  const iw = new ByteWriter();
+  const folderNameBytes = folderNames.map(n => utf8.encode(n));
+  const fileNameBytes = fileNames.map(n => utf8.encode(n));
+  const nameBytes = (all: Uint8Array[]) =>
+    all.reduce((sum, n) => sum + n.length, 0);
+  // The index has an exactly computable size; growing a ByteWriter copies.
+  const iw = new ByteWriter(
+    12 +
+      folderParentIds.length * 4 +
+      folderNames.length * 2 +
+      nameBytes(folderNameBytes) +
+      fileParentIds.length * 4 +
+      fileContentIds.length * 4 +
+      fileNames.length * 2 +
+      nameBytes(fileNameBytes) +
+      methods.length +
+      sizesUncompressed.length * 4 +
+      sizesCompressed.length * 4 +
+      blobHashes.length * 32
+  );
   iw.i32le(folderNames.length);
   iw.i32le(fileNames.length);
   iw.i32le(blobHashes.length);
   for (const id of folderParentIds) iw.i32le(id);
-  const folderNameBytes = folderNames.map(n => utf8.encode(n));
   for (const n of folderNameBytes) iw.u16le(n.length);
   for (const n of folderNameBytes) iw.bytes(n);
   for (const id of fileParentIds) iw.i32le(id);
   for (const id of fileContentIds) iw.i32le(id);
-  const fileNameBytes = fileNames.map(n => utf8.encode(n));
   for (const n of fileNameBytes) iw.u16le(n.length);
   for (const n of fileNameBytes) iw.bytes(n);
   for (const m of methods) iw.u8(m);
@@ -108,10 +126,13 @@ export function writeBrzContainer(
   for (const h of blobHashes) iw.bytes(h);
   const index = iw.toBytes();
 
-  const out = new ByteWriter();
-  out.bytes([0x42, 0x52, 0x5a]); // "BRZ"
+  // 45 bytes of magic + header, then the index and every blob chunk.
+  const out = new ByteWriter(
+    45 + index.length + blobChunks.reduce((sum, c) => sum + c.length, 0)
+  );
+  out.bytes(BRZ_MAGIC); // "BRZ"
   out.u8(0); // version: Initial
-  // The index is always stored uncompressed — the format's reference writer
+  // The index is always stored uncompressed: the format's reference writer
   // never compresses it, and byte parity requires matching that. Readers
   // still accept a compressed index.
   out.u8(0); // index_method: None
@@ -307,8 +328,8 @@ export class BrzReader implements WorldFs {
   }
 
   /** '/'-separated path from the root. An empty file (contentId -1) returns
-   * an empty buffer (the reference reader treats empty files as unfindable
-   * — deliberate, documented deviation for usability). */
+   * an empty buffer (the reference reader treats empty files as unfindable;
+   * a deliberate, documented deviation for usability). */
   readFile(path: string): Uint8Array {
     if (path.startsWith('/'))
       throw new Error('brdb: absolute paths not allowed');

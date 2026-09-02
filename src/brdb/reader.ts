@@ -1,7 +1,7 @@
 // Lazy .brz world reader. Schemas are parsed once and cached per archive
 // path; chunk payloads are decoded on demand (never all at once); grids and
 // entities are enumerated from the archive rather than assumed. Decoding
-// always uses the ARCHIVE's own schemas — game-authored files may carry
+// always uses the ARCHIVE's own schemas: game-authored files may carry
 // field sets that differ from the embedded (current) schemas, and a .brz
 // holds exactly one schema per category.
 import type { Collision, Owner, Vector } from '../brs/types';
@@ -307,7 +307,7 @@ export class WorldReader {
   }
 
   /** Root-relative paths of embedded prefabs (files under Prefabs/), e.g.
-   * Prefabs/Uploads/<HASH>.brz — the exact strings Prefab component
+   * Prefabs/Uploads/<HASH>.brz, the exact strings Prefab component
    * properties (bundle_path_ref) reference. Empty when none are embedded. */
   prefabPaths(): string[] {
     const out: string[] = [];
@@ -349,7 +349,7 @@ export class WorldReader {
     );
   }
 
-  /** Basic asset names followed by procedural — decoded brick
+  /** Basic asset names followed by procedural; decoded brick
    * asset_name_index values point into this combined list. */
   brickAssets(): string[] {
     const globalData = this.globalData();
@@ -363,7 +363,7 @@ export class WorldReader {
     return this.globalData().MaterialAssetNames;
   }
 
-  /** External asset table as {type, name} pairs — the shape the write
+  /** External asset table as {type, name} pairs, the shape the write
    * options accept. Component data fields of asset type store indices
    * into this table. */
   externalAssets(): { type: string; name: string }[] {

@@ -3,8 +3,8 @@
 // and plays the OBA_UI_Goal_Tune_Cue one-shot audio on interact. The sound
 // is an external asset reference: the component's InteractSound field
 // stores an index into the externalAssets table passed at write time.
-// Writes example_interact.brz, reads it back, and — when given a .brz to
-// compare against (e.g. the game clipboard export this recreates) —
+// Writes example_interact.brz, reads it back, and, when given a .brz to
+// compare against (e.g. the game clipboard export this recreates),
 // verifies both archives carry the same brick content, ignoring who owns
 // the brick and where it sits.
 // Usage: node examples/writeInteractBrick.mjs [compare.brz]
@@ -67,7 +67,7 @@ for (const ref of reader.brickChunkIndex()) {
 
 // Optional: verify brick content parity with an existing archive (asset,
 // size, orientation, color, components, external assets). Ownership and
-// placement are stripped from both sides first — this file uses the
+// placement are stripped from both sides first: this file uses the
 // placeholder owner above and sits near the origin rather than wherever
 // the compared archive was clipped from.
 const compareFile = process.argv[2];

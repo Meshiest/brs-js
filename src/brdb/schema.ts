@@ -89,8 +89,9 @@ const wrapBig = (v: number | bigint): number | BrdbBigint =>
   typeof v === 'bigint' ? { $bigint: v.toString() } : v;
 
 /** Narrow a caller-supplied integer value (number, bigint, or { $bigint }
- * wrapper) to what the msgpack integer encoders take. */
-function asInt64(value: BrdbValue, ctx: string): number | bigint {
+ * wrapper) to what the msgpack integer encoders take.
+ * @internal shared with the plan-cached writer in writePlan.ts */
+export function asInt64(value: BrdbValue, ctx: string): number | bigint {
   if (typeof value === 'number' || typeof value === 'bigint') return value;
   const wrapped = asBigintWrapper(value);
   if (wrapped) {
@@ -124,7 +125,8 @@ const LEGACY_WIRE_MEMBERS = [
 ];
 const LEGACY_PRIM_MATH_MEMBERS = ['f64', 'i64'];
 
-function asVariant(value: BrdbValue, ty: string): BrdbVariant {
+/** @internal shared with the plan-cached writer in writePlan.ts */
+export function asVariant(value: BrdbValue, ty: string): BrdbVariant {
   if (
     value !== null &&
     typeof value === 'object' &&
@@ -494,7 +496,7 @@ export class BrdbSchema {
         return this.writeLegacyWireVariant(w, ty, value);
     }
     // Named variants (e.g. WireGraphVariant): uint tag (the member's index
-    // in the schema's ordered member list — resolved per schema, never
+    // in the schema's ordered member list, resolved per schema, never
     // hardcoded) followed by the member value.
     const variantTy = this.variants.get(ty);
     if (variantTy) {
@@ -613,12 +615,9 @@ export class BrdbSchema {
     }
   }
 
-  private writeFlat(
-    w: ByteWriter,
-    ty: string,
-    value: BrdbValue,
-    ctx: string
-  ): void {
+  /** @internal the flat-array element writer; writePlan.ts falls back to it
+   * for element shapes it cannot plan, so mid-stream error behavior matches. */
+  writeFlat(w: ByteWriter, ty: string, value: BrdbValue, ctx: string): void {
     switch (ty) {
       case 'u8':
         return w.u8(value as number);
@@ -846,6 +845,33 @@ export class BrdbSchema {
       throw new Error(`brdb: ${r.remaining} trailing bytes after ${ty}`);
     return value;
   }
+}
+
+/** Whether `name` resolves to a struct whose properties match `expect`
+ * exactly, in order, by name and shape. Specialized (hand-encoded) writers
+ * call this to verify the loaded schema still has the shape they hardcode,
+ * and fall back to the generic writer when it does not. That check is what
+ * keeps them safe across a game update that changes the format. */
+export function structShapeMatches(
+  schema: BrdbSchema,
+  name: string,
+  expect: readonly (readonly [string, PropDesc])[]
+): boolean {
+  const props = schema.structs.get(name);
+  if (!props || props.size !== expect.length) return false;
+  let i = 0;
+  for (const [field, prop] of props) {
+    const [expectField, expectProp] = expect[i++];
+    if (field !== expectField || prop.kind !== expectProp.kind) return false;
+    if (prop.kind === 'map') {
+      if (expectProp.kind !== 'map') return false;
+      if (prop.key !== expectProp.key || prop.value !== expectProp.value)
+        return false;
+    } else if (expectProp.kind === 'map' || prop.type !== expectProp.type) {
+      return false;
+    }
+  }
+  return true;
 }
 
 const embeddedCache = new Map<string, BrdbSchema>();

@@ -179,7 +179,7 @@ test('map values round-trip (msgpack map header + typed pairs)', () => {
       M: {i64: f64},
     }
   `);
-  // Empty map — the real-world case (MapVar defaults). The game writes a
+  // Empty map, the real-world case (MapVar defaults). The game writes a
   // msgpack map header, so an empty map is FixMap(0) = 0x80.
   const empty = schema.encode('Holder', { M: { $map: [] } });
   expect(Array.from(empty)).toEqual([0x80]);

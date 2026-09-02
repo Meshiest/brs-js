@@ -1,5 +1,5 @@
 // TS mirrors of the oracle fixture worlds (regenerate with `just fixtures`).
-// These MUST stay in lockstep with the generator — the worldWrite tests
+// These MUST stay in lockstep with the generator: the worldWrite tests
 // assert that writeBrzLegacy(save) reproduces the oracle archives byte-for-byte.
 import { blake3 } from '@noble/hashes/blake3.js';
 import { bytesToHex } from '@noble/hashes/utils.js';

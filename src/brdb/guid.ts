@@ -1,7 +1,7 @@
 // brdb Guids are four u32s (A,B,C,D) = the uuid's u128 split into
 // big-endian quarters. Flat-serialized as
-// BRGuid { A,B,C,D: u32 } with each u32 little-endian on disk — the
-// value walkers handle the LE part; this module only maps strings.
+// BRGuid { A,B,C,D: u32 } with each u32 little-endian on disk. The value
+// walkers handle the LE part; this module only maps strings.
 import { uuidParse, uuidStringify } from '../uuid';
 
 export interface BrGuid {
