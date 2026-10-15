@@ -1,12 +1,15 @@
 // Parser for the plaintext .schema sources: enum, variant, and struct
-// declarations. Enum keys are qualified ("EFoo::Bar"); enum values accept
-// decimal, 0b binary, and 0x hex literals with optional underscores.
+// declarations, plus an optional `types { ... }` table. Enum keys are
+// qualified ("EFoo::Bar"); enum values accept decimal, 0b binary, and 0x hex
+// literals with optional underscores.
 import type { PropDesc } from './schema';
 
 export interface SchemaData {
   enums: Map<string, Map<string, number>>;
   variants: Map<string, string[]>;
   structs: Map<string, Map<string, PropDesc>>;
+  /** The ordered types table dynamic containers index into. */
+  types?: string[];
 }
 
 const stripComments = (text: string): string =>
@@ -30,10 +33,12 @@ export function parseSchemaText(text: string): SchemaData {
   const enums = new Map<string, Map<string, number>>();
   const variants = new Map<string, string[]>();
   const structs = new Map<string, Map<string, PropDesc>>();
+  const types: string[] = [];
   // A struct body may contain one level of nested braces for map property
   // types (`Field: {KeyType: ValueType}`), so the body isn't purely brace-free.
+  // `types` blocks have no name.
   const declRe =
-    /\b(enum|variant|struct)\s+([A-Za-z0-9_]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+    /\b(enum|variant|struct|types)\b\s*([A-Za-z0-9_]*)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g;
   const enumEntryRe = new RegExp(
     String.raw`^(${IDENT})\s*=\s*(-?\d+(?:_\d+)*|0b[01]+(?:_[01]+)*|0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*)$`
   );
@@ -42,15 +47,19 @@ export function parseSchemaText(text: string): SchemaData {
     String.raw`^(\w+)\s*:\s*(\w+)\s*(\[\s*(flat)?\s*\])?$`
   );
   // Map property: `Field: {KeyType: ValueType}`.
-  const mapRe = new RegExp(String.raw`^(\w+)\s*:\s*\{\s*(\w+)\s*:\s*(\w+)\s*\}$`);
+  const mapRe = new RegExp(
+    String.raw`^(\w+)\s*:\s*\{\s*(\w+)\s*:\s*(\w+)\s*\}$`
+  );
 
   let lastEnd = 0;
   let match: RegExpExecArray | null;
   while ((match = declRe.exec(src))) {
-    if (src.slice(lastEnd, match.index).trim() !== '')
-      throw new Error(`brdb: unexpected schema text before ${match[2]}`);
-    lastEnd = declRe.lastIndex;
     const [, keyword, name, body] = match;
+    if (src.slice(lastEnd, match.index).trim() !== '')
+      throw new Error(`brdb: unexpected schema text before ${name || keyword}`);
+    if ((keyword === 'types') !== (name === ''))
+      throw new Error(`brdb: cannot parse ${keyword} declaration '${name}'`);
+    lastEnd = declRe.lastIndex;
     const items = body
       .split(',')
       .map(s => s.trim())
@@ -65,16 +74,19 @@ export function parseSchemaText(text: string): SchemaData {
         values.set(m[1], parseIntLiteral(m[2]));
       }
       enums.set(name, values);
-    } else if (keyword === 'variant') {
+    } else if (keyword === 'variant' || keyword === 'types') {
       const members: string[] = [];
       for (const item of items) {
         if (!memberRe.test(item))
           throw new Error(
-            `brdb: cannot parse variant member '${item}' in ${name}`
+            `brdb: cannot parse ${keyword} member '${item}' in ${
+              name || keyword
+            }`
           );
         members.push(item);
       }
-      variants.set(name, members);
+      if (keyword === 'types') types.push(...members);
+      else variants.set(name, members);
     } else {
       const props = new Map<string, PropDesc>();
       for (const item of items) {
@@ -101,5 +113,5 @@ export function parseSchemaText(text: string): SchemaData {
   }
   if (src.slice(lastEnd).trim() !== '')
     throw new Error('brdb: trailing unparsed schema text');
-  return { enums, variants, structs };
+  return { enums, variants, structs, types };
 }

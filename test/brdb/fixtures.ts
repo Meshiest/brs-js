@@ -172,3 +172,117 @@ export const chunksSave: WriteSaveObject = {
     },
   ],
 };
+
+/** Mirror of the crate's components_latest_world(): current-build gates
+ * with WireValue fields, typed and empty dynamic containers, a dynamic enum
+ * and one wire, written with the Latest encodings. */
+export const componentsLatestSave: WriteSaveObject = {
+  description: 'Latest component fixture',
+  brick_assets: [
+    'B_1x1_Gate_Expr_MathBlend',
+    'B_1x1_Gate_BufferTicks',
+    'B_1x1_Gate_Variable_Array',
+    'B_1x1_Gate_Variable_Map',
+    'B_1x1_Gate_Expr_IntegerToEnum',
+    'B_1x1_Reroute_Node',
+  ],
+  bricks: [
+    {
+      asset_name_index: 0,
+      position: [0, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_Expr_MathBlend',
+          data: {
+            InputA: { $variant: 'f64', value: 1.5 },
+            InputB: { $variant: 'i64', value: -3 },
+            Blend: 0.25,
+            bClampAlpha: false,
+          },
+        },
+      ],
+    },
+    {
+      asset_name_index: 1,
+      position: [20, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_BufferTicks',
+          data: {
+            TicksToWait: 4,
+            ZeroTicksToWait: 0,
+            CurrentTicks: 0,
+            Input: { $variant: 'Str', value: 'hello' },
+            Output: { $variant: 'Bool', value: true },
+            Buffered: { $variant: 'Vector', value: { X: 1, Y: -2, Z: 0.5 } },
+            bHasQueued: false,
+            bIsOffTimer: false,
+          },
+        },
+      ],
+    },
+    {
+      asset_name_index: 2,
+      position: [40, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_ArrayVar',
+          data: { Value: { $elementType: 'i64', $array: [7, 300] } },
+        },
+      ],
+    },
+    {
+      asset_name_index: 3,
+      position: [60, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_MapVar',
+          data: {
+            Value: { $keyType: 'Str', $valueType: 'f64', $map: [['k', 2.5]] },
+          },
+        },
+      ],
+    },
+    {
+      asset_name_index: 2,
+      position: [80, 0, 1],
+      components: [{ type: 'BrickComponentType_ArrayVar' }],
+    },
+    {
+      asset_name_index: 4,
+      position: [100, 0, 1],
+      components: [
+        {
+          type: 'BrickComponentType_Expr_IntegerToEnum',
+          data: {
+            Input: 2,
+            TargetType: { $enum: 'EBrickAxis', value: 0 },
+            Output: {
+              $variant: 'dynamic_enum',
+              value: { $enum: 'EBrickAxis', value: 2 },
+            },
+          },
+        },
+      ],
+    },
+    {
+      asset_name_index: 5,
+      position: [120, 0, 1],
+      components: [{ type: 'Component_Internal_Rerouter' }],
+    },
+  ],
+  wires: [
+    {
+      source: {
+        brick_index: 0,
+        component_type: 'BrickComponentType_Expr_MathBlend',
+        port: 'Output',
+      },
+      target: {
+        brick_index: 6,
+        component_type: 'Component_Internal_Rerouter',
+        port: 'RER_Input',
+      },
+    },
+  ],
+} as unknown as WriteSaveObject;

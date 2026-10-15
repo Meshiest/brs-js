@@ -9,6 +9,7 @@ import { describe, expect, test } from 'vitest';
 import { Brdb, BrzReader, writeBrzLegacy } from '../../src/brdb';
 import {
   chunksSave,
+  componentsLatestSave,
   exampleBrickSave,
   featuresSave,
   payloadDump,
@@ -87,4 +88,39 @@ describe.skipIf(!enabled)('live rust oracle (set BRDB_ORACLE=1)', () => {
       expect(JSON.parse(out)).toEqual(expected);
     }
   );
+
+  // The crate fully reads (every schema, brick, component, wire and entity,
+  // plus a decode -> encode -> decode round trip) worlds brs-js writes in
+  // each format.
+  for (const [name, save, schemaFormat] of [
+    ['features', featuresSave, 'Auto'],
+    ['features-latest', featuresSave, 'Latest'],
+    ['components-latest', componentsLatestSave, 'Auto'],
+    ['components-latest-pinned', componentsLatestSave, 'Latest'],
+  ] as const) {
+    test(
+      `rust read_all reads a js-written ${name}.brz`,
+      { timeout: 120000 },
+      () => {
+        const dir = mkdtempSync(join(tmpdir(), 'brs-js-brdb-'));
+        const path = join(dir, `${name}.brz`);
+        writeFileSync(path, writeBrzLegacy(save, { schemaFormat }));
+        const out = execFileSync(
+          'cargo',
+          [
+            'run',
+            '-q',
+            '--manifest-path',
+            `${CRATE}/crates/brdb/Cargo.toml`,
+            '--example',
+            'read_all',
+            '--',
+            path,
+          ],
+          { encoding: 'utf8' }
+        );
+        expect(out).toMatch(/round trip: \d+ files/);
+      }
+    );
+  }
 });

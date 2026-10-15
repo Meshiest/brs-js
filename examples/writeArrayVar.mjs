@@ -1,7 +1,7 @@
 // Write an Array Variable gate preloaded with strings to
-// example_arrayvar.brz, then read the component back. Variant-typed fields
-// like ArrayVar's Value take a { $variant, value } wrapper naming which
-// union member holds the payload (here WireGraphStringArray).
+// example_arrayvar.brz, then read the component back. ArrayVar's Value is a
+// dynamic_array: a { $elementType, $array } wrapper naming the element type
+// (here str) next to the elements.
 // Build the library first: just build
 import { writeFileSync } from 'node:fs';
 import { lib } from './openWorld.mjs';
@@ -26,8 +26,8 @@ const save = {
           type: ARRAY_VAR.NAME,
           data: {
             Value: {
-              $variant: 'WireGraphStringArray',
-              value: { Values: ['hello', 'world', 'from', 'brs-js'] },
+              $elementType: 'str',
+              $array: ['hello', 'world', 'from', 'brs-js'],
             },
           },
         },
@@ -45,8 +45,8 @@ console.log(`example_arrayvar.brz written (${bytes.length} bytes)`);
 const reader = WorldReader.from(bytes);
 for (const ref of reader.brickChunkIndex()) {
   for (const c of reader.componentChunk(1, ref.index).components) {
-    const { $variant, value } = c.data.Value;
-    console.log(`brick ${c.brickIndex} ${c.typeName} holds ${$variant}:`);
-    console.log(' ', value.Values);
+    const { $elementType, $array } = c.data.Value;
+    console.log(`brick ${c.brickIndex} ${c.typeName} holds ${$elementType}[]:`);
+    console.log(' ', $array);
   }
 }

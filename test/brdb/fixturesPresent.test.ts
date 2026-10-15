@@ -12,8 +12,11 @@ const WORLDS = [
   'brick',
   'chunks',
   'components',
+  'components_latest',
   'entities',
+  'entities_latest',
   'features',
+  'features_latest',
   'spawner',
   'wires',
 ];
@@ -46,8 +49,10 @@ describe.skipIf(!hasFixtures)('brdb fixtures (run `just fixtures`)', () => {
     expect(
       hashes.chunks['World/0/Bricks/Grids/1/Chunks/0_0_0.mps'].blake3
     ).toBe(hashes.chunks['World/0/Bricks/Grids/1/Chunks/1_0_0.mps'].blake3);
-    // 9 binary schemas
+    // binary schemas: the array form unless a schema needs the map form
     const schemaBin = fixture('schemas/BRSavedBrickChunkSoA.bin');
     expect(schemaBin[0]).toBe(0x93); // fixarray(3): [enums, variants, structs]
+    const maxBin = fixture('schemas/BRSavedComponentChunkSoA_max.bin');
+    expect(maxBin[0] & 0xf0).toBe(0x80); // fixmap: {enums, variants, structs, types}
   });
 });

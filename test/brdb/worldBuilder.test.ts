@@ -130,8 +130,8 @@ describe('World builder', () => {
   test.skipIf(!hasFixtures)(
     'entities: World output matches the oracle fixture semantically',
     () => {
-      // Mirror of the crate's entities_world() fixture: two main-grid
-      // bricks plus a frozen dynamic sub-grid holding one brick.
+      // Mirror of the crate's entities_world() fixture: two
+      // main-grid bricks plus a frozen dynamic sub-grid holding one brick.
       const w = new World();
       w.addBrick({ position: [0, 0, 6], color: [200, 50, 50] });
       w.addBrick({ position: [20, 0, 6], color: [50, 200, 50] });
@@ -148,6 +148,49 @@ describe('World builder', () => {
       expect([...mine.entities()]).toEqual([...oracle.entities()]);
       for (const g of [1, 2])
         expect([...mine.bricks(g)]).toEqual([...oracle.bricks(g)]);
+    }
+  );
+
+  test.skipIf(!hasFixtures)(
+    'entities: Latest World output matches the Latest oracle fixture',
+    () => {
+      // Mirror of the crate's entities_latest_world() fixture.
+      const w = new World();
+      w.addBrick({ position: [0, 0, 6], color: [200, 50, 50] });
+      const grid = w.addBrickGrid({
+        frozen: true,
+        location: { X: 0, Y: 0, Z: 40 },
+      });
+      w.addBrick({ position: [0, 0, 3], color: [0, 255, 0] }, grid);
+
+      const mineBytes = w.toBrz({ schemaFormat: 'Latest' });
+      const oracleBytes = fixture('entities_latest_raw.brz');
+      const mine = WorldReader.from(mineBytes);
+      const oracle = WorldReader.from(oracleBytes);
+      expect(mine.schema('World/0/Entities/ChunksShared.schema').format()).toBe(
+        'Latest'
+      );
+      expect([...mine.entities()]).toEqual([...oracle.entities()]);
+      expect([...mine.entities()][0].data).toMatchObject({
+        bVisible: true,
+        CustomProperties: { $map: [] },
+      });
+      for (const g of [1, 2])
+        expect([...mine.bricks(g)]).toEqual([...oracle.bricks(g)]);
+      // The entity schema and chunk (Latest encodings) are byte-identical.
+      for (const path of [
+        'World/0/Entities/ChunksShared.schema',
+        'World/0/Entities/Chunks/0_0_0.mps',
+        'World/0/Owners.schema',
+      ])
+        expect(
+          Buffer.from(BrzReader.from(mineBytes).readFile(path)).toString('hex'),
+          path
+        ).toBe(
+          Buffer.from(BrzReader.from(oracleBytes).readFile(path)).toString(
+            'hex'
+          )
+        );
     }
   );
 
@@ -266,7 +309,7 @@ describe('embedded prefabs', () => {
       // The oracle's spawner component references the same path.
       const { components } = oracle.componentChunk(1, { x: 0, y: 0, z: 0 });
       expect(components[0].typeName).toBe(
-        'BrickComponentType_WireGraph_Exec_PrefabSpawner'
+        'BrickComponentType_Exec_PrefabSpawner'
       );
       expect(components[0].data?.Prefab).toBe(oraclePath);
 

@@ -9,7 +9,9 @@ describe('buffer read/writing', () => {
     (fn: string) =>
     (bytes: any, val: any, ...args: any[]) => {
       expect((read as any)[fn](new Uint8Array(bytes), ...args)).toEqual(val);
-      expect((write as any)[fn](val, ...args)).toMatchObject(new Uint8Array(bytes));
+      expect((write as any)[fn](val, ...args)).toMatchObject(
+        new Uint8Array(bytes)
+      );
     };
 
   // Testing both endiannesses for read and write
@@ -125,7 +127,7 @@ describe('buffer read/writing', () => {
       bytes: number[],
       arr: any,
       read_fn: any,
-      write_fn: any,
+      write_fn: any
     ) => {
       expect(read.array(new Uint8Array(bytes), read_fn)).toMatchObject(arr);
       expect(write.array(arr, write_fn)).toMatchObject(new Uint8Array(bytes));

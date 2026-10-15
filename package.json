@@ -1,6 +1,6 @@
 {
   "name": "brs-js",
-  "version": "3.8.0",
+  "version": "4.0.0",
   "description": "Brickadia Save Read/Writing",
   "main": "index.js",
   "browser": "dist/dist.web.js",

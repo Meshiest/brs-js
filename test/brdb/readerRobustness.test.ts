@@ -71,6 +71,8 @@ const defaultGlobalData: Record<string, BrdbValue> = {
   ComponentWirePortNames: [],
   ExternalAssetReferences: [],
   GlobalGridEntityTypeIndex: -1,
+  PrefabSpawnInstanceIndices: [],
+  PrefabSpawnInstanceParentIndices: [],
 };
 
 /** A MemFs with GlobalData.mps/.schema pre-populated (the embedded schema,
@@ -217,6 +219,7 @@ describe('linear-to-sRGB color conversion', () => {
       AngularVelocities: [{ X: 0, Y: 0, Z: 0 }],
       ColorsAndAlphas: [{ ...entityColorsAllWhite, Color0: linearColor }],
       RemainingLifeSpans: [],
+      PrefabSpawnInstanceIndices: [],
     };
     fs.set(
       'World/0/Entities/Chunks/0_0_0.mps',
@@ -320,6 +323,7 @@ describe('unbounded-counter guards on hostile input', () => {
       AngularVelocities: [],
       ColorsAndAlphas: [],
       RemainingLifeSpans: [],
+      PrefabSpawnInstanceIndices: [],
       bColorsAreLinear: false,
     };
     fs.set(
@@ -512,6 +516,7 @@ describe('entityChunk legacy field fallbacks', () => {
       AngularVelocities: [{ X: 0, Y: 0, Z: 0 }],
       ColorsAndAlphas: [entityColorsAllWhite],
       RemainingLifeSpans: [],
+      PrefabSpawnInstanceIndices: [],
       bColorsAreLinear: false,
     };
     fs.set(
@@ -561,6 +566,7 @@ describe('entityChunk legacy field fallbacks', () => {
       AngularVelocities: [{ X: 0, Y: 0, Z: 0 }],
       ColorsAndAlphas: [entityColorsAllWhite],
       RemainingLifeSpans: [],
+      PrefabSpawnInstanceIndices: [],
       bColorsAreLinear: false,
     };
     const w = new ByteWriter();
@@ -572,7 +578,13 @@ describe('entityChunk legacy field fallbacks', () => {
       bEnableGravity: true,
       bUseNewMassCalculation: false,
       bReceivesDecals: true,
+      bVisible: true,
       EntityTag: 'tag',
+      CustomProperties: { $map: [] },
+      // current-build fields
+      CollisionQuality: 0,
+      GameModeTeamName: '',
+      bDetectableByAnyone: false,
     });
     fs.set('World/0/Entities/Chunks/0_0_0.mps', w.toBytes());
     const [entity] = new WorldReader(fs).entityChunk({ x: 0, y: 0, z: 0 });
@@ -615,6 +627,7 @@ describe('entityChunk legacy field fallbacks', () => {
       AngularVelocities: [{ X: 0, Y: 0, Z: 0 }],
       ColorsAndAlphas: [entityColorsAllWhite],
       RemainingLifeSpans: [],
+      PrefabSpawnInstanceIndices: [],
       bColorsAreLinear: false,
     };
     fs.set(

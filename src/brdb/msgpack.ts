@@ -269,34 +269,27 @@ export function rdUint(r: ByteReader, allowBigint?: boolean): number | bigint {
       return r.u32be();
     case 0xcf:
       return fromBigint(r.u64be(), allowBigint);
+    // Wider signed tags carrying a non-negative value (valid for unsigned
+    // fields in the spec).
+    case 0xd1:
+    case 0xd2:
+    case 0xd3: {
+      const v =
+        m === 0xd1
+          ? r.i16be()
+          : m === 0xd2
+          ? r.i32be()
+          : fromBigint(r.i64be(), allowBigint);
+      if (v < 0) throw new RangeError(`brdb: negative value ${v} for uint`);
+      return v;
+    }
     default:
       return badMarker(m, 'uint');
   }
 }
 
-// f32 accepts FixPos/FixNeg/I8/I16/U8/U16/F32 only.
-export function rdF32(r: ByteReader): number {
-  const m = r.u8();
-  if (isFixPos(m)) return m;
-  if (isFixNeg(m)) return m - 256;
-  switch (m) {
-    case 0xcc:
-      return r.u8();
-    case 0xcd:
-      return r.u16be();
-    case 0xd0:
-      return r.i8();
-    case 0xd1:
-      return r.i16be();
-    case 0xca:
-      return r.f32be();
-    default:
-      return badMarker(m, 'float32');
-  }
-}
-
-// f64 additionally accepts I32/U32/F32/F64.
-export function rdF64(r: ByteReader): number {
+// Any integer or float tag, converted to a JS number.
+function rdNumber(r: ByteReader, expected: string): number {
   const m = r.u8();
   if (isFixPos(m)) return m;
   if (isFixNeg(m)) return m - 256;
@@ -307,19 +300,33 @@ export function rdF64(r: ByteReader): number {
       return r.u16be();
     case 0xce:
       return r.u32be();
+    case 0xcf:
+      return Number(r.u64be());
     case 0xd0:
       return r.i8();
     case 0xd1:
       return r.i16be();
     case 0xd2:
       return r.i32be();
+    case 0xd3:
+      return Number(r.i64be());
     case 0xca:
       return r.f32be();
     case 0xcb:
       return r.f64be();
     default:
-      return badMarker(m, 'float64');
+      return badMarker(m, expected);
   }
+}
+
+// f32 accepts any integer or float tag (a float 64 is rounded to f32).
+export function rdF32(r: ByteReader): number {
+  return Math.fround(rdNumber(r, 'float32'));
+}
+
+// f64 accepts any integer or float tag.
+export function rdF64(r: ByteReader): number {
+  return rdNumber(r, 'float64');
 }
 
 export function rdBool(r: ByteReader): boolean {

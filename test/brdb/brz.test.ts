@@ -5,6 +5,7 @@ import { bytesToHex } from '@noble/hashes/utils.js';
 import { describe, expect, test } from 'vitest';
 import { BrzReader, writeBrzContainer } from '../../src/brdb/brz';
 import { file, folder, PendingEntry } from '../../src/brdb/pending';
+import { BrdbSchema } from '../../src/brdb/schema';
 
 const hasFixtures = existsSync(new URL('../fixtures/brdb/', import.meta.url));
 
@@ -202,6 +203,7 @@ describe.skipIf(!hasFixtures)('rust fixture archives', () => {
       expect(zst.readFile(path), path).toEqual(raw.readFile(path));
   });
 
+  // Worlds are written in the Latest format: every schema in the map form.
   test('embedded schema blobs equal the standalone schema fixtures', () => {
     const reader = BrzReader.from(fixture('brick_raw.brz'));
     for (const [path, bin] of [
@@ -215,7 +217,7 @@ describe.skipIf(!hasFixtures)('rust fixture archives', () => {
       ['World/0/Entities/ChunksShared.schema', 'BRSavedEntityChunkSoA'],
     ] as const)
       expect(reader.readFile(path), path).toEqual(
-        fixture(`schemas/${bin}.bin`)
+        BrdbSchema.fromBinary(fixture(`schemas/${bin}.bin`)).toBinary('Latest')
       );
   });
 });

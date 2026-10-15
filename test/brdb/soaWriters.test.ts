@@ -374,6 +374,17 @@ describe('fast write paths reproduce the generic writer byte for byte', () => {
     expect(entities.some(e => e.data && Object.keys(e.data).length > 0)).toBe(
       true
     );
+    // unset dynamic-grid fields take the game's fresh-grid values, not zero
+    const grids = entities.filter(e => e.className === 'BrickGridDynamicActor');
+    expect(grids.length).toBeGreaterThan(0);
+    for (const e of grids)
+      expect(e.data).toMatchObject({
+        MassScale: 1,
+        bEnableGravity: true,
+        bUseNewMassCalculation: true,
+        bReceivesDecals: true,
+        bVisible: true,
+      });
     const { components } = r.componentChunk(1, { x: 0, y: 0, z: 0 });
     expect(components.length).toBeGreaterThan(200);
     const wires = r.wireChunk(2, { x: -1, y: -1, z: -1 });

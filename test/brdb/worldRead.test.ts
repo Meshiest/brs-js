@@ -273,7 +273,13 @@ describe.skipIf(!hasFixtures)('WorldReader(entities_raw.brz)', () => {
     expect(entity.sleeping).toBe(false);
     expect(entity.location).toEqual({ X: 0, Y: 0, Z: 40 });
     expect(entity.rotation).toEqual({ X: 0, Y: 0, Z: 0, W: 1 });
-    expect(entity.data).toMatchObject({ bEnableGravity: false, EntityTag: '' });
+    // unset fields were written with the game's fresh-grid defaults
+    expect(entity.data).toMatchObject({
+      MassScale: 1,
+      bEnableGravity: true,
+      bReceivesDecals: true,
+      EntityTag: '',
+    });
     // the sub-grid's brick coordinates are stored offset by half a chunk
     expect([...reader.bricks(2)].map(b => b.position)).toEqual([
       [-1024, -1024, -1021],
@@ -343,7 +349,7 @@ describe('embedded prefabs (read side)', () => {
       position: [0, 0, 1],
       components: [
         {
-          type: 'BrickComponentType_WireGraph_Exec_PrefabSpawner',
+          type: 'BrickComponentType_Exec_PrefabSpawner',
           data: { Prefab: path },
         },
       ],

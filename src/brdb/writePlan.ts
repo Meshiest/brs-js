@@ -24,7 +24,15 @@ import {
   mpU8,
   mpUint,
 } from './msgpack';
-import { asInt64, asVariant, BrdbSchema, BrdbValue, PropDesc } from './schema';
+import {
+  alternativeIndex,
+  asInt64,
+  asVariant,
+  BrdbSchema,
+  BrdbValue,
+  FlatLayout,
+  PropDesc,
+} from './schema';
 
 // Op kinds. Numeric so the replay switch compiles to a jump table instead of
 // the string switch plus three Map probes writeValue does per value.
@@ -42,6 +50,9 @@ const OP_STRUCT = 10;
 const OP_VARIANT = 11;
 const OP_DEFERRED = 12; // struct whose plan was still being built
 const OP_FALLBACK = 13; // hand back to BrdbSchema.writeValue
+const OP_NIL = 14; // no payload
+const OP_U8_UNSIGNED = 15; // Latest u8
+const OP_NULL_OBJECT = 16; // Latest weak_object: always -1
 
 // Struct property kinds, resolved from PropDesc.kind once.
 const K_TYPE = 0;
@@ -80,7 +91,12 @@ class PlanOp {
 }
 
 class FlatField {
-  constructor(readonly name: string, readonly op: FlatOp) {}
+  constructor(
+    readonly name: string,
+    readonly op: FlatOp,
+    /** zero bytes written before this field (C layout) */
+    readonly pad: number
+  ) {}
 }
 
 class FlatOp {
@@ -90,7 +106,9 @@ class FlatOp {
     readonly props: FlatField[] | null,
     /** Whether anything in this subtree can put the context path in an error
      * message. When false the per-field path string is never built. */
-    readonly usesCtx: boolean
+    readonly usesCtx: boolean,
+    /** zero bytes written after the last field (C layout) */
+    readonly tailPad = 0
   ) {}
 }
 
@@ -132,7 +150,8 @@ class VariantPlan {
     readonly name: string,
     /** member name -> tag, replacing writeValue's linear indexOf per value. */
     readonly tags: Map<string, number>,
-    readonly ops: PlanOp[]
+    readonly ops: PlanOp[],
+    readonly members: readonly string[]
   ) {}
 }
 
@@ -222,11 +241,14 @@ export class WritePlanner {
   }
 
   private buildOp(ty: string): PlanOp {
+    const latest = this.schema.isLatest();
     switch (ty) {
+      case 'nil':
+        return new PlanOp(OP_NIL, ty);
       case 'bool':
         return new PlanOp(OP_BOOL, ty);
       case 'u8':
-        return new PlanOp(OP_U8, ty);
+        return new PlanOp(latest ? OP_U8_UNSIGNED : OP_U8, ty);
       case 'u16':
       case 'u32':
       case 'u64':
@@ -243,14 +265,18 @@ export class WritePlanner {
       case 'str':
       case 'bundle_path_ref':
         return new PlanOp(OP_STR, ty);
+      case 'weak_object':
+        return new PlanOp(latest ? OP_NULL_OBJECT : OP_ASSET, ty);
       case 'class':
       case 'object':
-      case 'weak_object':
         return new PlanOp(OP_ASSET, ty);
-      // The two legacy fixed-tag unions are leaf work, and the generic writer
-      // reaches them on its first switch, so planning buys nothing.
+      // The two EA3 fixed-tag unions and the dynamic containers are leaf
+      // work, and the generic writer reaches them on its first switch, so
+      // planning buys nothing.
       case 'wire_graph_variant':
       case 'wire_graph_prim_math_variant':
+      case 'dynamic_array':
+      case 'dynamic_map':
         return new PlanOp(OP_FALLBACK, ty);
     }
     if (this.schema.variants.has(ty)) return new PlanOp(OP_VARIANT, ty);
@@ -263,7 +289,11 @@ export class WritePlanner {
         ? new PlanOp(OP_STRUCT, ty, plan)
         : new PlanOp(OP_FALLBACK, ty);
     }
-    return new PlanOp(OP_FALLBACK, ty); // unknown: writeValue throws
+    // built-in aliases (Bool/Str) plan as their target
+    if (ty === 'Bool') return this.buildOp('bool');
+    if (ty === 'Str') return this.buildOp('str');
+    // dynamic_enum, handle types, unknown: writeValue handles (or throws)
+    return new PlanOp(OP_FALLBACK, ty);
   }
 
   private structPlan(name: string): StructPlan | null {
@@ -349,6 +379,15 @@ export class WritePlanner {
   }
 
   private buildFlatOp(ty: string): FlatOp {
+    const layout = this.schema.flatLayout(ty);
+    // Unknown type, or a struct with a non-flat field: writeFlat errors
+    // mid-stream, so hand the whole element back to it.
+    if (!layout) return new FlatOp(F_FALLBACK, ty, null, true);
+    return this.flatOpOf(layout);
+  }
+
+  private flatOpOf(layout: FlatLayout): FlatOp {
+    const ty = layout.type;
     switch (ty) {
       case 'u8':
         return new FlatOp(F_U8, ty, null, false);
@@ -371,19 +410,16 @@ export class WritePlanner {
       case 'i64':
         return new FlatOp(F_I64, ty, null, true);
     }
-    const struct = this.schema.structs.get(ty);
-    // Unknown type, or a struct with a non-flat field: writeFlat errors
-    // mid-stream, so hand the whole element back to it.
-    if (!struct) return new FlatOp(F_FALLBACK, ty, null, true);
     const props: FlatField[] = [];
     let usesCtx = false;
-    for (const [field, prop] of struct) {
-      if (prop.kind !== 'type') return new FlatOp(F_FALLBACK, ty, null, true);
-      const op = this.resolveFlatOp(prop.type);
+    let pos = 0;
+    for (const field of layout.fields!) {
+      const op = this.flatOpOf(field.layout);
       usesCtx = usesCtx || op.usesCtx;
-      props.push(new FlatField(field, op));
+      props.push(new FlatField(field.name, op, field.offset - pos));
+      pos = field.offset + field.layout.size;
     }
-    return new FlatOp(F_STRUCT, ty, props, usesCtx);
+    return new FlatOp(F_STRUCT, ty, props, usesCtx, layout.size - pos);
   }
 
   /** The value fillStruct would put in a field the caller left unset. */
@@ -438,7 +474,7 @@ export class WritePlanner {
           : this.resolveOp(member)
       );
     }
-    const plan = new VariantPlan(ty, tags, ops);
+    const plan = new VariantPlan(ty, tags, ops, members);
     this.variantPlans.set(ty, plan);
     return plan;
   }
@@ -465,7 +501,16 @@ export class WritePlanner {
         // asset reference: index into external_asset_references; null = -1
         return value === null ? mpInt(w, -1) : mpUint(w, value as number);
       case OP_VARIANT_OBJECT:
-        return mpInt(w, value === null ? -1 : (value as number));
+        return mpInt(
+          w,
+          value === null || this.schema.isLatest() ? -1 : (value as number)
+        );
+      case OP_NIL:
+        return;
+      case OP_U8_UNSIGNED:
+        return mpUint(w, value as number);
+      case OP_NULL_OBJECT:
+        return mpInt(w, -1);
       case OP_ENUM: {
         const ordinal = value as number;
         if (ordinal < 0 || ordinal >= op.enumSize)
@@ -485,7 +530,12 @@ export class WritePlanner {
       case OP_VARIANT: {
         const plan = op.variant ?? (op.variant = this.variantPlan(op.ty));
         const v = asVariant(value, op.ty);
-        const tag = plan.tags.get(v.$variant);
+        // Alternatives match by type: an alias (bool/Bool) resolves too.
+        let tag = plan.tags.get(v.$variant);
+        if (tag === undefined) {
+          const i = alternativeIndex(plan.members, v.$variant);
+          if (i !== -1) tag = i;
+        }
         if (tag === undefined)
           throw new Error(
             `brdb: '${v.$variant}' is not a member of variant ${op.ty}`
@@ -576,6 +626,7 @@ export class WritePlanner {
         const props = op.props;
         for (let i = 0; i < props.length; i++) {
           const p = props[i];
+          for (let z = 0; z < p.pad; z++) w.u8(0);
           if (!(p.name in obj))
             throw new Error(`brdb: missing struct field ${op.ty}.${p.name}`);
           this.writeFlatOp(
@@ -585,6 +636,7 @@ export class WritePlanner {
             p.op.usesCtx ? `${ctx}.${p.name}` : ctx
           );
         }
+        for (let z = 0; z < op.tailPad; z++) w.u8(0);
         return;
       }
       default:

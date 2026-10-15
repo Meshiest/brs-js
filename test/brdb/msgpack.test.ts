@@ -174,13 +174,16 @@ describe('reader', () => {
     expect(rdUint(new ByteReader(new Uint8Array([0xd0, 0x05])))).toBe(5);
   });
 
-  test('rdUint accepts unsigned markers, rejects I16/I32/I64', () => {
+  test('rdUint accepts unsigned markers and non-negative I16/I32/I64', () => {
     expect(rdUint(new ByteReader(new Uint8Array([0xcc, 0x80])))).toBe(128);
     expect(rdUint(new ByteReader(new Uint8Array([0xcd, 0x01, 0x00])))).toBe(
       256
     );
+    expect(rdUint(new ByteReader(new Uint8Array([0xd1, 0x00, 0x80])))).toBe(
+      128
+    );
     expect(() =>
-      rdUint(new ByteReader(new Uint8Array([0xd1, 0x00, 0x80])))
+      rdUint(new ByteReader(new Uint8Array([0xd1, 0xff, 0x80])))
     ).toThrow();
   });
 
@@ -195,11 +198,20 @@ describe('reader', () => {
   test('rdF32/rdF64 accept int markers and coerce', () => {
     expect(rdF32(new ByteReader(new Uint8Array([0xd1, 0x00, 0xc8])))).toBe(200);
     expect(rdF32(new ByteReader(new Uint8Array([0xfb])))).toBe(-5);
-    // f32 rejects 32-bit int markers
-    expect(() =>
-      rdF32(new ByteReader(new Uint8Array([0xd2, 0, 0, 0, 1])))
-    ).toThrow();
+    // f32 accepts every integer and float marker, rounding to f32
+    expect(rdF32(new ByteReader(new Uint8Array([0xd2, 0, 0, 0, 1])))).toBe(1);
+    expect(
+      rdF32(
+        new ByteReader(
+          new Uint8Array([0xcb, 0x3f, 0xb9, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a])
+        )
+      )
+    ).toBe(Math.fround(0.1));
     expect(rdF64(new ByteReader(new Uint8Array([0xd2, 0, 0, 0, 1])))).toBe(1);
+    expect(
+      rdF64(new ByteReader(new Uint8Array([0xd3, 0, 0, 0, 0, 0, 0, 0, 9])))
+    ).toBe(9);
+    expect(() => rdF64(new ByteReader(new Uint8Array([0xc3])))).toThrow();
     // f64 accepts an F32 payload
     expect(
       rdF64(new ByteReader(new Uint8Array([0xca, 0x3f, 0x00, 0x00, 0x00])))

@@ -44,11 +44,16 @@ export type {
 } from './reader';
 export { BrzReader, writeBrzContainer } from './brz';
 export type { BrzContainerOptions, Compressor } from './brz';
-export { BrdbSchema, embeddedSchema } from './schema';
+export { BrdbSchema, embeddedSchema, SchemaFormat } from './schema';
 export type {
   BrdbBigint,
+  BrdbDynamicArray,
+  BrdbDynamicEnum,
+  BrdbDynamicMap,
   BrdbValue,
   BrdbVariant,
+  ConcreteSchemaFormat,
+  FlatLayout,
   PropDesc,
   SchemaSource,
   SchemaSourceProp,
@@ -74,6 +79,23 @@ export {
   WIRE_PORT_NAMES,
 } from './componentDb';
 export type { ComponentPortInfo } from './componentDb';
+export {
+  PROCEDURAL_GATES,
+  proceduralGateForComponent,
+  smallestGateVariant,
+} from './gateVariants';
+export type { GateVariant, ProceduralGate } from './gateVariants';
+export {
+  migrateBrickAsset,
+  migrateComponentType,
+  migrateValue,
+  needsMigration,
+  openLatest,
+  pendingSteps,
+  toLatest,
+} from './migrate';
+export type { BrickMigration, MigrationStep } from './migrate';
+export { MIGRATION_STEPS } from './migrations';
 export type * from './componentTypes';
 export { Brdb, BRDB_SQLITE_SCHEMA } from './brdb';
 export type {

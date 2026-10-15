@@ -11,7 +11,12 @@ import {
   writeBrzLegacy,
 } from '../../src/brdb/world';
 import { WorldReader } from '../../src/brdb/reader';
-import { chunksSave, exampleBrickSave, featuresSave } from './fixtures';
+import {
+  chunksSave,
+  componentsLatestSave,
+  exampleBrickSave,
+  featuresSave,
+} from './fixtures';
 
 const hasFixtures = existsSync(new URL('../fixtures/brdb/', import.meta.url));
 
@@ -64,22 +69,37 @@ describe.skipIf(!hasFixtures)(
         hex(fixture('features_raw.brz'))
       );
     });
+
+    test('features in the Latest format === features_latest_raw.brz byte-for-byte', () => {
+      expect(
+        hex(writeBrzLegacy(featuresSave, { schemaFormat: 'Latest' }))
+      ).toBe(hex(fixture('features_latest_raw.brz')));
+    });
   }
 );
 
 describe.skipIf(!hasFixtures)(
   'payload hash-gates (all fixtures, per-path, order-independent)',
   () => {
-    for (const [name, save] of [
-      ['brick', exampleBrickSave],
-      ['features', featuresSave],
-      ['chunks', chunksSave],
+    for (const [name, save, schemaFormat] of [
+      // undefined: the default format (Latest)
+      ['brick', exampleBrickSave, undefined],
+      ['features', featuresSave, undefined],
+      ['chunks', chunksSave, undefined],
+      ['features_latest', featuresSave, 'Latest'],
+      ['components_latest', componentsLatestSave, undefined],
     ] as const) {
+      // The crate registers every entity type for component worlds
+      // (register_used_components); brs-js only the ones used, so only the
+      // GlobalData payload of components_latest differs.
+      const skip =
+        name === 'components_latest' ? ['World/0/GlobalData.mps'] : [];
       test(name, () => {
-        const reader = BrzReader.from(writeBrzLegacy(save));
+        const reader = BrzReader.from(writeBrzLegacy(save, { schemaFormat }));
         const golden = HASHES[name];
         expect(reader.listPaths().slice().sort()).toEqual(Object.keys(golden));
         for (const path of reader.listPaths()) {
+          if (skip.includes(path)) continue;
           const content = reader.readFile(path);
           expect(bytesToHex(blake3(content)), path).toBe(golden[path].blake3);
           expect(content.length, path).toBe(golden[path].len);
@@ -454,8 +474,25 @@ describe('brdb components and wires (write -> read round-trip)', () => {
       Brightness: 100,
       bEnabled: true,
     });
-    expect(components[1].data).toEqual({ PortLabel: 'In' });
-    expect(components[2].data).toEqual({ PortLabel: 'Other' });
+    // MicrochipInput gained PortOrder/CallableDefault/CallableMirror with the
+    // callable-microchip gates; omitted fields still decode as the game's defaults.
+    const defaultFilledChipIn = {
+      // PortOrder 1 (not 0) is what the crate's STRUCT_DEFAULTS carries: the default is
+      // extracted from a real plane-placed MicrochipInput, and MicrochipInput can only
+      // exist inside a microchip plane. (MicrochipOutput, placed on the main grid,
+      // extracts 0 — see the note in the pipeline runbook.)
+      PortOrder: 1,
+      CallableDefault: { $variant: 'f64', value: 0 },
+      CallableMirror: { $variant: 'f64', value: 0 },
+    };
+    expect(components[1].data).toEqual({
+      ...defaultFilledChipIn,
+      PortLabel: 'In',
+    });
+    expect(components[2].data).toEqual({
+      ...defaultFilledChipIn,
+      PortLabel: 'Other',
+    });
 
     const other = r.componentChunk(1, { x: 2, y: 0, z: 0 });
     expect(other.components).toEqual([

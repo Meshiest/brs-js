@@ -113,6 +113,8 @@ describe.skipIf(!hasFixtures)(
         ComponentWirePortNames: [],
         ExternalAssetReferences: [],
         GlobalGridEntityTypeIndex: -1,
+        PrefabSpawnInstanceIndices: [],
+        PrefabSpawnInstanceParentIndices: [],
       });
     });
 

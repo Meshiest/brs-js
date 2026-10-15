@@ -37,8 +37,16 @@ const output = w.addBrick(
 
 // Pass the chip's input port straight through to its output port.
 w.addWire(
-  { brick: input, component_type: CHIP_IN.NAME, port: CHIP_IN.PORTS.RER_Output },
-  { brick: output, component_type: CHIP_OUT.NAME, port: CHIP_OUT.PORTS.RER_Input }
+  {
+    brick: input,
+    component_type: CHIP_IN.NAME,
+    port: CHIP_IN.PORTS.RER_Output,
+  },
+  {
+    brick: output,
+    component_type: CHIP_OUT.NAME,
+    port: CHIP_OUT.PORTS.RER_Input,
+  }
 );
 
 // Prefab metadata: pivots/bounds from the main-grid bricks (the shell).

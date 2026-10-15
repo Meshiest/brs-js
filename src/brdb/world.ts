@@ -20,8 +20,8 @@ import type { ComponentTypeDataMap } from './componentTypes';
 import { fastPathsEnabled } from './fastPaths';
 import { BrGuid, PUBLIC_GUID, uuidToGuid } from './guid';
 import { file, folder, PendingEntry } from './pending';
-import { BrdbSchema, BrdbValue, embeddedSchema } from './schema';
-import { SCHEMAS } from './schemas';
+import { BrdbSchema, BrdbValue, embeddedSchema, SchemaFormat } from './schema';
+import { EmbeddedSchemaName, SCHEMAS } from './schemas';
 import {
   BrickChunkColumns,
   brickChunkSchemaIsStandard,
@@ -92,7 +92,50 @@ export interface WriteBrzOptions {
    * trip. The World builder's makePrefab() computes this from the
    * main-grid bounds instead and takes precedence over the option. */
   prefab?: Record<string, unknown>;
+  /** The schema container to write.
+   *
+   * - 'Latest' (default): every schema in the map form, as the game writes
+   *   them.
+   * - 'Auto': each .schema in the container it needs: the map form for
+   *   schemas with a types table or dynamic containers (the component
+   *   schema), the array form otherwise. Every current game build reads
+   *   both, but a world written this way without components has an EA3
+   *   component schema, so needsMigration() reports it as an EA3 save.
+   *
+   * Writing EA3 worlds is not supported; 'EA3' throws. */
+  schemaFormat?: SchemaFormat;
 }
+
+/** The format a write uses: Latest unless asked otherwise. EA3 throws. */
+function writeFormat(format: SchemaFormat = 'Latest'): SchemaFormat {
+  if (format === 'EA3')
+    throw new Error(
+      'brdb: writing EA3 worlds is not supported; brs-js 3.8 writes them'
+    );
+  return format;
+}
+
+/** Game defaults for unset entity data fields whose zero value differs from
+ * what the game writes for a fresh grid (zero would save an invisible,
+ * massless, gravity-free grid). Entity data structs have no generated
+ * defaults table; mirrors brdb's entity_field_default. Fields a schema lacks
+ * (EA3 has no bVisible) are ignored. */
+const ENTITY_STRUCT_DEFAULTS: ReadonlyMap<
+  string,
+  Readonly<Record<string, BrdbValue>>
+> = new Map([
+  [
+    'BrickGridDynamicActor',
+    {
+      BouyancyScale: 0.2,
+      MassScale: 1,
+      bEnableGravity: true,
+      bUseNewMassCalculation: true,
+      bReceivesDecals: true,
+      bVisible: true,
+    },
+  ],
+]);
 
 /** A brdb-native component on a brick. Legacy brs components
  * (save.components / brick.components) are NOT converted. */
@@ -679,6 +722,7 @@ export function saveToPendingFs(
   save: WriteBrzInput,
   options: WriteBrzOptions = {}
 ): PendingEntry[] {
+  writeFormat(options.schemaFormat);
   const bricks = normalizeBricks(save);
   // Legacy .brs wires name endpoints by brs component; only modern-shaped
   // wires (component_type) are written, matching the components handling.
@@ -721,6 +765,11 @@ function modelToPendingFs(
   model: WorldModel,
   options: WriteBrzOptions = {}
 ): PendingEntry[] {
+  const format = writeFormat(options.schemaFormat);
+  // Built-in schemas, pinned to an explicit format.
+  const builtin = (name: EmbeddedSchemaName) =>
+    embeddedSchema(name).withFormat(format);
+
   // Registration order: grids in slot order (main grid first), matching
   // the reference writer's meta pre-pass over bricks then sub-grids.
   const allBricks = model.grids.flat();
@@ -796,12 +845,13 @@ function modelToPendingFs(
     for (const structName of componentStructNames)
       if (structName !== 'None' && !seeds.includes(structName))
         seeds.push(structName);
-    componentsSchema.merge(
-      embeddedSchema('BRSavedComponentChunkSoA_max').extractStructsTransitive(
-        seeds
-      )
-    );
+    const max = embeddedSchema('BRSavedComponentChunkSoA_max');
+    componentsSchema.merge(max.extractStructsTransitive(seeds));
+    // The minimal scaffolding has no types table of its own: carry the
+    // catalog's format over before any data is encoded with it.
+    componentsSchema.setFormat(max.format());
   }
+  if (format !== 'Auto') componentsSchema.setFormat(format);
 
   // Owner table: row 0 = PUBLIC, then the save's owners.
   const ownerRows = model.ownerRows;
@@ -940,20 +990,22 @@ function modelToPendingFs(
     }
   }
 
-  const globalDataSchema = embeddedSchema('BRSavedGlobalDataSoA');
-  const ownersSchema = embeddedSchema('BRSavedOwnerTableSoA');
-  const chunkIndexSchema = embeddedSchema('BRSavedBrickChunkIndexSoA');
-  const chunkSchema = embeddedSchema('BRSavedBrickChunkSoA');
-  const wiresSchema = embeddedSchema('BRSavedWireChunkSoA');
-  const entityChunkIndexSchema = embeddedSchema('BRSavedEntityChunkIndexSoA');
-  const entitySchema = embeddedSchema('BRSavedEntityChunkSoA');
+  const globalDataSchema = builtin('BRSavedGlobalDataSoA');
+  const ownersSchema = builtin('BRSavedOwnerTableSoA');
+  const chunkIndexSchema = builtin('BRSavedBrickChunkIndexSoA');
+  const chunkSchema = builtin('BRSavedBrickChunkSoA');
+  const wiresSchema = builtin('BRSavedWireChunkSoA');
+  const entityChunkIndexSchema = builtin('BRSavedEntityChunkIndexSoA');
+  const entitySchema = builtin('BRSavedEntityChunkSoA');
 
   // One compiled-plan cache per schema per write, and one structural verdict
   // per chunk schema, both computed once here rather than per chunk.
   const componentPlanner = new WritePlanner(componentsSchema, name =>
     COMPONENT_STRUCT_DEFAULTS.get(name)
   );
-  const entityPlanner = new WritePlanner(entitySchema);
+  const entityPlanner = new WritePlanner(entitySchema, name =>
+    ENTITY_STRUCT_DEFAULTS.get(name)
+  );
   const fast = fastPathsEnabled();
   const brickFast = fast && brickChunkSchemaIsStandard(chunkSchema);
   const wireFast = fast && wireChunkSchemaIsStandard(wiresSchema);
@@ -987,6 +1039,9 @@ function modelToPendingFs(
       PrimaryAssetName: a.name,
     })),
     GlobalGridEntityTypeIndex: -1,
+    // Latest GlobalData only (fields absent from a schema are not written).
+    PrefabSpawnInstanceIndices: [],
+    PrefabSpawnInstanceParentIndices: [],
   });
 
   const ownersMps = ownersSchema.encode('BRSavedOwnerTableSoA', {
@@ -1047,6 +1102,8 @@ function modelToPendingFs(
       ),
       RemainingLifeSpans: model.entities.map(() => 0),
       bColorsAreLinear: false, // new saves always store sRGB
+      // Latest only: authored entities were not spawned by a prefab spawner.
+      PrefabSpawnInstanceIndices: model.entities.map(() => 0),
     };
     if (fast) entityPlanner.write(w, 'BRSavedEntityChunkSoA', entitySoa);
     else entitySchema.writeValue(w, 'BRSavedEntityChunkSoA', entitySoa);
@@ -1059,7 +1116,11 @@ function modelToPendingFs(
           entitySchema.writeValue(
             w,
             e.className,
-            entitySchema.fillStruct(e.className, e.data)
+            entitySchema.fillStruct(
+              e.className,
+              e.data,
+              ENTITY_STRUCT_DEFAULTS.get(e.className)
+            )
           );
       } catch (err) {
         throw new Error(
@@ -1187,9 +1248,9 @@ function modelToPendingFs(
     ]);
 
   const entitiesDir: PendingEntry[] = [
-    ['ChunkIndex.schema', file(entityChunkIndexSchema.toBinary())],
+    ['ChunkIndex.schema', file(entityChunkIndexSchema.toBinary(format))],
     ['ChunkIndex.mps', file(entityChunkIndexMps)],
-    ['ChunksShared.schema', file(entitySchema.toBinary())],
+    ['ChunksShared.schema', file(entitySchema.toBinary(format))],
   ];
   if (entityChunkMps)
     entitiesDir.push(['Chunks', folder([['0_0_0.mps', file(entityChunkMps)]])]);
@@ -1202,17 +1263,23 @@ function modelToPendingFs(
         [
           '0',
           folder([
-            ['GlobalData.schema', file(globalDataSchema.toBinary())],
+            ['GlobalData.schema', file(globalDataSchema.toBinary(format))],
             ['GlobalData.mps', file(globalDataMps)],
-            ['Owners.schema', file(ownersSchema.toBinary())],
+            ['Owners.schema', file(ownersSchema.toBinary(format))],
             ['Owners.mps', file(ownersMps)],
             [
               'Bricks',
               folder([
-                ['ChunkIndexShared.schema', file(chunkIndexSchema.toBinary())],
-                ['ChunksShared.schema', file(chunkSchema.toBinary())],
-                ['WiresShared.schema', file(wiresSchema.toBinary())],
-                ['ComponentsShared.schema', file(componentsSchema.toBinary())],
+                [
+                  'ChunkIndexShared.schema',
+                  file(chunkIndexSchema.toBinary(format)),
+                ],
+                ['ChunksShared.schema', file(chunkSchema.toBinary(format))],
+                ['WiresShared.schema', file(wiresSchema.toBinary(format))],
+                [
+                  'ComponentsShared.schema',
+                  file(componentsSchema.toBinary(format)),
+                ],
                 [
                   'Grids',
                   folder(
@@ -1415,7 +1482,7 @@ function computePrefabJson(
       ? b.size
       : b.assetName === 'B_1x1_Microchip'
       ? [5, 5, 2]
-      : (BRICK_HALF_EXTENTS.get(b.assetName) ?? [5, 5, 6]);
+      : BRICK_HALF_EXTENTS.get(b.assetName) ?? [5, 5, 6];
     for (let ax = 0; ax < 3; ax++) {
       const lo = b.position[ax] - half[ax];
       const hi = b.position[ax] + half[ax];
@@ -1591,6 +1658,7 @@ export class World {
   }
 
   toPendingFs(options: WriteBrzOptions = {}): PendingEntry[] {
+    writeFormat(options.schemaFormat);
     // Shared name tables across grids.
     const assetNames = new Registry();
     const materialNames = new Registry();

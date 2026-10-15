@@ -75,9 +75,14 @@ const eachStruct = (schema: BrdbSchema) =>
   );
 
 describe('plan cache matches the generic writer for every embedded schema', () => {
-  for (const name of Object.keys(SCHEMAS) as EmbeddedSchemaName[]) {
+  const all: [string, () => BrdbSchema][] = [
+    ...(Object.keys(SCHEMAS) as EmbeddedSchemaName[]).map(
+      n => [n, () => embeddedSchema(n)] as [string, () => BrdbSchema]
+    ),
+  ];
+  for (const [name, load] of all) {
     test(name, () => {
-      const schema = embeddedSchema(name);
+      const schema = load();
       const planner = new WritePlanner(schema);
       let compared = 0;
       for (const [ty, zero] of eachStruct(schema)) {
@@ -94,66 +99,80 @@ describe('plan cache matches the generic writer for every embedded schema', () =
 // The component data structs are where the plan cache does the most work:
 // whole-struct defaults are precomputed and replayed for a component with
 // nothing set, and per-field defaults fill the gaps for a partially set one.
-describe('plan cache matches fillStruct + writeValue for component data', () => {
-  const schema = embeddedSchema('BRSavedComponentChunkSoA_max');
-  const planner = new WritePlanner(schema, n =>
-    COMPONENT_STRUCT_DEFAULTS.get(n)
-  );
-  const structNames = [...schema.structs.keys()].filter(n =>
-    n.startsWith('BrickComponentData_')
-  );
-
-  test('the catalog is actually being swept', () => {
-    expect(structNames.length).toBeGreaterThan(200);
-  });
-
-  test('nothing set (the all-default fast path)', () => {
-    for (const ty of structNames) {
-      const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
-      expect(plannedPartial(planner, ty, {}), ty).toBe(
-        genericPartial(schema, ty, {}, defaults)
-      );
-    }
-  });
-
-  test('every field set (no default bytes used)', () => {
-    for (const ty of structNames) {
-      const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
-      const partial: Record<string, BrdbValue> = {};
-      for (const [field, prop] of schema.structs.get(ty))
-        partial[field] = sampleProp(schema, prop);
-      expect(plannedPartial(planner, ty, partial), ty).toBe(
-        genericPartial(schema, ty, partial, defaults)
-      );
-    }
-  });
-
-  test('every other field set (default bytes interleaved with set fields)', () => {
-    for (const ty of structNames) {
-      const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
-      const partial: Record<string, BrdbValue> = {};
-      let i = 0;
-      for (const [field, prop] of schema.structs.get(ty))
-        if (i++ % 2 === 0) partial[field] = sampleProp(schema, prop);
-      expect(plannedPartial(planner, ty, partial), ty).toBe(
-        genericPartial(schema, ty, partial, defaults)
-      );
-    }
-  });
-
-  test('the defaults table is what makes those bytes non-trivial', () => {
-    // If COMPONENT_STRUCT_DEFAULTS were empty, every all-default run would
-    // be zeros and the comparisons above would prove far less.
-    const withDefaults = structNames.filter(n =>
-      COMPONENT_STRUCT_DEFAULTS.has(n)
+describe.each([
+  {
+    label: 'current',
+    schema: () => embeddedSchema('BRSavedComponentChunkSoA_max'),
+    DEFAULTS: COMPONENT_STRUCT_DEFAULTS,
+  },
+])(
+  'plan cache matches fillStruct + writeValue for $label component data',
+  ({ schema: load, DEFAULTS: COMPONENT_STRUCT_DEFAULTS }) => {
+    const schema = load();
+    const planner = new WritePlanner(schema, n =>
+      COMPONENT_STRUCT_DEFAULTS.get(n)
     );
-    expect(withDefaults.length).toBeGreaterThan(100);
-    const ty = withDefaults[0];
-    expect(plannedPartial(planner, ty, {})).not.toBe(
-      genericPartial(schema, ty, {}, undefined)
+    const structNames = [...schema.structs.keys()].filter(
+      n =>
+        n.startsWith('BrickComponentData_') ||
+        n.startsWith('BCSComponentVertex_')
     );
-  });
-});
+
+    test('the catalog is actually being swept', () => {
+      expect(structNames.length).toBeGreaterThan(200);
+    });
+
+    test('nothing set (the all-default fast path)', () => {
+      for (const ty of structNames) {
+        const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
+        expect(plannedPartial(planner, ty, {}), ty).toBe(
+          genericPartial(schema, ty, {}, defaults)
+        );
+      }
+    });
+
+    test('every field set (no default bytes used)', () => {
+      for (const ty of structNames) {
+        const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
+        const partial: Record<string, BrdbValue> = {};
+        for (const [field, prop] of schema.structs.get(ty))
+          partial[field] = sampleProp(schema, prop);
+        expect(plannedPartial(planner, ty, partial), ty).toBe(
+          genericPartial(schema, ty, partial, defaults)
+        );
+      }
+    });
+
+    test('every other field set (default bytes interleaved with set fields)', () => {
+      for (const ty of structNames) {
+        const defaults = COMPONENT_STRUCT_DEFAULTS.get(ty);
+        const partial: Record<string, BrdbValue> = {};
+        let i = 0;
+        for (const [field, prop] of schema.structs.get(ty))
+          if (i++ % 2 === 0) partial[field] = sampleProp(schema, prop);
+        expect(plannedPartial(planner, ty, partial), ty).toBe(
+          genericPartial(schema, ty, partial, defaults)
+        );
+      }
+    });
+
+    test('the defaults table is what makes those bytes non-trivial', () => {
+      // If COMPONENT_STRUCT_DEFAULTS were empty, every all-default run would
+      // be zeros and the comparisons above would prove far less.
+      const withDefaults = structNames.filter(n =>
+        COMPONENT_STRUCT_DEFAULTS.has(n)
+      );
+      expect(withDefaults.length).toBeGreaterThan(100);
+      // Many defaults differ from the zero value (so the default bytes matter).
+      const differing = withDefaults.filter(
+        ty =>
+          plannedPartial(planner, ty, {}) !==
+          genericPartial(schema, ty, {}, undefined)
+      );
+      expect(differing.length).toBeGreaterThan(20);
+    });
+  }
+);
 
 describe('plan cache matches the generic writer for exotic shapes', () => {
   // Hand-built schema covering the shapes the embedded ones do not: named

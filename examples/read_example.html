@@ -2,7 +2,7 @@
 <script src="../dist/dist.js"></script>
 
 <!-- Files uploaded will be  -->
-<input id="fileInput" type="file">
+<input id="fileInput" type="file" />
 
 <!-- This will be filled with the save object as JSON or the error message -->
 <pre id="jsonElem"></pre>
@@ -12,12 +12,12 @@
     const file = e.target.files[0];
     if (file) {
       // Read the file into a byte array
-      file.arrayBuffer()
+      file
+        .arrayBuffer()
         .then(buff => {
           const save = BRS.read(buff);
 
-          if (save.preview)
-            save.preview = ' - snipped -';
+          if (save.preview) save.preview = ' - snipped -';
 
           // Log the save object
           console.log(save);

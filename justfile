@@ -42,10 +42,10 @@ fixtures:
     mkdir -p test/fixtures/brdb
     cp -r {{BRDB_CRATE}}/crates/brdb/fixtures/* test/fixtures/brdb/
 
-# Regenerate src/brdb/{schemas,catalog,componentDb,componentTypes}.ts from the Rust crate + data/componentInventory.json
+# Regenerate src/brdb/{schemas,catalog,componentDb,componentTypes,migrations}.ts from the Rust crate + data/componentInventory.json
 sync-brdb-data:
     node scripts/syncBrdbData.mjs {{BRDB_CRATE}}
-    npx prettier --write src/brdb/schemas.ts src/brdb/catalog.ts src/brdb/componentDb.ts src/brdb/componentTypes.ts
+    npx prettier --write src/brdb/schemas.ts src/brdb/catalog.ts src/brdb/componentDb.ts src/brdb/componentTypes.ts src/brdb/migrations.ts
 
 # Re-extract data/componentInventory.json from a zoo world (built in-game by the ue4ss inventory tool)
 extract-inventory WORLD:

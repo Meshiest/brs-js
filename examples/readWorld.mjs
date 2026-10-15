@@ -26,7 +26,9 @@ const reader = db
   : WorldReader.from(new Uint8Array(readFileSync(file)));
 
 console.log('bundle:', reader.bundle());
-console.log('environment:', reader.environment().environment);
+// Prefab bundles (clipboard exports) have Meta/Prefab.json instead of World.json.
+if (reader.prefabJson()) console.log('prefab:', reader.prefabJson());
+else console.log('environment:', reader.environment().environment);
 console.log('brick assets:', reader.brickAssets());
 console.log('materials:', reader.materials());
 console.log('owners:', reader.brickOwners());

@@ -18,4 +18,7 @@ const save = brs.read(buffer);
 // Print some info
 console.log('Description:', save.description);
 console.log('Brick Count:', save.brick_count);
-console.log('Random Brick: ', save.bricks[Math.round(Math.random() * save.brick_count)]);
+console.log(
+  'Random Brick: ',
+  save.bricks[Math.round(Math.random() * save.brick_count)]
+);

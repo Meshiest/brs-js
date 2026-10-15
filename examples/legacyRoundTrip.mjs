@@ -133,12 +133,14 @@ const { reader } = await openWorld(
   'node examples/legacyRoundTrip.mjs <world.brz> [out.brz]'
 );
 
-const { save, options } = toLegacySave(reader);
+// Writing is Latest only: an older (EA3) save is upgraded first.
+const latest = lib.brdb.openLatest(reader);
+const { save, options } = toLegacySave(latest);
 const bytes = writeBrzLegacy(save, options);
 writeFileSync(output, bytes);
 console.log(`${output} written (${bytes.length} bytes)`);
 
-const original = canonicalWorld(reader);
+const original = canonicalWorld(latest);
 const rewritten = canonicalWorld(WorldReader.from(bytes));
 console.log(`original:  ${summarize(original)}`);
 console.log(`rewritten: ${summarize(rewritten)}`);

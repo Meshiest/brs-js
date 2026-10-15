@@ -34,6 +34,8 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         ComponentWirePortNames: ['str'],
         ExternalAssetReferences: ['BRSavedPrimaryAssetId'],
         GlobalGridEntityTypeIndex: 'i32',
+        PrefabSpawnInstanceIndices: ['u32'],
+        PrefabSpawnInstanceParentIndices: ['u32'],
       },
     },
   },
@@ -203,6 +205,21 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
   },
   BRSavedComponentChunkSoA_max: {
     enums: {
+      EBRBrickProperty: {
+        'EBRBrickProperty::Visible': 0,
+        'EBRBrickProperty::Color': 1,
+        'EBRBrickProperty::Material': 2,
+        'EBRBrickProperty::MaterialOpacity': 3,
+        'EBRBrickProperty::AllCollision': 4,
+        'EBRBrickProperty::PlayerCollision': 5,
+        'EBRBrickProperty::Player2Collision': 6,
+        'EBRBrickProperty::Player3Collision': 7,
+        'EBRBrickProperty::Player4Collision': 8,
+        'EBRBrickProperty::WeaponCollision': 9,
+        'EBRBrickProperty::InteractionCollision': 10,
+        'EBRBrickProperty::PhysicsCollision': 11,
+        'EBRBrickProperty::EBRBrickProperty_MAX': 12,
+      },
       EBRColorSpace: {
         'EBRColorSpace::Linear': 0,
         'EBRColorSpace::Srgb': 1,
@@ -345,6 +362,13 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         'EBRPawnCollisionChannel::Channel4': 3,
         'EBRPawnCollisionChannel::EBRPawnCollisionChannel_MAX': 4,
       },
+      EBRReverbEffect: {
+        'EBRReverbEffect::Default': 0,
+        'EBRReverbEffect::SmallRoom': 1,
+        'EBRReverbEffect::LongHallway': 2,
+        'EBRReverbEffect::ExteriorEcho': 3,
+        'EBRReverbEffect::EBRReverbEffect_MAX': 4,
+      },
       EBRSweepCollisionChannel: {
         'EBRSweepCollisionChannel::Physics': 0,
         'EBRSweepCollisionChannel::Weapon': 1,
@@ -397,10 +421,48 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         'EBRTextTypeface::BoldItalic': 3,
         'EBRTextTypeface::EBRTextTypeface_MAX': 4,
       },
+      ECallableInputSource: {
+        'ECallableInputSource::DefinitionDefault': 0,
+        'ECallableInputSource::Override': 1,
+        'ECallableInputSource::ECallableInputSource_MAX': 2,
+      },
       EProjectileSpawnLocation: {
         'EProjectileSpawnLocation::FaceCenter': 0,
         'EProjectileSpawnLocation::RandomPointInFace': 1,
         'EProjectileSpawnLocation::EProjectileSpawnLocation_MAX': 2,
+      },
+      EWireKind: {
+        'EWireKind::Bool': 0,
+        'EWireKind::Integer': 1,
+        'EWireKind::Double': 2,
+        'EWireKind::Color': 3,
+        'EWireKind::Vector': 4,
+        'EWireKind::Rotator': 5,
+        'EWireKind::Quat': 6,
+        'EWireKind::String': 7,
+        'EWireKind::Enum': 8,
+        'EWireKind::Object': 9,
+        'EWireKind::Brick': 10,
+        'EWireKind::Component': 11,
+        'EWireKind::Exec': 12,
+        'EWireKind::Float': 13,
+        'EWireKind::Int8': 14,
+        'EWireKind::Int16': 15,
+        'EWireKind::Int32': 16,
+        'EWireKind::UInt8': 17,
+        'EWireKind::UInt16': 18,
+        'EWireKind::UInt32': 19,
+        'EWireKind::UInt64': 20,
+        'EWireKind::Vector2f': 21,
+        'EWireKind::Vector3f': 22,
+        'EWireKind::Rotator3f': 23,
+        'EWireKind::Quat4f': 24,
+        'EWireKind::ByteColor': 25,
+        'EWireKind::EnumProperty': 26,
+        'EWireKind::StrongObject': 27,
+        'EWireKind::WireValue': 28,
+        'EWireKind::None': 29,
+        'EWireKind::EWireKind_MAX': 30,
       },
     },
     variants: {
@@ -410,227 +472,515 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         'BRInventoryEntryEntity',
         'BRInventoryEntryItem',
       ],
-      WireGraphArrayVariant: [
-        'WireGraphDoubleArray',
-        'WireGraphInt64Array',
-        'WireGraphBoolArray',
-        'WireGraphObjectArray',
-        'WireGraphVectorArray',
-        'WireGraphRotatorArray',
-        'WireGraphQuatArray',
-        'WireGraphStringArray',
-        'WireGraphLinearColorArray',
-        'WireGraphEnumArrayWrapper',
-      ],
-      WireGraphEnumArrayVariant: [
-        'WireGraphEnumArray_EBrickDirection',
-        'WireGraphEnumArray_EBrickAxis',
-        'WireGraphEnumArray_EBRPawnCollisionChannel',
-        'WireGraphEnumArray_EBRTextShading',
-        'WireGraphEnumArray_EBRTextOutline',
-        'WireGraphEnumArray_EBRTextMaterial',
-        'WireGraphEnumArray_EBRTextTypeface',
-        'WireGraphEnumArray_EBRTextFacing',
-        'WireGraphEnumArray_EBREasingFunction',
-        'WireGraphEnumArray_EBREasingDirection',
-        'WireGraphEnumArray_EBRColorSpace',
-        'WireGraphEnumArray_EProjectileSpawnLocation',
-        'WireGraphEnumArray_EBrickRigidJointInterpMode',
-        'WireGraphEnumArray_EBRDisplayTextJustification',
-        'WireGraphEnumArray_EBRDisplayTextEasing',
-        'WireGraphEnumArray_EBrickMaterial',
-        'WireGraphEnumArray_EBrickLightRayTracingVisibility',
-        'WireGraphEnumArray_EBrickSeatMode',
-        'WireGraphEnumArray_EBrickSeatCameraOrigin',
-        'WireGraphEnumArray_EBrickSeatFlightInvertOverride',
-        'WireGraphEnumArray_EBrickSeatAirStrafeControl',
-        'WireGraphEnumArray_EBrickAerodynamicSurfaceRole',
-        'WireGraphEnumArray_EBrickAerodynamicForceApplication',
-        'WireGraphEnumArray_EBrickThrusterForceApplication',
-        'WireGraphEnumArray_EBrickVehicleFlightHandling',
-        'WireGraphEnumArray_EBrickVehicleMassDistribution',
-        'WireGraphEnumArray_EBRSweepCollisionChannel',
-      ],
-      WireGraphEnumMapVariant_FWeakObjectPtr: [
-        'WireGraphMap_FWeakObjectPtr_EBrickDirection',
-        'WireGraphMap_FWeakObjectPtr_EBrickAxis',
-        'WireGraphMap_FWeakObjectPtr_EBRPawnCollisionChannel',
-        'WireGraphMap_FWeakObjectPtr_EBRTextShading',
-        'WireGraphMap_FWeakObjectPtr_EBRTextOutline',
-        'WireGraphMap_FWeakObjectPtr_EBRTextMaterial',
-        'WireGraphMap_FWeakObjectPtr_EBRTextTypeface',
-        'WireGraphMap_FWeakObjectPtr_EBRTextFacing',
-        'WireGraphMap_FWeakObjectPtr_EBREasingFunction',
-        'WireGraphMap_FWeakObjectPtr_EBREasingDirection',
-        'WireGraphMap_FWeakObjectPtr_EBRColorSpace',
-        'WireGraphMap_FWeakObjectPtr_EProjectileSpawnLocation',
-        'WireGraphMap_FWeakObjectPtr_EBrickRigidJointInterpMode',
-        'WireGraphMap_FWeakObjectPtr_EBRDisplayTextJustification',
-        'WireGraphMap_FWeakObjectPtr_EBRDisplayTextEasing',
-        'WireGraphMap_FWeakObjectPtr_EBrickMaterial',
-        'WireGraphMap_FWeakObjectPtr_EBrickLightRayTracingVisibility',
-        'WireGraphMap_FWeakObjectPtr_EBrickSeatMode',
-        'WireGraphMap_FWeakObjectPtr_EBrickSeatCameraOrigin',
-        'WireGraphMap_FWeakObjectPtr_EBrickSeatFlightInvertOverride',
-        'WireGraphMap_FWeakObjectPtr_EBrickSeatAirStrafeControl',
-        'WireGraphMap_FWeakObjectPtr_EBrickAerodynamicSurfaceRole',
-        'WireGraphMap_FWeakObjectPtr_EBrickAerodynamicForceApplication',
-        'WireGraphMap_FWeakObjectPtr_EBrickThrusterForceApplication',
-        'WireGraphMap_FWeakObjectPtr_EBrickVehicleFlightHandling',
-        'WireGraphMap_FWeakObjectPtr_EBrickVehicleMassDistribution',
-        'WireGraphMap_FWeakObjectPtr_EBRSweepCollisionChannel',
-      ],
-      WireGraphEnumMapVariant_FWireGraphString: [
-        'WireGraphMap_FWireGraphString_EBrickDirection',
-        'WireGraphMap_FWireGraphString_EBrickAxis',
-        'WireGraphMap_FWireGraphString_EBRPawnCollisionChannel',
-        'WireGraphMap_FWireGraphString_EBRTextShading',
-        'WireGraphMap_FWireGraphString_EBRTextOutline',
-        'WireGraphMap_FWireGraphString_EBRTextMaterial',
-        'WireGraphMap_FWireGraphString_EBRTextTypeface',
-        'WireGraphMap_FWireGraphString_EBRTextFacing',
-        'WireGraphMap_FWireGraphString_EBREasingFunction',
-        'WireGraphMap_FWireGraphString_EBREasingDirection',
-        'WireGraphMap_FWireGraphString_EBRColorSpace',
-        'WireGraphMap_FWireGraphString_EProjectileSpawnLocation',
-        'WireGraphMap_FWireGraphString_EBrickRigidJointInterpMode',
-        'WireGraphMap_FWireGraphString_EBRDisplayTextJustification',
-        'WireGraphMap_FWireGraphString_EBRDisplayTextEasing',
-        'WireGraphMap_FWireGraphString_EBrickMaterial',
-        'WireGraphMap_FWireGraphString_EBrickLightRayTracingVisibility',
-        'WireGraphMap_FWireGraphString_EBrickSeatMode',
-        'WireGraphMap_FWireGraphString_EBrickSeatCameraOrigin',
-        'WireGraphMap_FWireGraphString_EBrickSeatFlightInvertOverride',
-        'WireGraphMap_FWireGraphString_EBrickSeatAirStrafeControl',
-        'WireGraphMap_FWireGraphString_EBrickAerodynamicSurfaceRole',
-        'WireGraphMap_FWireGraphString_EBrickAerodynamicForceApplication',
-        'WireGraphMap_FWireGraphString_EBrickThrusterForceApplication',
-        'WireGraphMap_FWireGraphString_EBrickVehicleFlightHandling',
-        'WireGraphMap_FWireGraphString_EBrickVehicleMassDistribution',
-        'WireGraphMap_FWireGraphString_EBRSweepCollisionChannel',
-      ],
-      WireGraphEnumMapVariant_int64: [
-        'WireGraphMap_int64_EBrickDirection',
-        'WireGraphMap_int64_EBrickAxis',
-        'WireGraphMap_int64_EBRPawnCollisionChannel',
-        'WireGraphMap_int64_EBRTextShading',
-        'WireGraphMap_int64_EBRTextOutline',
-        'WireGraphMap_int64_EBRTextMaterial',
-        'WireGraphMap_int64_EBRTextTypeface',
-        'WireGraphMap_int64_EBRTextFacing',
-        'WireGraphMap_int64_EBREasingFunction',
-        'WireGraphMap_int64_EBREasingDirection',
-        'WireGraphMap_int64_EBRColorSpace',
-        'WireGraphMap_int64_EProjectileSpawnLocation',
-        'WireGraphMap_int64_EBrickRigidJointInterpMode',
-        'WireGraphMap_int64_EBRDisplayTextJustification',
-        'WireGraphMap_int64_EBRDisplayTextEasing',
-        'WireGraphMap_int64_EBrickMaterial',
-        'WireGraphMap_int64_EBrickLightRayTracingVisibility',
-        'WireGraphMap_int64_EBrickSeatMode',
-        'WireGraphMap_int64_EBrickSeatCameraOrigin',
-        'WireGraphMap_int64_EBrickSeatFlightInvertOverride',
-        'WireGraphMap_int64_EBrickSeatAirStrafeControl',
-        'WireGraphMap_int64_EBrickAerodynamicSurfaceRole',
-        'WireGraphMap_int64_EBrickAerodynamicForceApplication',
-        'WireGraphMap_int64_EBrickThrusterForceApplication',
-        'WireGraphMap_int64_EBrickVehicleFlightHandling',
-        'WireGraphMap_int64_EBrickVehicleMassDistribution',
-        'WireGraphMap_int64_EBRSweepCollisionChannel',
-      ],
-      WireGraphEnumVariant: [
-        'EBrickDirection',
-        'EBrickAxis',
-        'EBrickMaterial',
-        'EBRPawnCollisionChannel',
-        'EBRTextShading',
-        'EBRTextOutline',
-        'EBRTextMaterial',
-        'EBRTextTypeface',
-        'EBRTextFacing',
-        'EBREasingFunction',
-        'EBREasingDirection',
-        'EBRColorSpace',
-        'EProjectileSpawnLocation',
-        'EBrickRigidJointInterpMode',
-        'EBRDisplayTextJustification',
-        'EBRDisplayTextEasing',
-        'EBrickLightRayTracingVisibility',
-        'EBrickSeatMode',
-        'EBrickSeatCameraOrigin',
-        'EBrickSeatFlightInvertOverride',
-        'EBrickSeatAirStrafeControl',
-        'EBrickAerodynamicSurfaceRole',
-        'EBrickAerodynamicForceApplication',
-        'EBrickThrusterForceApplication',
-        'EBrickVehicleFlightHandling',
-        'EBrickVehicleMassDistribution',
-        'EBRSweepCollisionChannel',
-      ],
-      WireGraphMapVariant: [
-        'WireGraphMapKeyWrapper_int64',
-        'WireGraphMapKeyWrapper_FWireGraphString',
-        'WireGraphMapKeyWrapper_FWeakObjectPtr',
-      ],
-      WireGraphMapVariant_FWeakObjectPtr: [
-        'WireGraphMap_FWeakObjectPtr_double',
-        'WireGraphMap_FWeakObjectPtr_int64',
-        'WireGraphMap_FWeakObjectPtr_bool',
-        'WireGraphMap_FWeakObjectPtr_FWeakObjectPtr',
-        'WireGraphMap_FWeakObjectPtr_FVector',
-        'WireGraphMap_FWeakObjectPtr_FRotator',
-        'WireGraphMap_FWeakObjectPtr_FQuat',
-        'WireGraphMap_FWeakObjectPtr_FWireGraphString',
-        'WireGraphMap_FWeakObjectPtr_FLinearColor',
-        'WireGraphEnumMapWrapper_FWeakObjectPtr',
-      ],
-      WireGraphMapVariant_FWireGraphString: [
-        'WireGraphMap_FWireGraphString_double',
-        'WireGraphMap_FWireGraphString_int64',
-        'WireGraphMap_FWireGraphString_bool',
-        'WireGraphMap_FWireGraphString_FWeakObjectPtr',
-        'WireGraphMap_FWireGraphString_FVector',
-        'WireGraphMap_FWireGraphString_FRotator',
-        'WireGraphMap_FWireGraphString_FQuat',
-        'WireGraphMap_FWireGraphString_FWireGraphString',
-        'WireGraphMap_FWireGraphString_FLinearColor',
-        'WireGraphEnumMapWrapper_FWireGraphString',
-      ],
-      WireGraphMapVariant_int64: [
-        'WireGraphMap_int64_double',
-        'WireGraphMap_int64_int64',
-        'WireGraphMap_int64_bool',
-        'WireGraphMap_int64_FWeakObjectPtr',
-        'WireGraphMap_int64_FVector',
-        'WireGraphMap_int64_FRotator',
-        'WireGraphMap_int64_FQuat',
-        'WireGraphMap_int64_FWireGraphString',
-        'WireGraphMap_int64_FLinearColor',
-        'WireGraphEnumMapWrapper_int64',
-      ],
-      WireGraphPrimMathVariant: [
-        'f64',
+      WireValue: [
+        'Bool',
         'i64',
-        'Vector',
-        'Rotator',
-        'Quat',
+        'f64',
         'LinearColor',
-      ],
-      WireGraphVariant: [
-        'f64',
-        'i64',
-        'bool',
-        'weak_object',
-        'WireGraphExec',
         'Vector',
         'Rotator',
         'Quat',
         'str',
-        'LinearColor',
-        'WireGraphEnumWrapper',
+        'dynamic_enum',
+        'weak_object',
+        'BRSavedBrickRef',
+        'BRSavedComponentRef',
+        'WireGraphExec',
       ],
     },
     structs: {
+      BCSComponentDataBase: {},
+      BCSComponentVertex_Exec_Branch: {
+        bCond: 'bool',
+      },
+      BCSComponentVertex_Exec_CallableBreak: {},
+      BCSComponentVertex_Exec_Character_AddInventoryEntity: {
+        EntityType: 'class',
+      },
+      BCSComponentVertex_Exec_Character_AddInventoryItem: {
+        Item: 'class',
+      },
+      BCSComponentVertex_Exec_Character_GetAim: {
+        bLocalAim: 'bool',
+      },
+      BCSComponentVertex_Exec_Character_GetAmmo: {
+        Resource: 'object',
+      },
+      BCSComponentVertex_Exec_Character_GetCurrentInventorySlot: {},
+      BCSComponentVertex_Exec_Character_GetDamage: {},
+      BCSComponentVertex_Exec_Character_GetFromController: {},
+      BCSComponentVertex_Exec_Character_GetInventoryEntry: {
+        Slot: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo: {
+        Slot: 'i64',
+        Resource: 'object',
+      },
+      BCSComponentVertex_Exec_Character_GrantAmmo: {
+        Resource: 'object',
+        Amount: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_IncDamage: {
+        Amount: 'f64',
+      },
+      BCSComponentVertex_Exec_Character_IncWeaponChamberAmmo: {
+        Slot: 'i64',
+        Resource: 'object',
+        Amount: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_SetAmmo: {
+        Resource: 'object',
+        Amount: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_SetDamage: {
+        Damage: 'f64',
+      },
+      BCSComponentVertex_Exec_Character_SetInventoryEntity: {
+        Slot: 'i64',
+        EntityType: 'class',
+      },
+      BCSComponentVertex_Exec_Character_SetInventoryItem: {
+        Slot: 'i64',
+        Item: 'class',
+      },
+      BCSComponentVertex_Exec_Character_SetTempPermission: {
+        PermissionTagStr: 'str',
+        bPermissionEnable: 'bool',
+      },
+      BCSComponentVertex_Exec_Character_SetWeaponChamberAmmo: {
+        Slot: 'i64',
+        Resource: 'object',
+        Amount: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_ShowHint: {
+        HintTitle: 'str',
+        HintText: 'str',
+      },
+      BCSComponentVertex_Exec_Cycle: {
+        Count: 'i64',
+        Value: 'i64',
+      },
+      BCSComponentVertex_Exec_Entity_CopyCustomProperties: {},
+      BCSComponentVertex_Exec_Entity_DestroySpawned: {},
+      BCSComponentVertex_Exec_Entity_DestroySpawnedPrefab: {},
+      BCSComponentVertex_Exec_Entity_GetCustomProperty: {
+        Key: 'str',
+        Value: 'WireValue',
+        bFound: 'bool',
+      },
+      BCSComponentVertex_Exec_Entity_GetSpeed: {},
+      BCSComponentVertex_Exec_Entity_GetTag: {
+        Tag: 'str',
+      },
+      BCSComponentVertex_Exec_Entity_GetTeam: {},
+      BCSComponentVertex_Exec_Entity_IsFrozen: {},
+      BCSComponentVertex_Exec_Entity_PlayAudioAt: {
+        AudioDescriptor: 'object',
+        VolumeMultiplier: 'f64',
+        PitchMultiplier: 'f64',
+        InnerRadius: 'f64',
+        MaxDistance: 'f64',
+        bSpatialization: 'bool',
+      },
+      BCSComponentVertex_Exec_Entity_RemoveCustomProperty: {
+        Key: 'str',
+        bFound: 'bool',
+      },
+      BCSComponentVertex_Exec_Entity_SetCustomProperty: {
+        Key: 'str',
+        Value: 'WireValue',
+      },
+      BCSComponentVertex_Exec_Entity_SetFrozen: {
+        bFrozen: 'bool',
+      },
+      BCSComponentVertex_Exec_Entity_SetTag: {
+        Tag: 'str',
+      },
+      BCSComponentVertex_Exec_Entity_SetTeam: {},
+      BCSComponentVertex_Exec_Entity_SetVisible: {
+        bVisible: 'bool',
+      },
+      BCSComponentVertex_Exec_FindPlayer: {
+        Query: 'str',
+      },
+      BCSComponentVertex_Exec_Gamemode_BroadcastChatMessage: {
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_Gamemode_BroadcastStatusMessage: {
+        Message: 'str',
+        bFlashIfUnchanged: 'bool',
+      },
+      BCSComponentVertex_Exec_Gamemode_GetCurrentRound: {},
+      BCSComponentVertex_Exec_Gamemode_GetLeaderboardValue: {
+        Key: 'str',
+      },
+      BCSComponentVertex_Exec_Gamemode_GetTeam: {},
+      BCSComponentVertex_Exec_Gamemode_GetTeamByName: {
+        TeamName: 'str',
+      },
+      BCSComponentVertex_Exec_Gamemode_GetTeamLeaderboardValue: {
+        Key: 'str',
+      },
+      BCSComponentVertex_Exec_Gamemode_GetTeamName: {},
+      BCSComponentVertex_Exec_Gamemode_LeaderboardValue: {
+        Key: 'str',
+        Value: 'i64',
+      },
+      BCSComponentVertex_Exec_Gamemode_PlayerWins: {
+        bTeamWinsInstead: 'bool',
+      },
+      BCSComponentVertex_Exec_Gamemode_SetTeam: {
+        bPinPlayerToTeam: 'bool',
+      },
+      BCSComponentVertex_Exec_Gamemode_SetTeamPinned: {
+        bPinned: 'bool',
+      },
+      BCSComponentVertex_Exec_Gamemode_TeamLeaderboardValue: {
+        Key: 'str',
+        Value: 'i64',
+      },
+      BCSComponentVertex_Exec_Gamemode_TeamWins: {},
+      BCSComponentVertex_Exec_GetEnvironmentProperty: {
+        Environment: 'str',
+        PropertyName: 'str',
+      },
+      BCSComponentVertex_Exec_GetInputs: {},
+      BCSComponentVertex_Exec_GetOwnTransform: {},
+      BCSComponentVertex_Exec_PlayClientAudio: {
+        AudioDescriptor: 'object',
+        VolumeMultiplier: 'f64',
+        PitchMultiplier: 'f64',
+      },
+      BCSComponentVertex_Exec_PlayerState_ForceRespawn: {},
+      BCSComponentVertex_Exec_PlayerState_GetDisplayName: {},
+      BCSComponentVertex_Exec_PlayerState_GetFromEntity: {},
+      BCSComponentVertex_Exec_PlayerState_GetUserId: {},
+      BCSComponentVertex_Exec_PlayerState_GetUserName: {},
+      BCSComponentVertex_Exec_PlayerState_HasPermission: {
+        PermissionName: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_HasRole: {
+        RoleName: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner: {},
+      BCSComponentVertex_Exec_PlayerState_SetCanRespawn: {
+        bCanRespawn: 'bool',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowChatMessage: {
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowMessageBox: {
+        Title: 'str',
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowOkCancelBox: {
+        Title: 'str',
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowStatusMessage: {
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowTextInputBox: {
+        Title: 'str',
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_ShowYesNoBox: {
+        Title: 'str',
+        Message: 'str',
+      },
+      BCSComponentVertex_Exec_PlayGlobalAudio: {
+        AudioDescriptor: 'object',
+        VolumeMultiplier: 'f64',
+        PitchMultiplier: 'f64',
+      },
+      BCSComponentVertex_Exec_PrintToConsole: {
+        Text: 'str',
+      },
+      BCSComponentVertex_Exec_Random: {
+        Min: 'WireValue',
+        Max: 'WireValue',
+      },
+      BCSComponentVertex_Exec_SendCustomEvent: {
+        EventName: 'str',
+        DataIn1: 'WireValue',
+        DataIn2: 'WireValue',
+        DataIn3: 'WireValue',
+        DataIn4: 'WireValue',
+        DataIn5: 'WireValue',
+        DataIn6: 'WireValue',
+        DataIn7: 'WireValue',
+        DataIn8: 'WireValue',
+      },
+      BCSComponentVertex_Exec_SetEnvironmentProperty: {
+        Value: 'WireValue',
+        Environment: 'str',
+        PropertyName: 'str',
+      },
+      BCSComponentVertex_Exec_Toggle: {
+        Value: 'bool',
+      },
+      BCSComponentVertex_Exec_Union: {},
+      BCSComponentVertex_Expr_Arithmetic_Value: {
+        Input: 'WireValue',
+      },
+      BCSComponentVertex_Expr_ArithmeticArithmetic_Value: {
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_Bool_Bool: {
+        bInput: 'bool',
+      },
+      BCSComponentVertex_Expr_BoolBool_Bool: {
+        bInputA: 'bool',
+        bInputB: 'bool',
+      },
+      BCSComponentVertex_Expr_ChangeDetector: {
+        Input: 'WireValue',
+        bPulseOnChange: 'bool',
+      },
+      BCSComponentVertex_Expr_ChangeDetectorExec: {
+        Input: 'WireValue',
+      },
+      BCSComponentVertex_Expr_Compare: {
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_Convert: {
+        Input: 'WireValue',
+        Output: 'WireValue',
+        TargetType: 'WireValue',
+      },
+      BCSComponentVertex_Expr_DeltaTime: {},
+      BCSComponentVertex_Expr_EdgeDetector: {
+        Input: 'f64',
+        bPulseOnRisingEdge: 'bool',
+        bPulseOnFallingEdge: 'bool',
+      },
+      BCSComponentVertex_Expr_EdgeDetectorExec: {
+        Input: 'f64',
+      },
+      BCSComponentVertex_Expr_EnumToInteger: {
+        Input: 'WireValue',
+        Output: 'WireValue',
+      },
+      BCSComponentVertex_Expr_Float_Float: {
+        Input: 'f64',
+      },
+      BCSComponentVertex_Expr_FormatDate: {
+        UnixEpoch: 'i64',
+        Format: 'str',
+        bUseUTC: 'bool',
+      },
+      BCSComponentVertex_Expr_Gamemode_TeamPredicate: {},
+      BCSComponentVertex_Expr_GetUnixEpoch: {},
+      BCSComponentVertex_Expr_GetValueType: {
+        Input: 'WireValue',
+      },
+      BCSComponentVertex_Expr_Int_Int: {
+        Input: 'i64',
+      },
+      BCSComponentVertex_Expr_IntegerToEnum: {
+        Input: 'i64',
+        bWrap: 'bool',
+        TargetType: 'dynamic_enum',
+        Output: 'WireValue',
+      },
+      BCSComponentVertex_Expr_IntInt_Int: {
+        InputA: 'i64',
+        InputB: 'i64',
+      },
+      BCSComponentVertex_Expr_ItemToPickup: {},
+      BCSComponentVertex_Expr_MakeColor: {
+        R: 'f64',
+        G: 'f64',
+        B: 'f64',
+        A: 'f64',
+      },
+      BCSComponentVertex_Expr_MakeColorHex: {
+        Hex: 'str',
+      },
+      BCSComponentVertex_Expr_MakeColorSRGB: {
+        R: 'i64',
+        G: 'i64',
+        B: 'i64',
+        A: 'i64',
+      },
+      BCSComponentVertex_Expr_MakeQuaternion: {
+        X: 'f64',
+        Y: 'f64',
+        Z: 'f64',
+        W: 'f64',
+      },
+      BCSComponentVertex_Expr_MakeRotation: {
+        Pitch: 'f64',
+        Yaw: 'f64',
+        Roll: 'f64',
+      },
+      BCSComponentVertex_Expr_MakeVector: {
+        X: 'f64',
+        Y: 'f64',
+        Z: 'f64',
+      },
+      BCSComponentVertex_Expr_MathAtan2: {
+        Y: 'f64',
+        X: 'f64',
+      },
+      BCSComponentVertex_Expr_MathBlend: {
+        Blend: 'f64',
+        bClampAlpha: 'bool',
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_MathClamp: {
+        Min: 'WireValue',
+        Max: 'WireValue',
+        Input: 'WireValue',
+      },
+      BCSComponentVertex_Expr_MathCompare: {
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_MathEasing: {
+        Blend: 'f64',
+        Function: 'EBREasingFunction',
+        Direction: 'EBREasingDirection',
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_MathLogBase: {
+        Input: 'f64',
+        Base: 'f64',
+      },
+      BCSComponentVertex_Expr_MathPow: {
+        Input: 'f64',
+        Exponent: 'f64',
+      },
+      BCSComponentVertex_Expr_NearlyEqual: {
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+        Tolerance: 'f64',
+      },
+      BCSComponentVertex_Expr_Remap: {
+        Value: 'f64',
+        InputMin: 'f64',
+        InputMax: 'f64',
+        OutputMin: 'f64',
+        OutputMax: 'f64',
+        Function: 'EBREasingFunction',
+        Direction: 'EBREasingDirection',
+      },
+      BCSComponentVertex_Expr_Select: {
+        bSelectB: 'bool',
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_Expr_ServerUptime: {},
+      BCSComponentVertex_Expr_String_CharacterToCodepoint: {
+        Character: 'str',
+      },
+      BCSComponentVertex_Expr_String_CodepointToCharacter: {
+        Codepoint: 'i64',
+      },
+      BCSComponentVertex_Expr_String_Concatenate: {
+        InputA: 'str',
+        InputB: 'str',
+        Separator: 'str',
+      },
+      BCSComponentVertex_Expr_String_Contains: {
+        Input: 'str',
+        Search: 'str',
+        bCaseSensitive: 'bool',
+      },
+      BCSComponentVertex_Expr_String_EndsWith: {
+        Input: 'str',
+        Suffix: 'str',
+        bCaseSensitive: 'bool',
+      },
+      BCSComponentVertex_Expr_String_Find: {
+        Input: 'str',
+        Search: 'str',
+        bCaseSensitive: 'bool',
+        Start: 'i64',
+      },
+      BCSComponentVertex_Expr_String_FormatText: {
+        FormatString: 'str',
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+        InputC: 'WireValue',
+        InputD: 'WireValue',
+        InputE: 'WireValue',
+        InputF: 'WireValue',
+        InputG: 'WireValue',
+      },
+      BCSComponentVertex_Expr_String_Length: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_String_ParseInt: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_String_ParseNumber: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_String_Replace: {
+        Input: 'str',
+        Search: 'str',
+        Replacement: 'str',
+        bCaseSensitive: 'bool',
+        Start: 'i64',
+        MaxReplacements: 'i64',
+      },
+      BCSComponentVertex_Expr_String_Split: {
+        Input: 'str',
+        Delimiter: 'str',
+        bCaseSensitive: 'bool',
+        Occurrence: 'i64',
+      },
+      BCSComponentVertex_Expr_String_StartsWith: {
+        Input: 'str',
+        Prefix: 'str',
+        bCaseSensitive: 'bool',
+      },
+      BCSComponentVertex_Expr_String_Substring: {
+        Input: 'str',
+        Start: 'i64',
+        Length: 'i64',
+      },
+      BCSComponentVertex_Expr_String_ToLower: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_String_ToUpper: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_String_Trim: {
+        Input: 'str',
+      },
+      BCSComponentVertex_Expr_Swap: {
+        bSwap: 'bool',
+        InputA: 'WireValue',
+        InputB: 'WireValue',
+      },
+      BCSComponentVertex_FunctionCall: {
+        Input0: 'WireValue',
+        Input1: 'WireValue',
+        Input2: 'WireValue',
+        Input3: 'WireValue',
+        Input4: 'WireValue',
+        Input5: 'WireValue',
+        Input6: 'WireValue',
+        Input7: 'WireValue',
+        Output0: 'WireValue',
+        Output1: 'WireValue',
+        Output2: 'WireValue',
+        Output3: 'WireValue',
+        Output4: 'WireValue',
+        Output5: 'WireValue',
+        Output6: 'WireValue',
+        Output7: 'WireValue',
+        InputSources: ['ECallableInputSource'],
+      },
+      BrickComponentData_ArrayVar: {
+        Value: 'dynamic_array',
+      },
       BrickComponentData_AudioEmitter: {
         bEnabled: 'bool',
         AudioDescriptor: 'object',
@@ -643,6 +993,9 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         NonFocusAzimuth: 'f32',
         NonFocusVolumeAttenuation: 'f32',
       },
+      BrickComponentData_AudioReference: {
+        Asset: 'object',
+      },
       BrickComponentData_Bearing: {
         bLimitAngle: 'bool',
         LimitAngle: 'f32',
@@ -651,6 +1004,29 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bReversed: 'bool',
         Damping: 'f32',
       },
+      BrickComponentData_BrickAssetReference: {
+        Asset: 'object',
+      },
+      BrickComponentData_BufferSeconds: {
+        SecondsToWait: 'f32',
+        ZeroSecondsToWait: 'f32',
+        CurrentTime: 'f32',
+        Input: 'WireValue',
+        Output: 'WireValue',
+        Buffered: 'WireValue',
+        bHasQueued: 'bool',
+        bIsOffTimer: 'bool',
+      },
+      BrickComponentData_BufferTicks: {
+        TicksToWait: 'i32',
+        ZeroTicksToWait: 'i32',
+        CurrentTicks: 'i32',
+        Input: 'WireValue',
+        Output: 'WireValue',
+        Buffered: 'WireValue',
+        bHasQueued: 'bool',
+        bIsOffTimer: 'bool',
+      },
       BrickComponentData_Button: {
         PressSound: 'object',
         ReleaseSound: 'object',
@@ -658,6 +1034,10 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bHiddenInteraction: 'bool',
         PromptCustomLabel: 'str',
       },
+      BrickComponentData_CallableEntry_CountFor: {},
+      BrickComponentData_CallableEntry_ForEachArray: {},
+      BrickComponentData_CallableEntry_ForEachMap: {},
+      BrickComponentData_CallableEntry_Function: {},
       BrickComponentData_CheckPoint: {
         bRotatePlayerGravityOnSpawn: 'bool',
       },
@@ -673,6 +1053,54 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         RepeatDelay: 'f32',
         Message: 'str',
         ConsoleTag: 'str',
+      },
+      BrickComponentData_EntityTypeReference: {
+        Asset: 'class',
+      },
+      BrickComponentData_Event_ChatCommand: {
+        CommandName: 'str',
+        HelpText: 'str',
+      },
+      BrickComponentData_Event_Custom: {
+        EventName: 'str',
+        bIsObjectEvent: 'bool',
+        DataOut1: 'WireValue',
+        DataOut2: 'WireValue',
+        DataOut3: 'WireValue',
+        DataOut4: 'WireValue',
+        DataOut5: 'WireValue',
+        DataOut6: 'WireValue',
+        DataOut7: 'WireValue',
+        DataOut8: 'WireValue',
+      },
+      BrickComponentData_Event_Gamemode_CharacterBase: {},
+      BrickComponentData_Event_Gamemode_CharacterDamaged: {},
+      BrickComponentData_Event_Gamemode_CharacterDied: {},
+      BrickComponentData_Event_Gamemode_CharacterFiredWeapon: {},
+      BrickComponentData_Event_Gamemode_ControllerBase: {},
+      BrickComponentData_Event_Gamemode_ControllerTeamBase: {},
+      BrickComponentData_Event_Gamemode_RoundBase: {
+        RoundNumber: 'i32',
+      },
+      BrickComponentData_Event_WholeGridInteracted: {
+        bAllowNearbyInteraction: 'bool',
+        bHiddenInteraction: 'bool',
+        PromptCustomLabel: 'str',
+      },
+      BrickComponentData_Event_WholeGridTargeted: {},
+      BrickComponentData_FontReference: {
+        Asset: 'object',
+      },
+      BrickComponentData_FunctionInput: {
+        PortLabel: 'str',
+        PortOrder: 'i32',
+        DefaultValue: 'WireValue',
+        Value: 'WireValue',
+      },
+      BrickComponentData_FunctionOutput: {
+        PortLabel: 'str',
+        PortOrder: 'i32',
+        DefaultValue: 'WireValue',
       },
       BrickComponentData_Interact: {
         InteractSound: 'object',
@@ -694,15 +1122,40 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_Internal_InputSplitter_V2: {},
       BrickComponentData_Internal_Microchip: {},
+      BrickComponentData_Internal_Microchip_CountFor: {
+        Count: 'i64',
+        FirstIndex: 'i64',
+        Step: 'i64',
+        bRunAcrossTicks: 'bool',
+      },
+      BrickComponentData_Internal_Microchip_ForEachArray: {
+        bRunAcrossTicks: 'bool',
+      },
+      BrickComponentData_Internal_Microchip_ForEachMap: {
+        bRunAcrossTicks: 'bool',
+      },
+      BrickComponentData_Internal_Microchip_FunctionDefinition: {},
       BrickComponentData_Internal_MicrochipInput: {
         PortLabel: 'str',
+        PortOrder: 'i32',
+        CallableDefault: 'WireValue',
+        CallableMirror: 'WireValue',
       },
       BrickComponentData_Internal_MicrochipOutput: {
         PortLabel: 'str',
+        PortOrder: 'i32',
+        CallableDefault: 'WireValue',
+        CallableResult: 'WireValue',
       },
       BrickComponentData_Internal_ProjectileZoneEvent: {},
       BrickComponentData_Internal_ReadBrickGrid: {},
       BrickComponentData_Internal_ZoneEvent: {},
+      BrickComponentData_ItemReference: {
+        Asset: 'class',
+      },
+      BrickComponentData_MapVar: {
+        Value: 'dynamic_map',
+      },
       BrickComponentData_Motor: {
         bEnabled: 'bool',
         Speed: 'f32',
@@ -733,6 +1186,18 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         RepeatTime: 'f32',
         RepeatVariance: 'f32',
         RepeatCount: 'i32',
+      },
+      BrickComponentData_OneShotAudioReference: {
+        Asset: 'object',
+      },
+      BrickComponentData_ParticleReference: {
+        Asset: 'object',
+      },
+      BrickComponentData_PickupReference: {
+        Asset: 'class',
+      },
+      BrickComponentData_ProjectileReference: {
+        Asset: 'class',
       },
       BrickComponentData_ProjectileSpawner: {
         ProjectileClass: 'class',
@@ -802,6 +1267,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bRotatePlayerGravityOnSpawn: 'bool',
         bEnable: 'bool',
       },
+      BrickComponentData_Stopwatch: {
+        Limit: 'f64',
+        Time: 'f64',
+        bRunning: 'bool',
+      },
       BrickComponentData_Switch: {
         bEnabled: 'bool',
         InteractSound: 'object',
@@ -821,646 +1291,24 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bCollisionEnabled_Player2: 'bool',
         bCollisionEnabled_Player3: 'bool',
       },
-      BrickComponentData_WireGraph_AudioReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_BrickAssetReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_DeltaTime: {},
-      BrickComponentData_WireGraph_EntityTypeReference: {
-        Asset: 'class',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Average: {
-        Value: 'WireGraphVariant',
-        bIsEmpty: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Base: {},
-      BrickComponentData_WireGraph_Exec_ArrayVar_DualRef: {},
-      BrickComponentData_WireGraph_Exec_ArrayVar_ElementOp: {
-        Index: 'i64',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Find: {
-        Index: 'i64',
-        bFound: 'bool',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Get: {
-        bOutOfBounds: 'bool',
-        Index: 'i64',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_GetLength: {
-        Length: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Insert: {
-        bOutOfBounds: 'bool',
-        Index: 'i64',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_MinMax: {
-        Value: 'WireGraphVariant',
-        bIsEmpty: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Pop: {
-        bIsEmpty: 'bool',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Push: {
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_RemoveAtIndex: {
-        Index: 'i64',
-        bOutOfBounds: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Resize: {
-        Size: 'i64',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Slice: {
-        Start: 'i64',
-        Count: 'i64',
-        bOutOfBounds: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Sort: {
-        bDescending: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_SortMultiple: {
-        bDescending: 'bool',
-        bSuccess: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Sum: {
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_ArrayVar_Swap: {
-        IndexA: 'i64',
-        IndexB: 'i64',
-        bOutOfBounds: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntity: {
-        EntityType: 'class',
-      },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryItem: {
-        Item: 'class',
-      },
-      BrickComponentData_WireGraph_Exec_Character_GetAim: {
-        bLocalAim: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Character_GetAmmo: {
-        Resource: 'object',
-      },
-      BrickComponentData_WireGraph_Exec_Character_GetCurrentInventorySlot: {},
-      BrickComponentData_WireGraph_Exec_Character_GetDamage: {},
-      BrickComponentData_WireGraph_Exec_Character_GetFromController: {},
-      BrickComponentData_WireGraph_Exec_Character_GetInventoryEntry: {
-        Slot: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_GetWeaponChamberAmmo: {
-        Slot: 'i64',
-        Resource: 'object',
-      },
-      BrickComponentData_WireGraph_Exec_Character_GrantAmmo: {
-        Resource: 'object',
-        Amount: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_IncDamage: {
-        Amount: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_IncWeaponChamberAmmo: {
-        Slot: 'i64',
-        Resource: 'object',
-        Amount: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetAmmo: {
-        Resource: 'object',
-        Amount: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetDamage: {
-        Damage: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetInventoryEntity: {
-        Slot: 'i64',
-        EntityType: 'class',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetInventoryItem: {
-        Slot: 'i64',
-        Item: 'class',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetTempPermission: {
-        PermissionTagStr: 'str',
-        bPermissionEnable: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetWeaponChamberAmmo: {
-        Slot: 'i64',
-        Resource: 'object',
-        Amount: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Character_ShowHint: {
-        HintTitle: 'str',
-        HintText: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_ChatCommand: {
-        CommandName: 'str',
-        HelpText: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Cycle: {
-        Count: 'i64',
-        Value: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_DestroySpawned: {},
-      BrickComponentData_WireGraph_Exec_Entity_DestroySpawnedPrefab: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetSpeed: {},
-      BrickComponentData_WireGraph_Exec_Entity_GetTag: {
-        Tag: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetTeam: {},
-      BrickComponentData_WireGraph_Exec_Entity_IsFrozen: {},
-      BrickComponentData_WireGraph_Exec_Entity_PlayAudioAt: {
-        AudioDescriptor: 'object',
-        VolumeMultiplier: 'f64',
-        PitchMultiplier: 'f64',
-        InnerRadius: 'f64',
-        MaxDistance: 'f64',
-        bSpatialization: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetFrozen: {
-        bFrozen: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetTag: {
-        Tag: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetTeam: {},
-      BrickComponentData_WireGraph_Exec_Gamemode_BroadcastChatMessage: {
-        Message: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_BroadcastStatusMessage: {
-        Message: 'str',
-        bFlashIfUnchanged: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_FillArrayFromPlayers: {
-        bIncludeBuilderMode: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_FillArrayFromTeamMembers: {},
-      BrickComponentData_WireGraph_Exec_Gamemode_GetCurrentRound: {},
-      BrickComponentData_WireGraph_Exec_Gamemode_GetLeaderboardValue: {
-        Key: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_GetTeam: {},
-      BrickComponentData_WireGraph_Exec_Gamemode_GetTeamByName: {
-        TeamName: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_GetTeamLeaderboardValue: {
-        Key: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_GetTeamName: {},
-      BrickComponentData_WireGraph_Exec_Gamemode_LeaderboardValue: {
-        Key: 'str',
-        Value: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_PlayerWins: {
-        bTeamWinsInstead: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_SetTeam: {
-        bPinPlayerToTeam: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_SetTeamPinned: {
-        bPinned: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_TeamLeaderboardValue: {
-        Key: 'str',
-        Value: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_Gamemode_TeamWins: {},
-      BrickComponentData_WireGraph_Exec_GetInputs: {},
-      BrickComponentData_WireGraph_Exec_GetOwnTransform: {},
-      BrickComponentData_WireGraph_Exec_MapVar_ArrayDest: {},
-      BrickComponentData_WireGraph_Exec_MapVar_Base: {},
-      BrickComponentData_WireGraph_Exec_MapVar_CopyFrom: {},
-      BrickComponentData_WireGraph_Exec_MapVar_Get: {
-        bFound: 'bool',
-        Key: 'WireGraphVariant',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_MapVar_GetLength: {
-        Length: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_MapVar_KeyOp: {
-        Key: 'WireGraphVariant',
-        bFound: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_MapVar_Set: {
-        Key: 'WireGraphVariant',
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_PlayClientAudio: {
-        AudioDescriptor: 'object',
-        VolumeMultiplier: 'f64',
-        PitchMultiplier: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_ForceRespawn: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_GetDisplayName: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_GetFromEntity: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_GetUserId: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_GetUserName: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_HasPermission: {
-        PermissionName: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_HasRole: {
-        RoleName: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_IsTrustedByBrickOwner: {},
-      BrickComponentData_WireGraph_Exec_PlayerState_SetCanRespawn: {
-        bCanRespawn: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_ShowChatMessage: {
-        Message: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_ShowMessageBox: {
-        Title: 'str',
-        Message: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_ShowStatusMessage: {
-        Message: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_PlayGlobalAudio: {
-        AudioDescriptor: 'object',
-        VolumeMultiplier: 'f64',
-        PitchMultiplier: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_PrintToConsole: {
-        Text: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Random: {
-        Min: 'WireGraphPrimMathVariant',
-        Max: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Exec_Toggle: {
-        Value: 'bool',
-      },
-      BrickComponentData_WireGraph_Exec_Var_EditOrGet: {
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_Var_Get: {
-        Value: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Exec_WholeGridInteracted: {
-        bAllowNearbyInteraction: 'bool',
-        bHiddenInteraction: 'bool',
-        PromptCustomLabel: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_WholeGridTargeted: {},
-      BrickComponentData_WireGraph_Exec_Zone_GetEntities: {
-        TagFilter: 'str',
-      },
-      BrickComponentData_WireGraph_Exec_Zone_GetPlayers: {
-        TagFilter: 'str',
-      },
-      BrickComponentData_WireGraph_ExecBranch: {
-        bCond: 'bool',
-      },
-      BrickComponentData_WireGraph_ExecUnion: {},
-      BrickComponentData_WireGraph_Expr_Bool_Bool: {
-        bInput: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_BoolBool_Bool: {
-        bInputA: 'bool',
-        bInputB: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_ChangeDetector: {
-        Input: 'WireGraphVariant',
-        bPulseOnChange: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_ChangeDetectorExec: {
-        Input: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_Compare: {
-        InputA: 'WireGraphVariant',
-        InputB: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_Convert: {
-        Input: 'WireGraphVariant',
-        Output: 'WireGraphVariant',
-        TargetType: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_EdgeDetector: {
-        Input: 'f64',
-        bPulseOnRisingEdge: 'bool',
-        bPulseOnFallingEdge: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_EdgeDetectorExec: {
-        Input: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_EnumToInteger: {
-        Input: 'WireGraphVariant',
-        Output: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_Float_Float: {
-        Input: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_Gamemode_TeamPredicate: {},
-      BrickComponentData_WireGraph_Expr_Int_Int: {
-        Input: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_IntegerToEnum: {
-        Input: 'i64',
-        bWrap: 'bool',
-        TargetType: 'WireGraphEnumVariant',
-        Output: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_IntInt_Int: {
-        InputA: 'i64',
-        InputB: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_ItemToPickup: {},
-      BrickComponentData_WireGraph_Expr_MakeColor: {
-        R: 'f64',
-        G: 'f64',
-        B: 'f64',
-        A: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MakeColorHex: {
-        Hex: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_MakeColorSRGB: {
-        R: 'i64',
-        G: 'i64',
-        B: 'i64',
-        A: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_MakeQuaternion: {
-        X: 'f64',
-        Y: 'f64',
-        Z: 'f64',
-        W: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MakeRotation: {
-        Pitch: 'f64',
-        Yaw: 'f64',
-        Roll: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MakeVector: {
-        X: 'f64',
-        Y: 'f64',
-        Z: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MathAtan2: {
-        Y: 'f64',
-        X: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MathBlend: {
-        Blend: 'f64',
-        bClampAlpha: 'bool',
-        InputA: 'WireGraphPrimMathVariant',
-        InputB: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Expr_MathClamp: {
-        Min: 'WireGraphPrimMathVariant',
-        Max: 'WireGraphPrimMathVariant',
-        Input: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Expr_MathCompare: {
-        InputA: 'WireGraphPrimMathVariant',
-        InputB: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Expr_MathEasing: {
-        Blend: 'f64',
-        Function: 'EBREasingFunction',
-        Direction: 'EBREasingDirection',
-        InputA: 'WireGraphPrimMathVariant',
-        InputB: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Expr_MathLogBase: {
-        Input: 'f64',
-        Base: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_MathPow: {
-        Input: 'f64',
-        Exponent: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_NearlyEqual: {
-        InputA: 'WireGraphPrimMathVariant',
-        InputB: 'WireGraphPrimMathVariant',
-        Tolerance: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_PrimMathVariant_PrimMathVariant: {
-        Input: 'WireGraphPrimMathVariant',
-      },
-      BrickComponentData_WireGraph_Expr_PrimMathVariantPrimMathVariant_PrimMathVariant:
-        {
-          InputA: 'WireGraphPrimMathVariant',
-          InputB: 'WireGraphPrimMathVariant',
-        },
-      BrickComponentData_WireGraph_Expr_Remap: {
-        Value: 'f64',
-        InputMin: 'f64',
-        InputMax: 'f64',
-        OutputMin: 'f64',
-        OutputMax: 'f64',
-        Function: 'EBREasingFunction',
-        Direction: 'EBREasingDirection',
-      },
-      BrickComponentData_WireGraph_Expr_Select: {
-        bSelectB: 'bool',
-        InputA: 'WireGraphVariant',
-        InputB: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_String_CharacterToCodepoint: {
-        Character: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_CodepointToCharacter: {
-        Codepoint: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_String_Concatenate: {
-        InputA: 'str',
-        InputB: 'str',
-        Separator: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_Contains: {
-        Input: 'str',
-        Search: 'str',
-        bCaseSensitive: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_String_EndsWith: {
-        Input: 'str',
-        Suffix: 'str',
-        bCaseSensitive: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_String_Find: {
-        Input: 'str',
-        Search: 'str',
-        bCaseSensitive: 'bool',
-        Start: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_String_FormatText: {
-        FormatString: 'str',
-        InputA: 'WireGraphVariant',
-        InputB: 'WireGraphVariant',
-        InputC: 'WireGraphVariant',
-        InputD: 'WireGraphVariant',
-        InputE: 'WireGraphVariant',
-        InputF: 'WireGraphVariant',
-        InputG: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_String_Length: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_ParseInt: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_ParseNumber: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_Replace: {
-        Input: 'str',
-        Search: 'str',
-        Replacement: 'str',
-        bCaseSensitive: 'bool',
-        Start: 'i64',
-        MaxReplacements: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_String_Split: {
-        Input: 'str',
-        Delimiter: 'str',
-        bCaseSensitive: 'bool',
-        Occurrence: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_String_StartsWith: {
-        Input: 'str',
-        Prefix: 'str',
-        bCaseSensitive: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_String_Substring: {
-        Input: 'str',
-        Start: 'i64',
-        Length: 'i64',
-      },
-      BrickComponentData_WireGraph_Expr_String_ToLower: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_ToUpper: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_String_Trim: {
-        Input: 'str',
-      },
-      BrickComponentData_WireGraph_Expr_Swap: {
-        bSwap: 'bool',
-        InputA: 'WireGraphVariant',
-        InputB: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Expr_Variant_Variant: {
-        Input: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraph_Fake_CharacterDamageEvent: {},
-      BrickComponentData_WireGraph_Fake_CharacterDeathEvent: {},
-      BrickComponentData_WireGraph_Fake_CharacterEvent: {},
-      BrickComponentData_WireGraph_Fake_CharacterFiredWeaponEvent: {},
-      BrickComponentData_WireGraph_Fake_ControllerEvent: {},
-      BrickComponentData_WireGraph_Fake_ControllerTeamEvent: {},
-      BrickComponentData_WireGraph_Fake_RoundEvent: {
-        RoundNumber: 'i32',
-      },
-      BrickComponentData_WireGraph_FindPlayer: {
-        Query: 'str',
-      },
-      BrickComponentData_WireGraph_FontReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_FormatDate: {
-        UnixEpoch: 'i64',
-        Format: 'str',
-        bUseUTC: 'bool',
-      },
-      BrickComponentData_WireGraph_GetUnixEpoch: {},
-      BrickComponentData_WireGraph_ItemReference: {
-        Asset: 'class',
-      },
-      BrickComponentData_WireGraph_OneShotAudioReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_ParticleReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_PickupReference: {
-        Asset: 'class',
-      },
-      BrickComponentData_WireGraph_ProjectileReference: {
-        Asset: 'class',
-      },
-      BrickComponentData_WireGraph_ServerUptime: {},
-      BrickComponentData_WireGraph_WeaponResourceReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraph_WheelEngineAudioReference: {
-        Asset: 'object',
-      },
-      BrickComponentData_WireGraphPseudo_ArrayVar: {
-        Value: 'WireGraphArrayVariant',
-      },
-      BrickComponentData_WireGraphPseudo_BufferSeconds: {
-        SecondsToWait: 'f32',
-        ZeroSecondsToWait: 'f32',
-        CurrentTime: 'f32',
-        Input: 'WireGraphVariant',
-        Output: 'WireGraphVariant',
-        Buffered: 'WireGraphVariant',
-        bHasQueued: 'bool',
-        bIsOffTimer: 'bool',
-      },
-      BrickComponentData_WireGraphPseudo_BufferTicks: {
-        TicksToWait: 'i32',
-        ZeroTicksToWait: 'i32',
-        CurrentTicks: 'i32',
-        Input: 'WireGraphVariant',
-        Output: 'WireGraphVariant',
-        Buffered: 'WireGraphVariant',
-        bHasQueued: 'bool',
-        bIsOffTimer: 'bool',
-      },
-      BrickComponentData_WireGraphPseudo_CustomEvent: {
-        EventName: 'str',
-        bIsObjectEvent: 'bool',
-        DataOut1: 'WireGraphVariant',
-        DataOut2: 'WireGraphVariant',
-        DataOut3: 'WireGraphVariant',
-        DataOut4: 'WireGraphVariant',
-        DataOut5: 'WireGraphVariant',
-        DataOut6: 'WireGraphVariant',
-        DataOut7: 'WireGraphVariant',
-        DataOut8: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraphPseudo_MapVar: {
-        Value: 'WireGraphMapVariant',
-      },
-      BrickComponentData_WireGraphPseudo_SendCustomEvent: {
-        EventName: 'str',
-        DataIn1: 'WireGraphVariant',
-        DataIn2: 'WireGraphVariant',
-        DataIn3: 'WireGraphVariant',
-        DataIn4: 'WireGraphVariant',
-        DataIn5: 'WireGraphVariant',
-        DataIn6: 'WireGraphVariant',
-        DataIn7: 'WireGraphVariant',
-        DataIn8: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraphPseudo_Timer: {
-        Limit: 'f64',
-        Time: 'f64',
-        bRunning: 'bool',
-      },
-      BrickComponentData_WireGraphPseudo_Tween: {
-        Target: 'WireGraphVariant',
-        Value: 'WireGraphVariant',
-        StartValue: 'WireGraphVariant',
+      BrickComponentData_Tween: {
+        Target: 'WireValue',
+        Value: 'WireValue',
+        StartValue: 'WireValue',
         Duration: 'f64',
         Elapsed: 'f64',
         bRunning: 'bool',
         Function: 'EBREasingFunction',
         Direction: 'EBREasingDirection',
       },
-      BrickComponentData_WireGraphPseudo_Var: {
-        Value: 'WireGraphVariant',
+      BrickComponentData_Var: {
+        Value: 'WireValue',
+      },
+      BrickComponentData_WeaponResourceReference: {
+        Asset: 'object',
+      },
+      BrickComponentData_WheelEngineAudioReference: {
+        Asset: 'object',
       },
       BrickComponentWireControl_DriveAndSteer: {},
       BrickComponentWirePortControl_TeleportDestination: {},
@@ -1476,16 +1324,21 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Reserve: 'i32',
       },
       BRQueueSecondsEntry: {
-        Data: ['WireGraphVariant'],
+        Data: ['WireValue'],
         RemainingTime: 'f32',
       },
       BRQueueTicksEntry: {
-        Data: ['WireGraphVariant'],
+        Data: ['WireValue'],
         RemainingTicks: 'i32',
       },
       BRSavedBrickComponentTypeCounter: {
         TypeIndex: 'u32',
         NumInstances: 'u32',
+      },
+      BRSavedChunk3DIndex: {
+        X: 'i16',
+        Y: 'i16',
+        Z: 'i16',
       },
       Color: {
         B: 'u8',
@@ -1550,478 +1403,255 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Z: 'f64',
         W: 'f64',
       },
-      WireGraphBoolArray: {
-        Values: ['bool'],
-      },
-      WireGraphDoubleArray: {
-        Values: ['f64'],
-      },
-      WireGraphEnumArray_EBRColorSpace: {
-        Values: ['EBRColorSpace'],
-      },
-      WireGraphEnumArray_EBRDisplayTextEasing: {
-        Values: ['EBRDisplayTextEasing'],
-      },
-      WireGraphEnumArray_EBRDisplayTextJustification: {
-        Values: ['EBRDisplayTextJustification'],
-      },
-      WireGraphEnumArray_EBREasingDirection: {
-        Values: ['EBREasingDirection'],
-      },
-      WireGraphEnumArray_EBREasingFunction: {
-        Values: ['EBREasingFunction'],
-      },
-      WireGraphEnumArray_EBrickAerodynamicForceApplication: {
-        Values: ['EBrickAerodynamicForceApplication'],
-      },
-      WireGraphEnumArray_EBrickAerodynamicSurfaceRole: {
-        Values: ['EBrickAerodynamicSurfaceRole'],
-      },
-      WireGraphEnumArray_EBrickAxis: {
-        Values: ['EBrickAxis'],
-      },
-      WireGraphEnumArray_EBrickDirection: {
-        Values: ['EBrickDirection'],
-      },
-      WireGraphEnumArray_EBrickLightRayTracingVisibility: {
-        Values: ['EBrickLightRayTracingVisibility'],
-      },
-      WireGraphEnumArray_EBrickMaterial: {
-        Values: ['EBrickMaterial'],
-      },
-      WireGraphEnumArray_EBrickRigidJointInterpMode: {
-        Values: ['EBrickRigidJointInterpMode'],
-      },
-      WireGraphEnumArray_EBrickSeatAirStrafeControl: {
-        Values: ['EBrickSeatAirStrafeControl'],
-      },
-      WireGraphEnumArray_EBrickSeatCameraOrigin: {
-        Values: ['EBrickSeatCameraOrigin'],
-      },
-      WireGraphEnumArray_EBrickSeatFlightInvertOverride: {
-        Values: ['EBrickSeatFlightInvertOverride'],
-      },
-      WireGraphEnumArray_EBrickSeatMode: {
-        Values: ['EBrickSeatMode'],
-      },
-      WireGraphEnumArray_EBrickThrusterForceApplication: {
-        Values: ['EBrickThrusterForceApplication'],
-      },
-      WireGraphEnumArray_EBrickVehicleFlightHandling: {
-        Values: ['EBrickVehicleFlightHandling'],
-      },
-      WireGraphEnumArray_EBrickVehicleMassDistribution: {
-        Values: ['EBrickVehicleMassDistribution'],
-      },
-      WireGraphEnumArray_EBRPawnCollisionChannel: {
-        Values: ['EBRPawnCollisionChannel'],
-      },
-      WireGraphEnumArray_EBRSweepCollisionChannel: {
-        Values: ['EBRSweepCollisionChannel'],
-      },
-      WireGraphEnumArray_EBRTextFacing: {
-        Values: ['EBRTextFacing'],
-      },
-      WireGraphEnumArray_EBRTextMaterial: {
-        Values: ['EBRTextMaterial'],
-      },
-      WireGraphEnumArray_EBRTextOutline: {
-        Values: ['EBRTextOutline'],
-      },
-      WireGraphEnumArray_EBRTextShading: {
-        Values: ['EBRTextShading'],
-      },
-      WireGraphEnumArray_EBRTextTypeface: {
-        Values: ['EBRTextTypeface'],
-      },
-      WireGraphEnumArray_EProjectileSpawnLocation: {
-        Values: ['EProjectileSpawnLocation'],
-      },
-      WireGraphEnumArrayWrapper: {
-        Enum: 'WireGraphEnumArrayVariant',
-      },
-      WireGraphEnumMapWrapper_FWeakObjectPtr: {
-        Enum: 'WireGraphEnumMapVariant_FWeakObjectPtr',
-      },
-      WireGraphEnumMapWrapper_FWireGraphString: {
-        Enum: 'WireGraphEnumMapVariant_FWireGraphString',
-      },
-      WireGraphEnumMapWrapper_int64: {
-        Enum: 'WireGraphEnumMapVariant_int64',
-      },
-      WireGraphEnumWrapper: {
-        Enum: 'WireGraphEnumVariant',
-      },
       WireGraphExec: {},
-      WireGraphInt64Array: {
-        Values: ['i64'],
-      },
-      WireGraphMap_FWeakObjectPtr_bool: {},
-      WireGraphMap_FWeakObjectPtr_double: {},
-      WireGraphMap_FWeakObjectPtr_EBRColorSpace: {},
-      WireGraphMap_FWeakObjectPtr_EBRDisplayTextEasing: {},
-      WireGraphMap_FWeakObjectPtr_EBRDisplayTextJustification: {},
-      WireGraphMap_FWeakObjectPtr_EBREasingDirection: {},
-      WireGraphMap_FWeakObjectPtr_EBREasingFunction: {},
-      WireGraphMap_FWeakObjectPtr_EBrickAerodynamicForceApplication: {},
-      WireGraphMap_FWeakObjectPtr_EBrickAerodynamicSurfaceRole: {},
-      WireGraphMap_FWeakObjectPtr_EBrickAxis: {},
-      WireGraphMap_FWeakObjectPtr_EBrickDirection: {},
-      WireGraphMap_FWeakObjectPtr_EBrickLightRayTracingVisibility: {},
-      WireGraphMap_FWeakObjectPtr_EBrickMaterial: {},
-      WireGraphMap_FWeakObjectPtr_EBrickRigidJointInterpMode: {},
-      WireGraphMap_FWeakObjectPtr_EBrickSeatAirStrafeControl: {},
-      WireGraphMap_FWeakObjectPtr_EBrickSeatCameraOrigin: {},
-      WireGraphMap_FWeakObjectPtr_EBrickSeatFlightInvertOverride: {},
-      WireGraphMap_FWeakObjectPtr_EBrickSeatMode: {},
-      WireGraphMap_FWeakObjectPtr_EBrickThrusterForceApplication: {},
-      WireGraphMap_FWeakObjectPtr_EBrickVehicleFlightHandling: {},
-      WireGraphMap_FWeakObjectPtr_EBrickVehicleMassDistribution: {},
-      WireGraphMap_FWeakObjectPtr_EBRPawnCollisionChannel: {},
-      WireGraphMap_FWeakObjectPtr_EBRSweepCollisionChannel: {},
-      WireGraphMap_FWeakObjectPtr_EBRTextFacing: {},
-      WireGraphMap_FWeakObjectPtr_EBRTextMaterial: {},
-      WireGraphMap_FWeakObjectPtr_EBRTextOutline: {},
-      WireGraphMap_FWeakObjectPtr_EBRTextShading: {},
-      WireGraphMap_FWeakObjectPtr_EBRTextTypeface: {},
-      WireGraphMap_FWeakObjectPtr_EProjectileSpawnLocation: {},
-      WireGraphMap_FWeakObjectPtr_FWeakObjectPtr: {},
-      WireGraphMap_FWeakObjectPtr_FWireGraphString: {},
-      WireGraphMap_FWeakObjectPtr_int64: {},
-      WireGraphMap_FWireGraphString_bool: {
-        Values: {
-          str: 'bool',
-        },
-      },
-      WireGraphMap_FWireGraphString_double: {
-        Values: {
-          str: 'f64',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRColorSpace: {
-        Values: {
-          str: 'EBRColorSpace',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRDisplayTextEasing: {
-        Values: {
-          str: 'EBRDisplayTextEasing',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRDisplayTextJustification: {
-        Values: {
-          str: 'EBRDisplayTextJustification',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBREasingDirection: {
-        Values: {
-          str: 'EBREasingDirection',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBREasingFunction: {
-        Values: {
-          str: 'EBREasingFunction',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickAerodynamicForceApplication: {
-        Values: {
-          str: 'EBrickAerodynamicForceApplication',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickAerodynamicSurfaceRole: {
-        Values: {
-          str: 'EBrickAerodynamicSurfaceRole',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickAxis: {
-        Values: {
-          str: 'EBrickAxis',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickDirection: {
-        Values: {
-          str: 'EBrickDirection',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickLightRayTracingVisibility: {
-        Values: {
-          str: 'EBrickLightRayTracingVisibility',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickMaterial: {
-        Values: {
-          str: 'EBrickMaterial',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickRigidJointInterpMode: {
-        Values: {
-          str: 'EBrickRigidJointInterpMode',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickSeatAirStrafeControl: {
-        Values: {
-          str: 'EBrickSeatAirStrafeControl',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickSeatCameraOrigin: {
-        Values: {
-          str: 'EBrickSeatCameraOrigin',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickSeatFlightInvertOverride: {
-        Values: {
-          str: 'EBrickSeatFlightInvertOverride',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickSeatMode: {
-        Values: {
-          str: 'EBrickSeatMode',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickThrusterForceApplication: {
-        Values: {
-          str: 'EBrickThrusterForceApplication',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickVehicleFlightHandling: {
-        Values: {
-          str: 'EBrickVehicleFlightHandling',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBrickVehicleMassDistribution: {
-        Values: {
-          str: 'EBrickVehicleMassDistribution',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRPawnCollisionChannel: {
-        Values: {
-          str: 'EBRPawnCollisionChannel',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRSweepCollisionChannel: {
-        Values: {
-          str: 'EBRSweepCollisionChannel',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRTextFacing: {
-        Values: {
-          str: 'EBRTextFacing',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRTextMaterial: {
-        Values: {
-          str: 'EBRTextMaterial',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRTextOutline: {
-        Values: {
-          str: 'EBRTextOutline',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRTextShading: {
-        Values: {
-          str: 'EBRTextShading',
-        },
-      },
-      WireGraphMap_FWireGraphString_EBRTextTypeface: {
-        Values: {
-          str: 'EBRTextTypeface',
-        },
-      },
-      WireGraphMap_FWireGraphString_EProjectileSpawnLocation: {
-        Values: {
-          str: 'EProjectileSpawnLocation',
-        },
-      },
-      WireGraphMap_FWireGraphString_FWeakObjectPtr: {
-        Values: {
-          str: 'weak_object',
-        },
-      },
-      WireGraphMap_FWireGraphString_FWireGraphString: {
-        Values: {
-          str: 'str',
-        },
-      },
-      WireGraphMap_FWireGraphString_int64: {
-        Values: {
-          str: 'i64',
-        },
-      },
-      WireGraphMap_int64_bool: {
-        Values: {
-          i64: 'bool',
-        },
-      },
-      WireGraphMap_int64_double: {
-        Values: {
-          i64: 'f64',
-        },
-      },
-      WireGraphMap_int64_EBRColorSpace: {
-        Values: {
-          i64: 'EBRColorSpace',
-        },
-      },
-      WireGraphMap_int64_EBRDisplayTextEasing: {
-        Values: {
-          i64: 'EBRDisplayTextEasing',
-        },
-      },
-      WireGraphMap_int64_EBRDisplayTextJustification: {
-        Values: {
-          i64: 'EBRDisplayTextJustification',
-        },
-      },
-      WireGraphMap_int64_EBREasingDirection: {
-        Values: {
-          i64: 'EBREasingDirection',
-        },
-      },
-      WireGraphMap_int64_EBREasingFunction: {
-        Values: {
-          i64: 'EBREasingFunction',
-        },
-      },
-      WireGraphMap_int64_EBrickAerodynamicForceApplication: {
-        Values: {
-          i64: 'EBrickAerodynamicForceApplication',
-        },
-      },
-      WireGraphMap_int64_EBrickAerodynamicSurfaceRole: {
-        Values: {
-          i64: 'EBrickAerodynamicSurfaceRole',
-        },
-      },
-      WireGraphMap_int64_EBrickAxis: {
-        Values: {
-          i64: 'EBrickAxis',
-        },
-      },
-      WireGraphMap_int64_EBrickDirection: {
-        Values: {
-          i64: 'EBrickDirection',
-        },
-      },
-      WireGraphMap_int64_EBrickLightRayTracingVisibility: {
-        Values: {
-          i64: 'EBrickLightRayTracingVisibility',
-        },
-      },
-      WireGraphMap_int64_EBrickMaterial: {
-        Values: {
-          i64: 'EBrickMaterial',
-        },
-      },
-      WireGraphMap_int64_EBrickRigidJointInterpMode: {
-        Values: {
-          i64: 'EBrickRigidJointInterpMode',
-        },
-      },
-      WireGraphMap_int64_EBrickSeatAirStrafeControl: {
-        Values: {
-          i64: 'EBrickSeatAirStrafeControl',
-        },
-      },
-      WireGraphMap_int64_EBrickSeatCameraOrigin: {
-        Values: {
-          i64: 'EBrickSeatCameraOrigin',
-        },
-      },
-      WireGraphMap_int64_EBrickSeatFlightInvertOverride: {
-        Values: {
-          i64: 'EBrickSeatFlightInvertOverride',
-        },
-      },
-      WireGraphMap_int64_EBrickSeatMode: {
-        Values: {
-          i64: 'EBrickSeatMode',
-        },
-      },
-      WireGraphMap_int64_EBrickThrusterForceApplication: {
-        Values: {
-          i64: 'EBrickThrusterForceApplication',
-        },
-      },
-      WireGraphMap_int64_EBrickVehicleFlightHandling: {
-        Values: {
-          i64: 'EBrickVehicleFlightHandling',
-        },
-      },
-      WireGraphMap_int64_EBrickVehicleMassDistribution: {
-        Values: {
-          i64: 'EBrickVehicleMassDistribution',
-        },
-      },
-      WireGraphMap_int64_EBRPawnCollisionChannel: {
-        Values: {
-          i64: 'EBRPawnCollisionChannel',
-        },
-      },
-      WireGraphMap_int64_EBRSweepCollisionChannel: {
-        Values: {
-          i64: 'EBRSweepCollisionChannel',
-        },
-      },
-      WireGraphMap_int64_EBRTextFacing: {
-        Values: {
-          i64: 'EBRTextFacing',
-        },
-      },
-      WireGraphMap_int64_EBRTextMaterial: {
-        Values: {
-          i64: 'EBRTextMaterial',
-        },
-      },
-      WireGraphMap_int64_EBRTextOutline: {
-        Values: {
-          i64: 'EBRTextOutline',
-        },
-      },
-      WireGraphMap_int64_EBRTextShading: {
-        Values: {
-          i64: 'EBRTextShading',
-        },
-      },
-      WireGraphMap_int64_EBRTextTypeface: {
-        Values: {
-          i64: 'EBRTextTypeface',
-        },
-      },
-      WireGraphMap_int64_EProjectileSpawnLocation: {
-        Values: {
-          i64: 'EProjectileSpawnLocation',
-        },
-      },
-      WireGraphMap_int64_FWeakObjectPtr: {
-        Values: {
-          i64: 'weak_object',
-        },
-      },
-      WireGraphMap_int64_FWireGraphString: {
-        Values: {
-          i64: 'str',
-        },
-      },
-      WireGraphMap_int64_int64: {
-        Values: {
-          i64: 'i64',
-        },
-      },
-      WireGraphMapKeyWrapper_FWeakObjectPtr: {
-        Map: 'WireGraphMapVariant_FWeakObjectPtr',
-      },
-      WireGraphMapKeyWrapper_FWireGraphString: {
-        Map: 'WireGraphMapVariant_FWireGraphString',
-      },
-      WireGraphMapKeyWrapper_int64: {
-        Map: 'WireGraphMapVariant_int64',
-      },
-      WireGraphObjectArray: {
-        Values: ['weak_object'],
-      },
-      WireGraphStringArray: {
-        Values: ['str'],
+      BCSComponentVertex_Exec_Character_AddInventoryBrick: {
+        BrickAsset: 'object',
+        ProceduralSize: 'Vector',
+      },
+      BCSComponentVertex_Exec_Character_AddInventoryEntry: {
+        Entry: 'BRInventoryEntryConfig',
+      },
+      BCSComponentVertex_Exec_Character_SetInventoryBrick: {
+        Slot: 'i64',
+        BrickAsset: 'object',
+        ProceduralSize: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_AddLocationRotation: {
+        Vector: 'Vector',
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_AddVelocity: {
+        Vector: 'Vector',
+        Rotation: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_GetAngularVelocity: {
+        AngularVelocity: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_GetLinearVelocity: {
+        LinearVelocity: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_GetLocation: {
+        Vector: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_GetLocationRotation: {
+        Vector: 'Vector',
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_GetRotation: {
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_GetVelocity: {
+        Vector: 'Vector',
+        Rotation: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_GetVelocityAtPoint: {
+        Point: 'Vector',
+        LinearVelocity: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_RelativeTeleport: {
+        Source: 'BrickComponentWirePortControl_TeleportDestination',
+        Destination: 'BrickComponentWirePortControl_TeleportDestination',
+      },
+      BCSComponentVertex_Exec_Entity_SetAngularVelocity: {
+        AngularVelocity: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_SetGravityDirection: {
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_SetLinearVelocity: {
+        LinearVelocity: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_SetLocation: {
+        Vector: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_SetLocationRotation: {
+        Vector: 'Vector',
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_SetRotation: {
+        Rotation: 'Rotator',
+      },
+      BCSComponentVertex_Exec_Entity_SetVelocity: {
+        Vector: 'Vector',
+        Rotation: 'Vector',
+      },
+      BCSComponentVertex_Exec_Entity_Teleport: {
+        Destination: 'BrickComponentWirePortControl_TeleportDestination',
+      },
+      BCSComponentVertex_Exec_PlayerState_DisplayText: {
+        Text: 'str',
+        Font: 'object',
+        Typeface: 'EBRTextTypeface',
+        Anchor: 'Vector2D',
+        Position: 'Vector2D',
+        Angle: 'f64',
+        ZOrder: 'i64',
+        Scale: 'Vector2D',
+        Pivot: 'Vector2D',
+        FontSize: 'i32',
+        FontColor: 'LinearColor',
+        LetterSpacing: 'f64',
+        Skew: 'f64',
+        LineHeight: 'f64',
+        OutlineSize: 'i64',
+        OutlineColor: 'LinearColor',
+        bMiteredOutline: 'bool',
+        WrapWidth: 'f64',
+        ShadowOffset: 'Vector2D',
+        ShadowColor: 'LinearColor',
+        Justification: 'EBRDisplayTextJustification',
+        Transition: 'f64',
+        Easing: 'EBRDisplayTextEasing',
+        Lifetime: 'f64',
+        TextId: 'i64',
+      },
+      BCSComponentVertex_Exec_PrefabSpawner: {
+        Prefab: 'str',
+        SpawnOffset: 'Vector',
+        SpawnOffsetRotation: 'Rotator',
+        SpawnVelocity: 'Vector',
+        Lifetime: 'f64',
+        Limit: 'i64',
+        SpawnedEntityIds: ['u32'],
+        SpawnedInstanceIds: ['u32'],
+      },
+      BCSComponentVertex_Exec_SpawnExplosion: {
+        ProjectileType: 'class',
+        SpawnOffset: 'Vector',
+        ScaleMultiplier: 'f64',
+        DamageMultiplier: 'f64',
+      },
+      BCSComponentVertex_Exec_SpawnExplosionAt: {
+        ProjectileType: 'class',
+        WorldPosition: 'Vector',
+        ScaleMultiplier: 'f64',
+        DamageMultiplier: 'f64',
+      },
+      BCSComponentVertex_Exec_Sweep: {
+        Origin: 'Vector',
+        Direction: 'Vector',
+        Distance: 'f64',
+        Radius: 'f64',
+        bRelative: 'bool',
+        bIgnoreOwningGrid: 'bool',
+        CollisionChannel: 'EBRSweepCollisionChannel',
+        bDetectBricks: 'bool',
+        bDetectPlayers1: 'bool',
+        bDetectPlayers2: 'bool',
+        bDetectPlayers3: 'bool',
+        bDetectPlayers4: 'bool',
+        bOnlyHitPlayerBodyParts: 'bool',
+        bDetectPhysics: 'bool',
+        bDetectMap: 'bool',
+        HitLocation: 'Vector',
+        HitNormal: 'Vector',
+        HitDistance: 'f64',
+      },
+      BCSComponentVertex_Exec_SweepSimple: {
+        Direction: 'EBrickDirection',
+        Distance: 'f64',
+        Radius: 'f64',
+        SpreadConeAngle: 'f64',
+        bSpreadBiasedTowardsCenter: 'bool',
+        CollisionChannel: 'EBRSweepCollisionChannel',
+        bDetectBricks: 'bool',
+        bDetectPlayers1: 'bool',
+        bDetectPlayers2: 'bool',
+        bDetectPlayers3: 'bool',
+        bDetectPlayers4: 'bool',
+        bOnlyHitPlayerBodyParts: 'bool',
+        bDetectPhysics: 'bool',
+        bDetectMap: 'bool',
+        HitLocation: 'Vector',
+        HitNormal: 'Vector',
+        HitDistance: 'f64',
+      },
+      BCSComponentVertex_Expr_ColorBlend: {
+        ColorA: 'LinearColor',
+        ColorB: 'LinearColor',
+        Alpha: 'f64',
+        BlendSpace: 'EBRColorSpace',
+        bClampAlpha: 'bool',
+      },
+      BCSComponentVertex_Expr_ColorConvert: {
+        Input: 'LinearColor',
+        FromSpace: 'EBRColorSpace',
+        ToSpace: 'EBRColorSpace',
+      },
+      BCSComponentVertex_Expr_ColorToHex: {
+        Input: 'LinearColor',
+      },
+      BCSComponentVertex_Expr_DirectionToRotation: {
+        Direction: 'Vector',
+      },
+      BCSComponentVertex_Expr_InvertRotation: {
+        Input: 'Quat',
+      },
+      BCSComponentVertex_Expr_QuatAngleBetween: {
+        InputA: 'Quat',
+        InputB: 'Quat',
+      },
+      BCSComponentVertex_Expr_QuatBetween: {
+        From: 'Vector',
+        To: 'Vector',
+      },
+      BCSComponentVertex_Expr_QuatDotProduct: {
+        InputA: 'Quat',
+        InputB: 'Quat',
+      },
+      BCSComponentVertex_Expr_QuatFromAxisAngle: {
+        Axis: 'Vector',
+        Angle: 'f64',
+      },
+      BCSComponentVertex_Expr_QuatSlerp: {
+        InputA: 'Quat',
+        InputB: 'Quat',
+        Alpha: 'f64',
+        bShortestPath: 'bool',
+        bClampAlpha: 'bool',
+      },
+      BCSComponentVertex_Expr_QuatToAxisAngle: {
+        Input: 'Quat',
+      },
+      BCSComponentVertex_Expr_RotateVector: {
+        Rotation: 'Quat',
+        Vector: 'Vector',
+      },
+      BCSComponentVertex_Expr_RotationToDirection: {
+        Rotation: 'Quat',
+      },
+      BCSComponentVertex_Expr_SplitColor: {
+        Input: 'LinearColor',
+      },
+      BCSComponentVertex_Expr_SplitColorSRGB: {
+        Input: 'LinearColor',
+      },
+      BCSComponentVertex_Expr_SplitQuaternion: {
+        Input: 'Quat',
+      },
+      BCSComponentVertex_Expr_SplitRotation: {
+        Input: 'Rotator',
+      },
+      BCSComponentVertex_Expr_SplitVector: {
+        Input: 'Vector',
+      },
+      BCSComponentVertex_Expr_Vec_Float: {
+        Input: 'Vector',
+      },
+      BCSComponentVertex_Expr_Vec_Vec: {
+        Input: 'Vector',
+      },
+      BCSComponentVertex_Expr_VecFloat_Vec: {
+        Input: 'Vector',
+        Scalar: 'f64',
+      },
+      BCSComponentVertex_Expr_VecVec_Float: {
+        InputA: 'Vector',
+        InputB: 'Vector',
+      },
+      BCSComponentVertex_Expr_VecVec_Vec: {
+        InputA: 'Vector',
+        InputB: 'Vector',
       },
       BrickComponentData_AerodynamicSurface: {
         bEnabled: 'bool',
@@ -2063,6 +1693,12 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Color: 'Color',
         MaterialAlpha: 'u8',
         Material: 'EBrickMaterial',
+      },
+      BrickComponentData_Dampen: {
+        Target: 'WireValue',
+        Value: 'WireValue',
+        SmoothTime: 'f64',
+        Velocity: 'Vector4',
       },
       BrickComponentData_ExplosionSpawner: {
         ProjectileType: 'class',
@@ -2156,13 +1792,53 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         RayTracingVisibility: 'EBrickLightRayTracingVisibility',
       },
       BrickComponentData_PrefabSpawn: {
-        Prefab: 'bundle_path_ref',
+        Prefab: 'str',
         SpawnOffset: 'Vector',
         SpawnOffsetRotation: 'Rotator',
         SpawnVelocity: 'Vector',
         bSpawnEnable: 'bool',
         RespawnTime: 'f64',
         SpawnedEntityIds: ['u32'],
+      },
+      BrickComponentData_QueueSeconds: {
+        SecondsToWait: 'f32',
+        Entries: ['BRQueueSecondsEntry'],
+        DataIn1: 'WireValue',
+        DataIn2: 'WireValue',
+        DataIn3: 'WireValue',
+        DataIn4: 'WireValue',
+        DataIn5: 'WireValue',
+        DataIn6: 'WireValue',
+        DataIn7: 'WireValue',
+        DataIn8: 'WireValue',
+        DataOut1: 'WireValue',
+        DataOut2: 'WireValue',
+        DataOut3: 'WireValue',
+        DataOut4: 'WireValue',
+        DataOut5: 'WireValue',
+        DataOut6: 'WireValue',
+        DataOut7: 'WireValue',
+        DataOut8: 'WireValue',
+      },
+      BrickComponentData_QueueTicks: {
+        TicksToWait: 'i32',
+        Entries: ['BRQueueTicksEntry'],
+        DataIn1: 'WireValue',
+        DataIn2: 'WireValue',
+        DataIn3: 'WireValue',
+        DataIn4: 'WireValue',
+        DataIn5: 'WireValue',
+        DataIn6: 'WireValue',
+        DataIn7: 'WireValue',
+        DataIn8: 'WireValue',
+        DataOut1: 'WireValue',
+        DataOut2: 'WireValue',
+        DataOut3: 'WireValue',
+        DataOut4: 'WireValue',
+        DataOut5: 'WireValue',
+        DataOut6: 'WireValue',
+        DataOut7: 'WireValue',
+        DataOut8: 'WireValue',
       },
       BrickComponentData_Seat_V2: {
         bIsOccupied: 'bool',
@@ -2309,301 +1985,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         WaterSteeringForce: 'f32',
         AudioDescriptor: 'object',
       },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryBrick: {
-        BrickAsset: 'object',
-        ProceduralSize: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryEntry: {
-        Entry: 'BRInventoryEntryConfig',
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetInventoryBrick: {
-        Slot: 'i64',
-        BrickAsset: 'object',
-        ProceduralSize: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_AddLocationRotation: {
-        Vector: 'Vector',
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_AddVelocity: {
-        Vector: 'Vector',
-        Rotation: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetAngularVelocity: {
-        AngularVelocity: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetLinearVelocity: {
-        LinearVelocity: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetLocation: {
-        Vector: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetLocationRotation: {
-        Vector: 'Vector',
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetRotation: {
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetVelocity: {
-        Vector: 'Vector',
-        Rotation: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_GetVelocityAtPoint: {
-        Point: 'Vector',
-        LinearVelocity: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_RelativeTeleport: {
-        Source: 'BrickComponentWirePortControl_TeleportDestination',
-        Destination: 'BrickComponentWirePortControl_TeleportDestination',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetAngularVelocity: {
-        AngularVelocity: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetGravityDirection: {
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetLinearVelocity: {
-        LinearVelocity: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetLocation: {
-        Vector: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetLocationRotation: {
-        Vector: 'Vector',
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetRotation: {
-        Rotation: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_SetVelocity: {
-        Vector: 'Vector',
-        Rotation: 'Vector',
-      },
-      BrickComponentData_WireGraph_Exec_Entity_Teleport: {
-        Destination: 'BrickComponentWirePortControl_TeleportDestination',
-      },
-      BrickComponentData_WireGraph_Exec_PlayerState_DisplayText: {
-        Text: 'str',
-        Font: 'object',
-        Typeface: 'EBRTextTypeface',
-        Anchor: 'Vector2D',
-        Position: 'Vector2D',
-        Angle: 'f64',
-        ZOrder: 'i64',
-        Scale: 'Vector2D',
-        Pivot: 'Vector2D',
-        FontSize: 'i32',
-        FontColor: 'LinearColor',
-        LetterSpacing: 'f64',
-        Skew: 'f64',
-        LineHeight: 'f64',
-        OutlineSize: 'i64',
-        OutlineColor: 'LinearColor',
-        bMiteredOutline: 'bool',
-        WrapWidth: 'f64',
-        ShadowOffset: 'Vector2D',
-        ShadowColor: 'LinearColor',
-        Justification: 'EBRDisplayTextJustification',
-        Transition: 'f64',
-        Easing: 'EBRDisplayTextEasing',
-        Lifetime: 'f64',
-        TextId: 'i64',
-      },
-      BrickComponentData_WireGraph_Exec_PrefabSpawner: {
-        Prefab: 'bundle_path_ref',
-        SpawnOffset: 'Vector',
-        SpawnOffsetRotation: 'Rotator',
-        SpawnVelocity: 'Vector',
-        Lifetime: 'f64',
-        Limit: 'i64',
-        SpawnedEntityIds: ['u32'],
-        SpawnedInstanceIds: ['u32'],
-      },
-      BrickComponentData_WireGraph_Exec_SpawnExplosion: {
-        ProjectileType: 'class',
-        SpawnOffset: 'Vector',
-        ScaleMultiplier: 'f64',
-        DamageMultiplier: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_SpawnExplosionAt: {
-        ProjectileType: 'class',
-        WorldPosition: 'Vector',
-        ScaleMultiplier: 'f64',
-        DamageMultiplier: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_Sweep: {
-        Origin: 'Vector',
-        Direction: 'Vector',
-        Distance: 'f64',
-        Radius: 'f64',
-        CollisionChannel: 'EBRSweepCollisionChannel',
-        bDetectBricks: 'bool',
-        bDetectPlayers1: 'bool',
-        bDetectPlayers2: 'bool',
-        bDetectPlayers3: 'bool',
-        bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
-        bDetectPhysics: 'bool',
-        bDetectMap: 'bool',
-        bRelative: 'bool',
-        bIgnoreOwningGrid: 'bool',
-        HitLocation: 'Vector',
-        HitNormal: 'Vector',
-        HitDistance: 'f64',
-      },
-      BrickComponentData_WireGraph_Exec_SweepSimple: {
-        Direction: 'EBrickDirection',
-        Distance: 'f64',
-        Radius: 'f64',
-        CollisionChannel: 'EBRSweepCollisionChannel',
-        SpreadConeAngle: 'f64',
-        bSpreadBiasedTowardsCenter: 'bool',
-        bDetectBricks: 'bool',
-        bDetectPlayers1: 'bool',
-        bDetectPlayers2: 'bool',
-        bDetectPlayers3: 'bool',
-        bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
-        bDetectPhysics: 'bool',
-        bDetectMap: 'bool',
-        HitLocation: 'Vector',
-        HitNormal: 'Vector',
-        HitDistance: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_ColorBlend: {
-        ColorA: 'LinearColor',
-        ColorB: 'LinearColor',
-        Alpha: 'f64',
-        BlendSpace: 'EBRColorSpace',
-        bClampAlpha: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_ColorConvert: {
-        Input: 'LinearColor',
-        FromSpace: 'EBRColorSpace',
-        ToSpace: 'EBRColorSpace',
-      },
-      BrickComponentData_WireGraph_Expr_ColorToHex: {
-        Input: 'LinearColor',
-      },
-      BrickComponentData_WireGraph_Expr_DirectionToRotation: {
-        Direction: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_InvertRotation: {
-        Input: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_QuatAngleBetween: {
-        InputA: 'Quat',
-        InputB: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_QuatBetween: {
-        From: 'Vector',
-        To: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_QuatDotProduct: {
-        InputA: 'Quat',
-        InputB: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_QuatFromAxisAngle: {
-        Axis: 'Vector',
-        Angle: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_QuatSlerp: {
-        InputA: 'Quat',
-        InputB: 'Quat',
-        Alpha: 'f64',
-        bShortestPath: 'bool',
-        bClampAlpha: 'bool',
-      },
-      BrickComponentData_WireGraph_Expr_QuatToAxisAngle: {
-        Input: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_RotateVector: {
-        Rotation: 'Quat',
-        Vector: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_RotationToDirection: {
-        Rotation: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_SplitColor: {
-        Input: 'LinearColor',
-      },
-      BrickComponentData_WireGraph_Expr_SplitColorSRGB: {
-        Input: 'LinearColor',
-      },
-      BrickComponentData_WireGraph_Expr_SplitQuaternion: {
-        Input: 'Quat',
-      },
-      BrickComponentData_WireGraph_Expr_SplitRotation: {
-        Input: 'Rotator',
-      },
-      BrickComponentData_WireGraph_Expr_SplitVector: {
-        Input: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_Vec_Float: {
-        Input: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_Vec_Vec: {
-        Input: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_VecFloat_Vec: {
-        Input: 'Vector',
-        Scalar: 'f64',
-      },
-      BrickComponentData_WireGraph_Expr_VecVec_Float: {
-        InputA: 'Vector',
-        InputB: 'Vector',
-      },
-      BrickComponentData_WireGraph_Expr_VecVec_Vec: {
-        InputA: 'Vector',
-        InputB: 'Vector',
-      },
-      BrickComponentData_WireGraphPseudo_Dampen: {
-        Target: 'WireGraphVariant',
-        Value: 'WireGraphVariant',
-        SmoothTime: 'f64',
-        Velocity: 'Vector4',
-      },
-      BrickComponentData_WireGraphPseudo_QueueSeconds: {
-        SecondsToWait: 'f32',
-        Entries: ['BRQueueSecondsEntry'],
-        DataIn1: 'WireGraphVariant',
-        DataIn2: 'WireGraphVariant',
-        DataIn3: 'WireGraphVariant',
-        DataIn4: 'WireGraphVariant',
-        DataIn5: 'WireGraphVariant',
-        DataIn6: 'WireGraphVariant',
-        DataIn7: 'WireGraphVariant',
-        DataIn8: 'WireGraphVariant',
-        DataOut1: 'WireGraphVariant',
-        DataOut2: 'WireGraphVariant',
-        DataOut3: 'WireGraphVariant',
-        DataOut4: 'WireGraphVariant',
-        DataOut5: 'WireGraphVariant',
-        DataOut6: 'WireGraphVariant',
-        DataOut7: 'WireGraphVariant',
-        DataOut8: 'WireGraphVariant',
-      },
-      BrickComponentData_WireGraphPseudo_QueueTicks: {
-        TicksToWait: 'i32',
-        Entries: ['BRQueueTicksEntry'],
-        DataIn1: 'WireGraphVariant',
-        DataIn2: 'WireGraphVariant',
-        DataIn3: 'WireGraphVariant',
-        DataIn4: 'WireGraphVariant',
-        DataIn5: 'WireGraphVariant',
-        DataIn6: 'WireGraphVariant',
-        DataIn7: 'WireGraphVariant',
-        DataIn8: 'WireGraphVariant',
-        DataOut1: 'WireGraphVariant',
-        DataOut2: 'WireGraphVariant',
-        DataOut3: 'WireGraphVariant',
-        DataOut4: 'WireGraphVariant',
-        DataOut5: 'WireGraphVariant',
-        DataOut6: 'WireGraphVariant',
-        DataOut7: 'WireGraphVariant',
-        DataOut8: 'WireGraphVariant',
-      },
       BrickTypeNetWrapper: {
         BrickAsset: 'object',
         ProceduralSize: 'IntVector',
@@ -2618,6 +1999,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         SocketName: 'str',
         Colors: ['Color'],
       },
+      BRSavedBrickRef: {
+        GridPersistentIndex: 'u32',
+        ChunkIndex: 'BRSavedChunk3DIndex',
+        BrickIndexInChunk: 'u32',
+      },
       BRSavedComponentChunkSoA: {
         ComponentTypeCounters: ['BRSavedBrickComponentTypeCounter'],
         ComponentBrickIndices: ['u32'],
@@ -2628,61 +2014,47 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         MicrochipBrickIndices: ['u32'],
         MicrochipBrickGridReferences: ['u32'],
       },
-      WireGraphLinearColorArray: {
-        Values: ['LinearColor'],
+      BCSComponentVertex_Exec_BrickComponent: {
+        Brick: 'BRSavedBrickRef',
+        ComponentType: 'object',
       },
-      WireGraphMap_FWeakObjectPtr_FLinearColor: {},
-      WireGraphMap_FWeakObjectPtr_FQuat: {},
-      WireGraphMap_FWeakObjectPtr_FRotator: {},
-      WireGraphMap_FWeakObjectPtr_FVector: {},
-      WireGraphMap_FWireGraphString_FLinearColor: {
-        Values: {
-          str: 'LinearColor',
-        },
+      BCSComponentVertex_Exec_BrickComponentBase: {
+        Brick: 'BRSavedBrickRef',
+        ComponentType: 'object',
       },
-      WireGraphMap_FWireGraphString_FQuat: {
-        Values: {
-          str: 'Quat',
-        },
+      BCSComponentVertex_Exec_Character_AddInventoryItemAdv: {
+        ItemType: 'class',
+        DamageMultiplier: 'f64',
+        WeaponSpeedMultiplier: 'f64',
+        ItemScale: 'f64',
+        ItemNameOverride: 'str',
+        ProjectileOverride: 'class',
+        ProjectileScaleMultiplier: 'f64',
+        WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
+        bOverrideColors: 'bool',
+        MeshColors: ['Color'],
       },
-      WireGraphMap_FWireGraphString_FRotator: {
-        Values: {
-          str: 'Rotator',
-        },
+      BCSComponentVertex_Exec_Character_SetInventoryItemAdv: {
+        Slot: 'i64',
+        ItemType: 'class',
+        DamageMultiplier: 'f64',
+        WeaponSpeedMultiplier: 'f64',
+        ItemScale: 'f64',
+        ItemNameOverride: 'str',
+        ProjectileOverride: 'class',
+        ProjectileScaleMultiplier: 'f64',
+        WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
+        bOverrideColors: 'bool',
+        MeshColors: ['Color'],
       },
-      WireGraphMap_FWireGraphString_FVector: {
-        Values: {
-          str: 'Vector',
-        },
+      BCSComponentVertex_Exec_GetBrickProperty: {
+        Brick: 'BRSavedBrickRef',
+        Property: 'EBRBrickProperty',
       },
-      WireGraphMap_int64_FLinearColor: {
-        Values: {
-          i64: 'LinearColor',
-        },
-      },
-      WireGraphMap_int64_FQuat: {
-        Values: {
-          i64: 'Quat',
-        },
-      },
-      WireGraphMap_int64_FRotator: {
-        Values: {
-          i64: 'Rotator',
-        },
-      },
-      WireGraphMap_int64_FVector: {
-        Values: {
-          i64: 'Vector',
-        },
-      },
-      WireGraphQuatArray: {
-        Values: ['Quat'],
-      },
-      WireGraphRotatorArray: {
-        Values: ['Rotator'],
-      },
-      WireGraphVectorArray: {
-        Values: ['Vector'],
+      BCSComponentVertex_Exec_SetBrickProperty: {
+        Value: 'WireValue',
+        Brick: 'BRSavedBrickRef',
+        Property: 'EBRBrickProperty',
       },
       BrickComponentData_ItemSpawn: {
         PickupClass: 'class',
@@ -2696,6 +2068,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         WeaponSpeedMultiplier: 'f32',
         ItemNameOverride: 'str',
         ProjectileOverride: 'class',
+        ProjectileScaleMultiplier: 'f32',
         WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
         PickupOffsetDirection: 'EBrickDirection',
         PickupOffsetDistance: 'f32',
@@ -2711,29 +2084,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         PickupBobHeight: 'f32',
         PickupAnimationPhase: 'f32',
       },
-      BrickComponentData_WireGraph_Exec_Character_AddInventoryItemAdv: {
-        ItemType: 'class',
-        DamageMultiplier: 'f64',
-        WeaponSpeedMultiplier: 'f64',
-        ItemScale: 'f64',
-        ItemNameOverride: 'str',
-        ProjectileOverride: 'class',
-        WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
-        bOverrideColors: 'bool',
-        MeshColors: ['Color'],
-      },
-      BrickComponentData_WireGraph_Exec_Character_SetInventoryItemAdv: {
-        Slot: 'i64',
-        ItemType: 'class',
-        DamageMultiplier: 'f64',
-        WeaponSpeedMultiplier: 'f64',
-        ItemScale: 'f64',
-        ItemNameOverride: 'str',
-        ProjectileOverride: 'class',
-        WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
-        bOverrideColors: 'bool',
-        MeshColors: ['Color'],
-      },
       BRInventoryEntryBrick: {
         BrickType: 'BrickTypeNetWrapper',
       },
@@ -2746,6 +2096,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         ItemScale: 'f32',
         ItemNameOverride: 'str',
         ProjectileOverride: 'class',
+        ProjectileScaleMultiplier: 'f32',
         WeaponAmmoOverride: 'BRInventoryEntryWeaponAmmoOverride',
       },
       BRInventoryEntryPlan: {
@@ -2756,6 +2107,213 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BRPlayerAvatarCustomizationV3: {
         Parts: ['BRPlayerPartCustomizationV3'],
+      },
+      BRSavedComponentRef: {
+        Brick: 'BRSavedBrickRef',
+        ComponentTypeIndex: 'u16',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Append: {
+        SourceRef: 'BRSavedComponentRef',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Average: {
+        Value: 'WireValue',
+        bIsEmpty: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Clear: {
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_CopyFrom: {
+        SourceRef: 'BRSavedComponentRef',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_ElementOp: {
+        Index: 'i64',
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Fill: {
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Find: {
+        Index: 'i64',
+        bFound: 'bool',
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Get: {
+        Index: 'i64',
+        Value: 'WireValue',
+        bOutOfBounds: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_GetLength: {
+        Length: 'i64',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Insert: {
+        bOutOfBounds: 'bool',
+        Index: 'i64',
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Max: {
+        Value: 'WireValue',
+        bIsEmpty: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Min: {
+        Value: 'WireValue',
+        bIsEmpty: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Pop: {
+        Value: 'WireValue',
+        bIsEmpty: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Push: {
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_RemoveAtIndex: {
+        Index: 'i64',
+        bOutOfBounds: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Resize: {
+        Size: 'i64',
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Reverse: {
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Shuffle: {
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Slice: {
+        Start: 'i64',
+        Count: 'i64',
+        bOutOfBounds: 'bool',
+        SourceRef: 'BRSavedComponentRef',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Sort: {
+        bDescending: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_SortMultiple: {
+        ArrayVarRef: 'BRSavedComponentRef',
+        ArrayVarRef2: 'BRSavedComponentRef',
+        ArrayVarRef3: 'BRSavedComponentRef',
+        ArrayVarRef4: 'BRSavedComponentRef',
+        ArrayVarRef5: 'BRSavedComponentRef',
+        ArrayVarRef6: 'BRSavedComponentRef',
+        ArrayVarRef7: 'BRSavedComponentRef',
+        ArrayVarRef8: 'BRSavedComponentRef',
+        bDescending: 'bool',
+        bSuccess: 'bool',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Sum: {
+        Value: 'WireValue',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_ArrayVar_Swap: {
+        IndexA: 'i64',
+        IndexB: 'i64',
+        bOutOfBounds: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_Character_SetInventoryEntry: {
+        Slot: 'i64',
+        Entry: 'BRInventoryEntryConfig',
+        EntryPlan: 'BRInventoryEntryPlan',
+      },
+      BCSComponentVertex_Exec_Gamemode_FillArrayFromPlayers: {
+        bIncludeBuilderMode: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_Gamemode_FillArrayFromTeamMembers: {
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_GetComponentProperty: {
+        Component: 'BRSavedComponentRef',
+        PropertyName: 'str',
+        ComponentType: 'object',
+      },
+      BCSComponentVertex_Exec_MapVar_Clear: {
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_CopyFrom: {
+        SourceRef: 'BRSavedComponentRef',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_Get: {
+        Key: 'WireValue',
+        Value: 'WireValue',
+        bFound: 'bool',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_GetKeys: {
+        bIncludeDead: 'bool',
+        ArrayVarRef: 'BRSavedComponentRef',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_GetLength: {
+        Length: 'i64',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_GetValues: {
+        ArrayVarRef: 'BRSavedComponentRef',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_Has: {
+        Key: 'WireValue',
+        bFound: 'bool',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_Remove: {
+        Key: 'WireValue',
+        bFound: 'bool',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_MapVar_Set: {
+        Key: 'WireValue',
+        Value: 'WireValue',
+        MapVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_SetComponentProperty: {
+        Value: 'WireValue',
+        Component: 'BRSavedComponentRef',
+        PropertyName: 'str',
+        ComponentType: 'object',
+      },
+      BCSComponentVertex_Exec_Var_Get: {
+        VarRef: 'BRSavedComponentRef',
+        Value: 'WireValue',
+      },
+      BCSComponentVertex_Exec_Var_Increment: {
+        VarRef: 'BRSavedComponentRef',
+        Value: 'WireValue',
+      },
+      BCSComponentVertex_Exec_Var_Set: {
+        bChangeType: 'bool',
+        VarRef: 'BRSavedComponentRef',
+        Value: 'WireValue',
+      },
+      BCSComponentVertex_Exec_Zone_GetEntities: {
+        TagFilter: 'str',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Exec_Zone_GetPlayers: {
+        TagFilter: 'str',
+        ArrayVarRef: 'BRSavedComponentRef',
+      },
+      BCSComponentVertex_Expr_ContainerChangeDetector: {
+        ContainerRef: 'BRSavedComponentRef',
       },
       BrickComponentData_BotSpawn: {
         RespawnTime: 'f32',
@@ -2791,12 +2349,50 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bTeamCollision3: 'bool',
         BotWeapon: 'class',
       },
-      BrickComponentData_WireGraph_Exec_Character_SetInventoryEntry: {
-        Slot: 'i64',
-        Entry: 'BRInventoryEntryConfig',
-        EntryPlan: 'BRInventoryEntryPlan',
-      },
     },
+    types: [
+      'EBrickDirection',
+      'EBrickAxis',
+      'EBRPawnCollisionChannel',
+      'EBRTextShading',
+      'EBRTextOutline',
+      'EBRTextMaterial',
+      'EBRTextTypeface',
+      'EBRTextFacing',
+      'EBREasingFunction',
+      'EBREasingDirection',
+      'EBRColorSpace',
+      'EProjectileSpawnLocation',
+      'EBrickRigidJointInterpMode',
+      'EBRDisplayTextJustification',
+      'EBRDisplayTextEasing',
+      'EBrickMaterial',
+      'EBrickLightRayTracingVisibility',
+      'EBrickSeatMode',
+      'EBrickSeatCameraOrigin',
+      'EBrickSeatFlightInvertOverride',
+      'EBrickSeatAirStrafeControl',
+      'EBrickAerodynamicSurfaceRole',
+      'EBrickAerodynamicForceApplication',
+      'EBrickThrusterForceApplication',
+      'EBrickVehicleFlightHandling',
+      'EBrickVehicleMassDistribution',
+      'EBRSweepCollisionChannel',
+      'EBRReverbEffect',
+      'EWireKind',
+      'i64',
+      'str',
+      'weak_object',
+      'brick_handle',
+      'component_handle',
+      'f64',
+      'Bool',
+      'Vector',
+      'Rotator',
+      'Quat',
+      'LinearColor',
+      'WireValue',
+    ],
   },
   BRSavedEntityChunkIndexSoA: {
     enums: {},
@@ -2815,8 +2411,262 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
     },
   },
   BRSavedEntityChunkSoA: {
-    enums: {},
-    variants: {},
+    enums: {
+      EBRColorSpace: {
+        'EBRColorSpace::Linear': 0,
+        'EBRColorSpace::Srgb': 1,
+        'EBRColorSpace::Oklab': 2,
+        'EBRColorSpace::Hsv': 3,
+        'EBRColorSpace::EBRColorSpace_MAX': 4,
+      },
+      EBRDisplayTextEasing: {
+        'EBRDisplayTextEasing::Linear': 0,
+        'EBRDisplayTextEasing::EaseIn': 1,
+        'EBRDisplayTextEasing::EaseOut': 2,
+        'EBRDisplayTextEasing::EaseInOut': 3,
+        'EBRDisplayTextEasing::EBRDisplayTextEasing_MAX': 4,
+      },
+      EBRDisplayTextJustification: {
+        'EBRDisplayTextJustification::Left': 0,
+        'EBRDisplayTextJustification::Center': 1,
+        'EBRDisplayTextJustification::Right': 2,
+        'EBRDisplayTextJustification::EBRDisplayTextJustification_MAX': 3,
+      },
+      EBREasingDirection: {
+        'EBREasingDirection::In': 0,
+        'EBREasingDirection::Out': 1,
+        'EBREasingDirection::InOut': 2,
+        'EBREasingDirection::EBREasingDirection_MAX': 3,
+      },
+      EBREasingFunction: {
+        'EBREasingFunction::Linear': 0,
+        'EBREasingFunction::Sine': 1,
+        'EBREasingFunction::Quad': 2,
+        'EBREasingFunction::Cubic': 3,
+        'EBREasingFunction::Quart': 4,
+        'EBREasingFunction::Quint': 5,
+        'EBREasingFunction::Expo': 6,
+        'EBREasingFunction::Circ': 7,
+        'EBREasingFunction::Back': 8,
+        'EBREasingFunction::Elastic': 9,
+        'EBREasingFunction::Bounce': 10,
+        'EBREasingFunction::EBREasingFunction_MAX': 11,
+      },
+      EBRGridCollisionQuality: {
+        'EBRGridCollisionQuality::Coarse': 0,
+        'EBRGridCollisionQuality::Fine': 1,
+        'EBRGridCollisionQuality::EBRGridCollisionQuality_MAX': 2,
+      },
+      EBrickAerodynamicForceApplication: {
+        'EBrickAerodynamicForceApplication::Stabilized': 0,
+        'EBrickAerodynamicForceApplication::AtSurface': 1,
+        'EBrickAerodynamicForceApplication::LongitudinallyStabilized': 2,
+        'EBrickAerodynamicForceApplication::EBrickAerodynamicForceApplication_MAX': 3,
+      },
+      EBrickAerodynamicSurfaceRole: {
+        'EBrickAerodynamicSurfaceRole::Auto': 0,
+        'EBrickAerodynamicSurfaceRole::Fixed': 1,
+        'EBrickAerodynamicSurfaceRole::Pitch': 2,
+        'EBrickAerodynamicSurfaceRole::Roll': 3,
+        'EBrickAerodynamicSurfaceRole::Yaw': 4,
+        'EBrickAerodynamicSurfaceRole::EBrickAerodynamicSurfaceRole_MAX': 5,
+      },
+      EBrickAxis: {
+        'EBrickAxis::X': 0,
+        'EBrickAxis::Y': 1,
+        'EBrickAxis::Z': 2,
+        'EBrickAxis::MAX': 3,
+      },
+      EBrickDirection: {
+        'EBrickDirection::X_Positive': 0,
+        'EBrickDirection::X_Negative': 1,
+        'EBrickDirection::Y_Positive': 2,
+        'EBrickDirection::Y_Negative': 3,
+        'EBrickDirection::Z_Positive': 4,
+        'EBrickDirection::Z_Negative': 5,
+        'EBrickDirection::MAX': 6,
+      },
+      EBrickLightRayTracingVisibility: {
+        'EBrickLightRayTracingVisibility::Both': 0,
+        'EBrickLightRayTracingVisibility::HWRTOnly': 1,
+        'EBrickLightRayTracingVisibility::NonHWRTOnly': 2,
+        'EBrickLightRayTracingVisibility::EBrickLightRayTracingVisibility_MAX': 3,
+      },
+      EBrickMaterial: {
+        'EBrickMaterial::Plastic': 0,
+        'EBrickMaterial::Glass': 1,
+        'EBrickMaterial::TranslucentPlastic': 2,
+        'EBrickMaterial::Glow': 3,
+        'EBrickMaterial::Metal': 4,
+        'EBrickMaterial::Hologram': 5,
+        'EBrickMaterial::EBrickMaterial_MAX': 6,
+      },
+      EBrickRigidJointInterpMode: {
+        'EBrickRigidJointInterpMode::Snap': 0,
+        'EBrickRigidJointInterpMode::Linear': 1,
+        'EBrickRigidJointInterpMode::Smooth': 2,
+        'EBrickRigidJointInterpMode::EBrickRigidJointInterpMode_MAX': 3,
+      },
+      EBrickSeatAirStrafeControl: {
+        'EBrickSeatAirStrafeControl::Roll': 0,
+        'EBrickSeatAirStrafeControl::Yaw': 1,
+        'EBrickSeatAirStrafeControl::EBrickSeatAirStrafeControl_MAX': 2,
+      },
+      EBrickSeatCameraOrigin: {
+        'EBrickSeatCameraOrigin::Seat': 0,
+        'EBrickSeatCameraOrigin::GridCenter': 1,
+        'EBrickSeatCameraOrigin::EBrickSeatCameraOrigin_MAX': 2,
+      },
+      EBrickSeatFlightInvertOverride: {
+        'EBrickSeatFlightInvertOverride::UsePlayerSetting': 0,
+        'EBrickSeatFlightInvertOverride::NotInverted': 1,
+        'EBrickSeatFlightInvertOverride::Inverted': 2,
+        'EBrickSeatFlightInvertOverride::EBrickSeatFlightInvertOverride_MAX': 3,
+      },
+      EBrickSeatMode: {
+        'EBrickSeatMode::Auto': 0,
+        'EBrickSeatMode::Ground': 1,
+        'EBrickSeatMode::GroundUnlocked': 2,
+        'EBrickSeatMode::Air': 3,
+        'EBrickSeatMode::EBrickSeatMode_MAX': 4,
+      },
+      EBrickThrusterForceApplication: {
+        'EBrickThrusterForceApplication::CenterOfMass': 0,
+        'EBrickThrusterForceApplication::AtThruster': 1,
+        'EBrickThrusterForceApplication::EBrickThrusterForceApplication_MAX': 2,
+      },
+      EBrickVehicleFlightHandling: {
+        'EBrickVehicleFlightHandling::Physical': 0,
+        'EBrickVehicleFlightHandling::Arcade': 1,
+        'EBrickVehicleFlightHandling::EBrickVehicleFlightHandling_MAX': 2,
+      },
+      EBrickVehicleMassDistribution: {
+        'EBrickVehicleMassDistribution::Compact': 0,
+        'EBrickVehicleMassDistribution::VehicleBounds': 1,
+        'EBrickVehicleMassDistribution::EBrickVehicleMassDistribution_MAX': 2,
+      },
+      EBRPawnCollisionChannel: {
+        'EBRPawnCollisionChannel::Channel1': 0,
+        'EBRPawnCollisionChannel::Channel2': 1,
+        'EBRPawnCollisionChannel::Channel3': 2,
+        'EBRPawnCollisionChannel::Channel4': 3,
+        'EBRPawnCollisionChannel::EBRPawnCollisionChannel_MAX': 4,
+      },
+      EBRReverbEffect: {
+        'EBRReverbEffect::Default': 0,
+        'EBRReverbEffect::SmallRoom': 1,
+        'EBRReverbEffect::LongHallway': 2,
+        'EBRReverbEffect::ExteriorEcho': 3,
+        'EBRReverbEffect::EBRReverbEffect_MAX': 4,
+      },
+      EBRSweepCollisionChannel: {
+        'EBRSweepCollisionChannel::Physics': 0,
+        'EBRSweepCollisionChannel::Weapon': 1,
+        'EBRSweepCollisionChannel::Interaction': 2,
+        'EBRSweepCollisionChannel::Tool': 3,
+        'EBRSweepCollisionChannel::Player1': 4,
+        'EBRSweepCollisionChannel::Player2': 5,
+        'EBRSweepCollisionChannel::Player3': 6,
+        'EBRSweepCollisionChannel::Player4': 7,
+        'EBRSweepCollisionChannel::NoAdditionalRestriction': 8,
+        'EBRSweepCollisionChannel::EBRSweepCollisionChannel_MAX': 9,
+      },
+      EBRTextFacing: {
+        'EBRTextFacing::None': 0,
+        'EBRTextFacing::Full': 1,
+        'EBRTextFacing::InPlane': 2,
+        'EBRTextFacing::EBRTextFacing_MAX': 3,
+      },
+      EBRTextMaterial: {
+        'EBRTextMaterial::Unlit': 0,
+        'EBRTextMaterial::Graffiti': 1,
+        'EBRTextMaterial::Plastic': 2,
+        'EBRTextMaterial::Metallic': 3,
+        'EBRTextMaterial::Glow': 4,
+        'EBRTextMaterial::TranslucentPlastic': 5,
+        'EBRTextMaterial::Glass': 6,
+        'EBRTextMaterial::EBRTextMaterial_MAX': 7,
+      },
+      EBRTextOutline: {
+        'EBRTextOutline::None': 0,
+        'EBRTextOutline::Inlined': 1,
+        'EBRTextOutline::Outlined': 2,
+        'EBRTextOutline::HollowInlined': 3,
+        'EBRTextOutline::HollowOutlined': 4,
+        'EBRTextOutline::EBRTextOutline_MAX': 5,
+      },
+      EBRTextShading: {
+        'EBRTextShading::None': 0,
+        'EBRTextShading::Chamfer': 1,
+        'EBRTextShading::Fillet': 2,
+        'EBRTextShading::DoubleChamfer': 3,
+        'EBRTextShading::DoubleFillet': 4,
+        'EBRTextShading::Rounded': 5,
+        'EBRTextShading::EBRTextShading_MAX': 6,
+      },
+      EBRTextTypeface: {
+        'EBRTextTypeface::Regular': 0,
+        'EBRTextTypeface::Bold': 1,
+        'EBRTextTypeface::Italic': 2,
+        'EBRTextTypeface::BoldItalic': 3,
+        'EBRTextTypeface::EBRTextTypeface_MAX': 4,
+      },
+      EProjectileSpawnLocation: {
+        'EProjectileSpawnLocation::FaceCenter': 0,
+        'EProjectileSpawnLocation::RandomPointInFace': 1,
+        'EProjectileSpawnLocation::EProjectileSpawnLocation_MAX': 2,
+      },
+      EWireKind: {
+        'EWireKind::Bool': 0,
+        'EWireKind::Integer': 1,
+        'EWireKind::Double': 2,
+        'EWireKind::Color': 3,
+        'EWireKind::Vector': 4,
+        'EWireKind::Rotator': 5,
+        'EWireKind::Quat': 6,
+        'EWireKind::String': 7,
+        'EWireKind::Enum': 8,
+        'EWireKind::Object': 9,
+        'EWireKind::Brick': 10,
+        'EWireKind::Component': 11,
+        'EWireKind::Exec': 12,
+        'EWireKind::Float': 13,
+        'EWireKind::Int8': 14,
+        'EWireKind::Int16': 15,
+        'EWireKind::Int32': 16,
+        'EWireKind::UInt8': 17,
+        'EWireKind::UInt16': 18,
+        'EWireKind::UInt32': 19,
+        'EWireKind::UInt64': 20,
+        'EWireKind::Vector2f': 21,
+        'EWireKind::Vector3f': 22,
+        'EWireKind::Rotator3f': 23,
+        'EWireKind::Quat4f': 24,
+        'EWireKind::ByteColor': 25,
+        'EWireKind::EnumProperty': 26,
+        'EWireKind::StrongObject': 27,
+        'EWireKind::WireValue': 28,
+        'EWireKind::None': 29,
+        'EWireKind::EWireKind_MAX': 30,
+      },
+    },
+    variants: {
+      WireValue: [
+        'Bool',
+        'i64',
+        'f64',
+        'LinearColor',
+        'Vector',
+        'Rotator',
+        'Quat',
+        'str',
+        'dynamic_enum',
+        'weak_object',
+        'BRSavedBrickRef',
+        'BRSavedComponentRef',
+        'WireGraphExec',
+      ],
+    },
     structs: {
       BrickGridDynamicActor: {
         BouyancyScale: 'f32',
@@ -2824,7 +2674,14 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bEnableGravity: 'bool',
         bUseNewMassCalculation: 'bool',
         bReceivesDecals: 'bool',
+        bVisible: 'bool',
+        CollisionQuality: 'EBRGridCollisionQuality',
         EntityTag: 'str',
+        CustomProperties: {
+          str: 'WireValue',
+        },
+        GameModeTeamName: 'str',
+        bDetectableByAnyone: 'bool',
       },
       BRSavedBitFlags: {
         Flags: ['u8', null],
@@ -2835,6 +2692,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         B: 'u8',
         A: 'u8',
       },
+      BRSavedChunk3DIndex: {
+        X: 'i16',
+        Y: 'i16',
+        Z: 'i16',
+      },
       BRSavedEntityTypeCounter: {
         TypeIndex: 'u32',
         NumEntities: 'u32',
@@ -2844,21 +2706,50 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Y: 'i32',
         Z: 'i32',
       },
+      LinearColor: {
+        R: 'f32',
+        G: 'f32',
+        B: 'f32',
+        A: 'f32',
+      },
+      Quat: {
+        X: 'f64',
+        Y: 'f64',
+        Z: 'f64',
+        W: 'f64',
+      },
       Quat4f: {
         X: 'f32',
         Y: 'f32',
         Z: 'f32',
         W: 'f32',
       },
+      Rotator: {
+        Pitch: 'f64',
+        Yaw: 'f64',
+        Roll: 'f64',
+      },
+      Vector: {
+        X: 'f64',
+        Y: 'f64',
+        Z: 'f64',
+      },
       Vector3f: {
         X: 'f32',
         Y: 'f32',
         Z: 'f32',
       },
+      WireGraphExec: {},
       BP_MicrochipBrickGridDynamicActor_C: {
         bCollapsed: 'bool',
+        bLegacyIOSlotOrder: 'bool',
         PlaneCenter: 'IntVector',
         PlaneExtent: 'IntVector',
+      },
+      BRSavedBrickRef: {
+        GridPersistentIndex: 'u32',
+        ChunkIndex: 'BRSavedChunk3DIndex',
+        BrickIndexInChunk: 'u32',
       },
       BRSavedEntityColors: {
         Color0: 'BRSavedBrickColor',
@@ -2870,17 +2761,20 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Color6: 'BRSavedBrickColor',
         Color7: 'BRSavedBrickColor',
       },
+      BRSavedComponentRef: {
+        Brick: 'BRSavedBrickRef',
+        ComponentTypeIndex: 'u16',
+      },
       BRSavedEntityChunkSoA: {
         TypeCounters: ['BRSavedEntityTypeCounter'],
         PersistentIndices: ['u32'],
+        PrefabSpawnInstanceIndices: ['u32'],
         OwnerIndices: ['u32'],
         OriginalOwnerIndices: ['u32'],
         Locations: ['Vector3f', null],
         Rotations: ['Quat4f', null],
-        WeldParentFlags: 'BRSavedBitFlags',
         PhysicsLockedFlags: 'BRSavedBitFlags',
         PhysicsSleepingFlags: 'BRSavedBitFlags',
-        WeldParentIndices: ['u32'],
         LinearVelocities: ['Vector3f', null],
         AngularVelocities: ['Vector3f', null],
         ColorsAndAlphas: ['BRSavedEntityColors', null],
@@ -2888,5 +2782,36 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bColorsAreLinear: 'bool',
       },
     },
+    types: [
+      'EBrickDirection',
+      'EBrickAxis',
+      'EBRPawnCollisionChannel',
+      'EBRTextShading',
+      'EBRTextOutline',
+      'EBRTextMaterial',
+      'EBRTextTypeface',
+      'EBRTextFacing',
+      'EBREasingFunction',
+      'EBREasingDirection',
+      'EBRColorSpace',
+      'EProjectileSpawnLocation',
+      'EBrickRigidJointInterpMode',
+      'EBRDisplayTextJustification',
+      'EBRDisplayTextEasing',
+      'EBrickMaterial',
+      'EBrickLightRayTracingVisibility',
+      'EBrickSeatMode',
+      'EBrickSeatCameraOrigin',
+      'EBrickSeatFlightInvertOverride',
+      'EBrickSeatAirStrafeControl',
+      'EBrickAerodynamicSurfaceRole',
+      'EBrickAerodynamicForceApplication',
+      'EBrickThrusterForceApplication',
+      'EBrickVehicleFlightHandling',
+      'EBrickVehicleMassDistribution',
+      'EBRSweepCollisionChannel',
+      'EBRReverbEffect',
+      'EWireKind',
+    ],
   },
 };

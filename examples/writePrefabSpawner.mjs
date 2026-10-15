@@ -30,7 +30,9 @@ const button = w.addBrick({
   asset: BUTTON.BRICK,
   position: [0, 0, 2],
   color: [0, 255, 0],
-  components: [{ type: BUTTON.NAME, data: { PromptCustomLabel: 'Spawn Brick' } }],
+  components: [
+    { type: BUTTON.NAME, data: { PromptCustomLabel: 'Spawn Brick' } },
+  ],
 });
 
 // The prefab-spawner gate, pointed at the embedded prefab.
