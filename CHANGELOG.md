@@ -3,6 +3,22 @@
 All notable changes to `brs-js` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 4.0.1 - 2026-10-15
+
+### Added
+
+- `handleStruct(ty)`, the struct a handle type is stored as.
+
+### Fixed
+
+- `brick_handle` and `component_handle` values are now read and written (as
+  `BRSavedBrickRef` / `BRSavedComponentRef` objects), so saves with populated
+  component arrays decode. Mirrors `brdb` 1.0.1. An `ArrayVar`'s `Value` is a
+  plain `dynamic_array`, e.g. `{ $elementType: 'brick_handle', $array: [ref] }`;
+  an array of arrays is a `component_handle` array of refs to other
+  `ArrayVar`s. Refs are stored as given; write them relative to the array, as
+  the game does.
+
 ## 4.0.0 - 2026-10-15
 
 > **This release contains breaking changes to the `brdb` API** (`.brz` /

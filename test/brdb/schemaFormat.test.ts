@@ -162,6 +162,7 @@ types {
     f64,
     Bool,
     brick_handle,
+    component_handle,
 }
 `;
 
@@ -227,7 +228,7 @@ describe('Latest schemas and values', () => {
     const s = schema();
     expect(() =>
       s.readValue(new ByteReader(bytes(9, 0x90)), 'dynamic_array')
-    ).toThrow(/type index 9 is outside the types table \(length 6\)/);
+    ).toThrow(/type index 9 is outside the types table \(length 7\)/);
     expect(() =>
       s.encode('dynamic_array', {
         $elementType: 'Vector',
@@ -236,14 +237,47 @@ describe('Latest schemas and values', () => {
     ).toThrow(/not in the types table/);
   });
 
-  test('handle types: empty containers only', () => {
+  test('handle arrays hold inline refs', () => {
     const s = schema();
     const empty = s.readValue(new ByteReader(bytes(5, 0x90)), 'dynamic_array');
     expect(empty).toEqual({ $elementType: 'brick_handle', $array: [] });
     expect(Array.from(s.encode('dynamic_array', empty))).toEqual([5, 0x90]);
-    expect(() =>
-      s.readValue(new ByteReader(bytes(5, 0x91, 0)), 'dynamic_array')
-    ).toThrow(/brick_handle/);
+
+    // Two elements of a game-saved array of arrays: each is a bare
+    // BRSavedComponentRef (grid 0, chunk 0,0,0, brick 297/298, type 15).
+    const brickRef = (index: number) => ({
+      GridPersistentIndex: 0,
+      ChunkIndex: { X: 0, Y: 0, Z: 0 },
+      BrickIndexInChunk: index,
+    });
+    const saved = [
+      0x06, 0x92, 0, 0, 0, 0, 0xcd, 0x01, 0x29, 0x0f, 0, 0, 0, 0, 0xcd, 0x01,
+      0x2a, 0x0f,
+    ];
+    const components = {
+      $elementType: 'component_handle',
+      $array: [297, 298].map(i => ({
+        Brick: brickRef(i),
+        ComponentTypeIndex: 15,
+      })),
+    } as unknown as BrdbValue;
+    expect(
+      s.readValue(new ByteReader(Uint8Array.from(saved)), 'dynamic_array')
+    ).toEqual(components);
+    expect(Array.from(s.encode('dynamic_array', components))).toEqual(saved);
+
+    // A brick handle is the BRSavedBrickRef part of the same layout.
+    const bricks = {
+      $elementType: 'brick_handle',
+      $array: [brickRef(297), brickRef(298)],
+    } as unknown as BrdbValue;
+    const brickBytes = [
+      0x05, 0x92, 0, 0, 0, 0, 0xcd, 0x01, 0x29, 0, 0, 0, 0, 0xcd, 0x01, 0x2a,
+    ];
+    expect(Array.from(s.encode('dynamic_array', bricks))).toEqual(brickBytes);
+    expect(
+      s.readValue(new ByteReader(Uint8Array.from(brickBytes)), 'dynamic_array')
+    ).toEqual(bricks);
   });
 
   test('WireValue alternatives and the extra type strings', () => {

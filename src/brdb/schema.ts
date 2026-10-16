@@ -85,11 +85,20 @@ export const DYNAMIC_MAP = 'dynamic_map';
 /** An enum value tagged with its enum type: a `types` index, then the
  * value. Written by the game but not in the draft spec. */
 export const DYNAMIC_ENUM = 'dynamic_enum';
-/** Undeclared type names the game writes whose payload encoding is not
- * known: reading or writing a value is an error; empty containers of them
- * still round-trip. */
+/** Undeclared type names the game writes for references in array elements,
+ * map keys and map values; see `handleStruct` for their payload. */
 export const BRICK_HANDLE = 'brick_handle';
 export const COMPONENT_HANDLE = 'component_handle';
+
+/** The struct a handle type's payload is encoded as, inline with no tag. A
+ * game-saved `component_handle` array holds `BRSavedComponentRef` elements
+ * (grid, chunk, brick index, component type index); a `brick_handle` array
+ * written as `BRSavedBrickRef` elements resolves in game. */
+export function handleStruct(ty: string): string | undefined {
+  if (ty === BRICK_HANDLE) return 'BRSavedBrickRef';
+  if (ty === COMPONENT_HANDLE) return 'BRSavedComponentRef';
+  return undefined;
+}
 /** EA3 wire graph unions used directly as field types. */
 export const EA3_WIRE_GRAPH_VARIANT = 'wire_graph_variant';
 export const EA3_WIRE_GRAPH_PRIM_MATH_VARIANT = 'wire_graph_prim_math_variant';
@@ -639,11 +648,16 @@ export class BrdbSchema {
         );
       return { $enum: name, value: 0 };
     }
-    if (ty === BRICK_HANDLE || ty === COMPONENT_HANDLE)
-      throw new Error(
-        `brdb: the payload encoding of ${ty} values is not known`
-      );
+    const handle = handleStruct(ty);
+    if (handle) return this.zeroValue(this.handlePayload(ty, handle));
     throw new Error(`brdb: unknown type ${ty}`);
+  }
+
+  /** The schema struct a handle's payload is read and written as. */
+  private handlePayload(ty: string, handle: string): string {
+    if (!this.structs.has(handle))
+      throw new Error(`brdb: ${ty} needs struct ${handle} in the schema`);
+    return handle;
   }
 
   /** Complete a partial struct value: present fields pass through, missing
@@ -928,10 +942,9 @@ export class BrdbSchema {
       mpUint(w, this.types.indexOf(this.dynamicType(v.$enum)));
       return mpInt(w, v.value);
     }
-    if (ty === BRICK_HANDLE || ty === COMPONENT_HANDLE)
-      throw new Error(
-        `brdb: the payload encoding of ${ty} values is not known`
-      );
+    const handle = handleStruct(ty);
+    if (handle)
+      return this.writeValue(w, this.handlePayload(ty, handle), value);
     throw new Error(`brdb: unknown type ${ty}`);
   }
 
@@ -1206,10 +1219,9 @@ export class BrdbSchema {
         throw new Error(`brdb: dynamic_enum type ${name} is not an enum`);
       return { $enum: name, value: rdInt(r) };
     }
-    if (ty === BRICK_HANDLE || ty === COMPONENT_HANDLE)
-      throw new Error(
-        `brdb: the payload encoding of ${ty} values is not known; only empty containers of it are supported`
-      );
+    const handle = handleStruct(ty);
+    if (handle)
+      return this.readValue(r, this.handlePayload(ty, handle), depth + 1);
     throw new Error(`brdb: unknown type ${ty}`);
   }
 
