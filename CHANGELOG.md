@@ -16,8 +16,10 @@ All notable changes to `brs-js` are recorded here. The format follows
   component arrays decode. Mirrors `brdb` 1.0.1. An `ArrayVar`'s `Value` is a
   plain `dynamic_array`, e.g. `{ $elementType: 'brick_handle', $array: [ref] }`;
   an array of arrays is a `component_handle` array of refs to other
-  `ArrayVar`s. Refs are stored as given; write them relative to the array, as
-  the game does.
+  `ArrayVar`s. Refs are stored as given. To reach a brick in another chunk,
+  write the absolute form: the grid's persistent index (1 for the main grid),
+  the brick's own chunk, and its index in that chunk. Grid 0 with chunk
+  (0,0,0), which the game writes, only reaches the array's own chunk.
 
 ## 4.0.0 - 2026-10-15
 
