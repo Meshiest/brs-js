@@ -134,6 +134,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
     'BCSComponentVertex_Exec_ArrayVar_Insert',
   ],
   [
+    'BrickComponentType_Exec_ArrayVar_Join',
+    'BCSComponentVertex_Exec_ArrayVar_Join',
+  ],
+  [
     'BrickComponentType_Exec_ArrayVar_Max',
     'BCSComponentVertex_Exec_ArrayVar_Max',
   ],
@@ -1110,11 +1114,11 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
   ],
   [
     'BrickComponentType_Internal_ZoneEvent_BrickChanged',
-    'BrickComponentData_Internal_ZoneEvent',
+    'BrickComponentData_Internal_BrickZoneEvent',
   ],
   [
     'BrickComponentType_Internal_ZoneEvent_BrickRemoved',
-    'BrickComponentData_Internal_ZoneEvent',
+    'BrickComponentData_Internal_BrickZoneEvent',
   ],
   ['BrickComponentType_ItemReference', 'BrickComponentData_ItemReference'],
   ['BrickComponentType_MapVar', 'BrickComponentData_MapVar'],
@@ -1413,6 +1417,22 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         $variant: 'f64',
         value: 0,
       },
+      ArrayVarRef: {
+        Brick: {
+          GridPersistentIndex: 0,
+          ChunkIndex: {
+            X: 0,
+            Y: 0,
+            Z: 0,
+          },
+          BrickIndexInChunk: 4294967295,
+        },
+        ComponentTypeIndex: 0,
+      },
+    },
+    BCSComponentVertex_Exec_ArrayVar_Join: {
+      Separator: '',
+      Output: '',
       ArrayVarRef: {
         Brick: {
           GridPersistentIndex: 0,
@@ -3764,7 +3784,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PickupSpinSpeed: 0.2,
       PickupBobSpeed: 0.1,
       PickupBobHeight: 4,
-      PickupAnimationPhase: 0.09475997,
+      PickupAnimationPhase: 0.48680073,
     },
     BrickComponentData_Joint_Wheel: {
       bDiscoverable: true,
@@ -5333,6 +5353,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
         bricks: ['B_1x1_Gate_Exec_ArrayVar_Insert'],
         inputs: ['ArrayVarRef', 'Exec', 'Index', 'Value'],
         outputs: ['ExecOut', 'bOutOfBounds'],
+      },
+      BrickComponentType_Exec_ArrayVar_Join: {
+        bricks: ['B_1x1_Gate_Exec_ArrayVar_Join'],
+        inputs: ['ArrayVarRef', 'Exec', 'Separator'],
+        outputs: ['ExecOut', 'Output'],
       },
       BrickComponentType_Exec_ArrayVar_Max: {
         bricks: ['B_1x1_Gate_Exec_ArrayVar_Max'],
@@ -7301,12 +7326,12 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
       BrickComponentType_Internal_ZoneEvent_BrickChanged: {
         bricks: ['B_1x1_Gate_Internal_ZoneEvent_BrickChanged'],
         inputs: ['Zone'],
-        outputs: ['Exec'],
+        outputs: ['Brick', 'Character', 'Exec'],
       },
       BrickComponentType_Internal_ZoneEvent_BrickRemoved: {
         bricks: ['B_1x1_Gate_Internal_ZoneEvent_BrickRemoved'],
         inputs: ['Zone'],
-        outputs: ['Exec'],
+        outputs: ['Brick', 'Character', 'Exec'],
       },
       BrickComponentType_ItemReference: {
         bricks: ['B_1x1_Gate_ItemReference'],
@@ -8654,6 +8679,18 @@ export const COMPONENTS = {
       Value: 'Value',
       ExecOut: 'ExecOut',
       bOutOfBounds: 'bOutOfBounds',
+    },
+  },
+  Exec_ArrayVar_Join: {
+    NAME: 'BrickComponentType_Exec_ArrayVar_Join',
+    BRICK: 'B_1x1_Gate_Exec_ArrayVar_Join',
+    BRICKS: ['B_1x1_Gate_Exec_ArrayVar_Join'],
+    PORTS: {
+      ArrayVarRef: 'ArrayVarRef',
+      Exec: 'Exec',
+      Separator: 'Separator',
+      ExecOut: 'ExecOut',
+      Output: 'Output',
     },
   },
   Exec_ArrayVar_Max: {
@@ -12151,6 +12188,8 @@ export const COMPONENTS = {
     BRICKS: ['B_1x1_Gate_Internal_ZoneEvent_BrickChanged'],
     PORTS: {
       Zone: 'Zone',
+      Brick: 'Brick',
+      Character: 'Character',
       Exec: 'Exec',
     },
   },
@@ -12160,6 +12199,8 @@ export const COMPONENTS = {
     BRICKS: ['B_1x1_Gate_Internal_ZoneEvent_BrickRemoved'],
     PORTS: {
       Zone: 'Zone',
+      Brick: 'Brick',
+      Character: 'Character',
       Exec: 'Exec',
     },
   },

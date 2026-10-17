@@ -3,6 +3,15 @@
 All notable changes to `brs-js` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 4.0.2 - 2026-10-17
+
+### Changed
+
+- Component data refreshed from the current game build, mirroring `brdb`
+  1.0.2: the new `Exec_ArrayVar_Join` gate, `Brick` and `Character` outputs
+  on the zone `BrickChanged` / `BrickRemoved` events, and the matching
+  schema, catalog and brick size entries.
+
 ## 4.0.1 - 2026-10-15
 
 ### Added

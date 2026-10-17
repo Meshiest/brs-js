@@ -797,6 +797,8 @@ export type BrickComponentData_Interact = {
   PromptCustomLabel: string;
 };
 
+export type BrickComponentData_Internal_BrickZoneEvent = {};
+
 export type BrickComponentData_Internal_CharacterZoneEvent = {
   TagFilter: string;
   bCollisionEnabled_Player: boolean;
@@ -847,8 +849,6 @@ export type BrickComponentData_Internal_MicrochipOutput = {
 export type BrickComponentData_Internal_ProjectileZoneEvent = {};
 
 export type BrickComponentData_Internal_ReadBrickGrid = {};
-
-export type BrickComponentData_Internal_ZoneEvent = {};
 
 export type BrickComponentData_ItemReference = {
   Asset: number | null;
@@ -2004,6 +2004,12 @@ export type BCSComponentVertex_Exec_ArrayVar_Insert = {
   ArrayVarRef: BRSavedComponentRef;
 };
 
+export type BCSComponentVertex_Exec_ArrayVar_Join = {
+  Separator: string;
+  Output: string;
+  ArrayVarRef: BRSavedComponentRef;
+};
+
 export type BCSComponentVertex_Exec_ArrayVar_Max = {
   Value: BrdbVariant;
   bIsEmpty: boolean;
@@ -2268,6 +2274,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Exec_ArrayVar_Get: BCSComponentVertex_Exec_ArrayVar_Get;
   BrickComponentType_Exec_ArrayVar_GetLength: BCSComponentVertex_Exec_ArrayVar_GetLength;
   BrickComponentType_Exec_ArrayVar_Insert: BCSComponentVertex_Exec_ArrayVar_Insert;
+  BrickComponentType_Exec_ArrayVar_Join: BCSComponentVertex_Exec_ArrayVar_Join;
   BrickComponentType_Exec_ArrayVar_Max: BCSComponentVertex_Exec_ArrayVar_Max;
   BrickComponentType_Exec_ArrayVar_Min: BCSComponentVertex_Exec_ArrayVar_Min;
   BrickComponentType_Exec_ArrayVar_Pop: BCSComponentVertex_Exec_ArrayVar_Pop;
@@ -2559,8 +2566,8 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Internal_ProjectileZoneEvent_Left: BrickComponentData_Internal_ProjectileZoneEvent;
   BrickComponentType_Internal_ReadBrickGrid: BrickComponentData_Internal_ReadBrickGrid;
   BrickComponentType_Internal_TeleportDestination: BrickComponentData_TeleportDestination;
-  BrickComponentType_Internal_ZoneEvent_BrickChanged: BrickComponentData_Internal_ZoneEvent;
-  BrickComponentType_Internal_ZoneEvent_BrickRemoved: BrickComponentData_Internal_ZoneEvent;
+  BrickComponentType_Internal_ZoneEvent_BrickChanged: BrickComponentData_Internal_BrickZoneEvent;
+  BrickComponentType_Internal_ZoneEvent_BrickRemoved: BrickComponentData_Internal_BrickZoneEvent;
   BrickComponentType_ItemReference: BrickComponentData_ItemReference;
   BrickComponentType_MapVar: BrickComponentData_MapVar;
   BrickComponentType_OneShotAudioReference: BrickComponentData_OneShotAudioReference;

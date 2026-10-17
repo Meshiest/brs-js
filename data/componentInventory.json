@@ -40,6 +40,7 @@
     "B_1x1_Gate_Exec_ArrayVar_Get",
     "B_1x1_Gate_Exec_ArrayVar_GetLength",
     "B_1x1_Gate_Exec_ArrayVar_Insert",
+    "B_1x1_Gate_Exec_ArrayVar_Join",
     "B_1x1_Gate_Exec_ArrayVar_Max",
     "B_1x1_Gate_Exec_ArrayVar_Min",
     "B_1x1_Gate_Exec_ArrayVar_Pop",
@@ -1026,6 +1027,21 @@
       "outputs": [
         "ExecOut",
         "bOutOfBounds"
+      ]
+    },
+    {
+      "class": "BrickComponentType_Exec_ArrayVar_Join",
+      "bricks": [
+        "B_1x1_Gate_Exec_ArrayVar_Join"
+      ],
+      "inputs": [
+        "ArrayVarRef",
+        "Exec",
+        "Separator"
+      ],
+      "outputs": [
+        "ExecOut",
+        "Output"
       ]
     },
     {
@@ -5389,6 +5405,8 @@
         "Zone"
       ],
       "outputs": [
+        "Brick",
+        "Character",
         "Exec"
       ]
     },
@@ -5401,6 +5419,8 @@
         "Zone"
       ],
       "outputs": [
+        "Brick",
+        "Character",
         "Exec"
       ]
     },

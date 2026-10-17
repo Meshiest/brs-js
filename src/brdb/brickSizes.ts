@@ -50,6 +50,7 @@ export const BRICK_HALF_EXTENTS: ReadonlyMap<
   ['B_1x1_Gate_Exec_ArrayVar_Get', [5, 5, 2]],
   ['B_1x1_Gate_Exec_ArrayVar_GetLength', [5, 5, 2]],
   ['B_1x1_Gate_Exec_ArrayVar_Insert', [5, 5, 2]],
+  ['B_1x1_Gate_Exec_ArrayVar_Join', [5, 5, 2]],
   ['B_1x1_Gate_Exec_ArrayVar_Max', [5, 5, 2]],
   ['B_1x1_Gate_Exec_ArrayVar_Min', [5, 5, 2]],
   ['B_1x1_Gate_Exec_ArrayVar_Pop', [5, 5, 2]],
