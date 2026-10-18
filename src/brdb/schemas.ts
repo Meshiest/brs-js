@@ -421,6 +421,17 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         'EBRTextTypeface::BoldItalic': 3,
         'EBRTextTypeface::EBRTextTypeface_MAX': 4,
       },
+      ECallableAbortReason: {
+        'ECallableAbortReason::None': 0,
+        'ECallableAbortReason::InvalidPlan': 1,
+        'ECallableAbortReason::InvalidCollection': 2,
+        'ECallableAbortReason::Overflow': 3,
+        'ECallableAbortReason::CollectionModified': 4,
+        'ECallableAbortReason::Recursion': 5,
+        'ECallableAbortReason::WorkLimitExceeded': 6,
+        'ECallableAbortReason::NestingLimitExceeded': 7,
+        'ECallableAbortReason::ECallableAbortReason_MAX': 8,
+      },
       ECallableInputSource: {
         'ECallableInputSource::DefinitionDefault': 0,
         'ECallableInputSource::Override': 1,
@@ -500,14 +511,17 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Character_AddInventoryItem: {
         Item: 'class',
       },
-      BCSComponentVertex_Exec_Character_GetAim: {
-        bLocalAim: 'bool',
-      },
       BCSComponentVertex_Exec_Character_GetAmmo: {
         Resource: 'object',
+        Amount: 'i64',
       },
-      BCSComponentVertex_Exec_Character_GetCurrentInventorySlot: {},
-      BCSComponentVertex_Exec_Character_GetDamage: {},
+      BCSComponentVertex_Exec_Character_GetCurrentInventorySlot: {
+        Slot: 'i64',
+      },
+      BCSComponentVertex_Exec_Character_GetDamage: {
+        Damage: 'f64',
+        DamageLimit: 'f64',
+      },
       BCSComponentVertex_Exec_Character_GetFromController: {},
       BCSComponentVertex_Exec_Character_GetInventoryEntry: {
         Slot: 'i64',
@@ -515,6 +529,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo: {
         Slot: 'i64',
         Resource: 'object',
+        Amount: 'i64',
       },
       BCSComponentVertex_Exec_Character_GrantAmmo: {
         Resource: 'object',
@@ -568,12 +583,16 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Value: 'WireValue',
         bFound: 'bool',
       },
-      BCSComponentVertex_Exec_Entity_GetSpeed: {},
+      BCSComponentVertex_Exec_Entity_GetSpeed: {
+        Speed: 'f64',
+      },
       BCSComponentVertex_Exec_Entity_GetTag: {
         Tag: 'str',
       },
       BCSComponentVertex_Exec_Entity_GetTeam: {},
-      BCSComponentVertex_Exec_Entity_IsFrozen: {},
+      BCSComponentVertex_Exec_Entity_IsFrozen: {
+        bFrozen: 'bool',
+      },
       BCSComponentVertex_Exec_Entity_PlayAudioAt: {
         AudioDescriptor: 'object',
         VolumeMultiplier: 'f64',
@@ -600,6 +619,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Entity_SetVisible: {
         bVisible: 'bool',
       },
+      BCSComponentVertex_Exec_Entity_SetVisibleTo: {},
       BCSComponentVertex_Exec_FindPlayer: {
         Query: 'str',
       },
@@ -610,9 +630,12 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Message: 'str',
         bFlashIfUnchanged: 'bool',
       },
-      BCSComponentVertex_Exec_Gamemode_GetCurrentRound: {},
+      BCSComponentVertex_Exec_Gamemode_GetCurrentRound: {
+        RoundNumber: 'i64',
+      },
       BCSComponentVertex_Exec_Gamemode_GetLeaderboardValue: {
         Key: 'str',
+        Value: 'i64',
       },
       BCSComponentVertex_Exec_Gamemode_GetTeam: {},
       BCSComponentVertex_Exec_Gamemode_GetTeamByName: {
@@ -620,8 +643,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BCSComponentVertex_Exec_Gamemode_GetTeamLeaderboardValue: {
         Key: 'str',
+        Value: 'i64',
       },
-      BCSComponentVertex_Exec_Gamemode_GetTeamName: {},
+      BCSComponentVertex_Exec_Gamemode_GetTeamName: {
+        Name: 'str',
+      },
       BCSComponentVertex_Exec_Gamemode_LeaderboardValue: {
         Key: 'str',
         Value: 'i64',
@@ -641,28 +667,38 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BCSComponentVertex_Exec_Gamemode_TeamWins: {},
       BCSComponentVertex_Exec_GetEnvironmentProperty: {
+        Value: 'WireValue',
         Environment: 'str',
         PropertyName: 'str',
       },
       BCSComponentVertex_Exec_GetInputs: {},
-      BCSComponentVertex_Exec_GetOwnTransform: {},
       BCSComponentVertex_Exec_PlayClientAudio: {
         AudioDescriptor: 'object',
         VolumeMultiplier: 'f64',
         PitchMultiplier: 'f64',
       },
       BCSComponentVertex_Exec_PlayerState_ForceRespawn: {},
-      BCSComponentVertex_Exec_PlayerState_GetDisplayName: {},
+      BCSComponentVertex_Exec_PlayerState_GetDisplayName: {
+        DisplayName: 'str',
+      },
       BCSComponentVertex_Exec_PlayerState_GetFromEntity: {},
-      BCSComponentVertex_Exec_PlayerState_GetUserId: {},
-      BCSComponentVertex_Exec_PlayerState_GetUserName: {},
+      BCSComponentVertex_Exec_PlayerState_GetUserId: {
+        UserId: 'str',
+      },
+      BCSComponentVertex_Exec_PlayerState_GetUserName: {
+        UserName: 'str',
+      },
       BCSComponentVertex_Exec_PlayerState_HasPermission: {
         PermissionName: 'str',
+        bHasPermission: 'bool',
       },
       BCSComponentVertex_Exec_PlayerState_HasRole: {
         RoleName: 'str',
+        bHasRole: 'bool',
       },
-      BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner: {},
+      BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner: {
+        bIsTrusted: 'bool',
+      },
       BCSComponentVertex_Exec_PlayerState_SetCanRespawn: {
         bCanRespawn: 'bool',
       },
@@ -681,6 +717,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Message: 'str',
       },
       BCSComponentVertex_Exec_PlayerState_ShowTextInputBox: {
+        Text: 'str',
         Title: 'str',
         Message: 'str',
       },
@@ -699,6 +736,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Random: {
         Min: 'WireValue',
         Max: 'WireValue',
+        Output: 'WireValue',
       },
       BCSComponentVertex_Exec_SendCustomEvent: {
         EventName: 'str',
@@ -736,10 +774,13 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BCSComponentVertex_Expr_ChangeDetector: {
         Input: 'WireValue',
-        bPulseOnChange: 'bool',
+        InputLast: 'WireValue',
+        bSeeded: 'bool',
       },
       BCSComponentVertex_Expr_ChangeDetectorExec: {
         Input: 'WireValue',
+        InputLast: 'WireValue',
+        bSeeded: 'bool',
       },
       BCSComponentVertex_Expr_Compare: {
         InputA: 'WireValue',
@@ -747,21 +788,21 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BCSComponentVertex_Expr_Convert: {
         Input: 'WireValue',
-        Output: 'WireValue',
         TargetType: 'WireValue',
       },
       BCSComponentVertex_Expr_DeltaTime: {},
       BCSComponentVertex_Expr_EdgeDetector: {
         Input: 'f64',
-        bPulseOnRisingEdge: 'bool',
-        bPulseOnFallingEdge: 'bool',
+        InputLast: 'f64',
+        bSeeded: 'bool',
       },
       BCSComponentVertex_Expr_EdgeDetectorExec: {
         Input: 'f64',
+        InputLast: 'f64',
+        bSeeded: 'bool',
       },
       BCSComponentVertex_Expr_EnumToInteger: {
         Input: 'WireValue',
-        Output: 'WireValue',
       },
       BCSComponentVertex_Expr_Float_Float: {
         Input: 'f64',
@@ -783,7 +824,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Input: 'i64',
         bWrap: 'bool',
         TargetType: 'dynamic_enum',
-        Output: 'WireValue',
       },
       BCSComponentVertex_Expr_IntInt_Int: {
         InputA: 'i64',
@@ -977,6 +1017,18 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Output6: 'WireValue',
         Output7: 'WireValue',
         InputSources: ['ECallableInputSource'],
+        bAborted: 'bool',
+        AbortReason: 'ECallableAbortReason',
+        IterationsExecuted: 'i64',
+      },
+      BRCallableRunState: {
+        Ordinal: 'i64',
+        Count: 'i64',
+        Index: 'i64',
+        Step: 'i64',
+        IterationsExecuted: 'i64',
+        SavedMapCursor: 'i32',
+        bActive: 'bool',
       },
       BrickComponentData_ArrayVar: {
         Value: 'dynamic_array',
@@ -1082,6 +1134,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BrickComponentData_Event_Gamemode_RoundBase: {
         RoundNumber: 'i32',
       },
+      BrickComponentData_Event_Loaded: {},
       BrickComponentData_Event_WholeGridInteracted: {
         bAllowNearbyInteraction: 'bool',
         bHiddenInteraction: 'bool',
@@ -1123,18 +1176,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       },
       BrickComponentData_Internal_InputSplitter_V2: {},
       BrickComponentData_Internal_Microchip: {},
-      BrickComponentData_Internal_Microchip_CountFor: {
-        Count: 'i64',
-        FirstIndex: 'i64',
-        Step: 'i64',
-        bRunAcrossTicks: 'bool',
-      },
-      BrickComponentData_Internal_Microchip_ForEachArray: {
-        bRunAcrossTicks: 'bool',
-      },
-      BrickComponentData_Internal_Microchip_ForEachMap: {
-        bRunAcrossTicks: 'bool',
-      },
       BrickComponentData_Internal_Microchip_FunctionDefinition: {},
       BrickComponentData_Internal_MicrochipInput: {
         PortLabel: 'str',
@@ -1171,6 +1212,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bEnabled: 'bool',
         Speed: 'f32',
         Power: 'f32',
+        CurrentPosition: 'f32',
         bPositionsArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
@@ -1216,6 +1258,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         SpeedMultiplier: 'f32',
         ScaleMultiplier: 'f32',
       },
+      BrickComponentData_ReadBrick: {},
       BrickComponentData_Rerouter: {},
       BrickComponentData_RigidBearing: {
         TargetAngle: 'f32',
@@ -1241,6 +1284,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Power: 'f32',
         ActiveDamping: 'f32',
         ForceLimit: 'f32',
+        bStopped: 'bool',
         bLimitAngle: 'bool',
         LimitAngle: 'f32',
         CurrentAngle: 'f32',
@@ -1254,11 +1298,14 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Power: 'f32',
         TopSpeed: 'f32',
         Exponent: 'f32',
+        bStopped: 'bool',
+        CurrentPosition: 'f32',
         bPositionsArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
       },
       BrickComponentData_Slider: {
+        CurrentPosition: 'f32',
         bPositionsArePercentages: 'bool',
         bReversed: 'bool',
         Damping: 'f32',
@@ -1411,6 +1458,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Character_AddInventoryEntry: {
         Entry: 'BRInventoryEntryConfig',
       },
+      BCSComponentVertex_Exec_Character_GetAim: {
+        Origin: 'Vector',
+        Direction: 'Vector',
+        bLocalAim: 'bool',
+      },
       BCSComponentVertex_Exec_Character_SetInventoryBrick: {
         Slot: 'i64',
         BrickAsset: 'object',
@@ -1478,6 +1530,10 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Entity_Teleport: {
         Destination: 'BrickComponentWirePortControl_TeleportDestination',
       },
+      BCSComponentVertex_Exec_GetOwnTransform: {
+        Location: 'Vector',
+        Rotation: 'Rotator',
+      },
       BCSComponentVertex_Exec_PlayerState_DisplayText: {
         Text: 'str',
         Font: 'object',
@@ -1526,45 +1582,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         WorldPosition: 'Vector',
         ScaleMultiplier: 'f64',
         DamageMultiplier: 'f64',
-      },
-      BCSComponentVertex_Exec_Sweep: {
-        Origin: 'Vector',
-        Direction: 'Vector',
-        Distance: 'f64',
-        Radius: 'f64',
-        bRelative: 'bool',
-        bIgnoreOwningGrid: 'bool',
-        CollisionChannel: 'EBRSweepCollisionChannel',
-        bDetectBricks: 'bool',
-        bDetectPlayers1: 'bool',
-        bDetectPlayers2: 'bool',
-        bDetectPlayers3: 'bool',
-        bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
-        bDetectPhysics: 'bool',
-        bDetectMap: 'bool',
-        HitLocation: 'Vector',
-        HitNormal: 'Vector',
-        HitDistance: 'f64',
-      },
-      BCSComponentVertex_Exec_SweepSimple: {
-        Direction: 'EBrickDirection',
-        Distance: 'f64',
-        Radius: 'f64',
-        SpreadConeAngle: 'f64',
-        bSpreadBiasedTowardsCenter: 'bool',
-        CollisionChannel: 'EBRSweepCollisionChannel',
-        bDetectBricks: 'bool',
-        bDetectPlayers1: 'bool',
-        bDetectPlayers2: 'bool',
-        bDetectPlayers3: 'bool',
-        bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
-        bDetectPhysics: 'bool',
-        bDetectMap: 'bool',
-        HitLocation: 'Vector',
-        HitNormal: 'Vector',
-        HitDistance: 'f64',
       },
       BCSComponentVertex_Expr_ColorBlend: {
         ColorA: 'LinearColor',
@@ -1738,6 +1755,33 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         TagFilter: 'str',
         ZoneWindForce: 'f64',
       },
+      BrickComponentData_Internal_Microchip_CountFor: {
+        Count: 'i64',
+        FirstIndex: 'i64',
+        Step: 'i64',
+        bAborted: 'bool',
+        AbortReason: 'ECallableAbortReason',
+        IterationsExecuted: 'i64',
+        bRunAcrossTicks: 'bool',
+        bRunning: 'bool',
+        RunState: 'BRCallableRunState',
+      },
+      BrickComponentData_Internal_Microchip_ForEachArray: {
+        bAborted: 'bool',
+        AbortReason: 'ECallableAbortReason',
+        IterationsExecuted: 'i64',
+        bRunAcrossTicks: 'bool',
+        bRunning: 'bool',
+        RunState: 'BRCallableRunState',
+      },
+      BrickComponentData_Internal_Microchip_ForEachMap: {
+        bAborted: 'bool',
+        AbortReason: 'ECallableAbortReason',
+        IterationsExecuted: 'i64',
+        bRunAcrossTicks: 'bool',
+        bRunning: 'bool',
+        RunState: 'BRCallableRunState',
+      },
       BrickComponentData_Joint_Wheel: {
         Control_DriveAndSteer: 'BrickComponentWireControl_DriveAndSteer',
         bDiscoverable: 'bool',
@@ -1841,7 +1885,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         DataOut8: 'WireValue',
       },
       BrickComponentData_Seat_V2: {
-        bIsOccupied: 'bool',
         ExitOffset: 'IntVector',
         bRollCameraInThirdPerson: 'bool',
         CameraOrigin: 'EBrickSeatCameraOrigin',
@@ -2014,10 +2057,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         MicrochipBrickIndices: ['u32'],
         MicrochipBrickGridReferences: ['u32'],
       },
-      BCSComponentVertex_Exec_BrickComponent: {
-        Brick: 'BRSavedBrickRef',
-        ComponentType: 'object',
-      },
       BCSComponentVertex_Exec_BrickComponentBase: {
         Brick: 'BRSavedBrickRef',
         ComponentType: 'object',
@@ -2048,6 +2087,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         MeshColors: ['Color'],
       },
       BCSComponentVertex_Exec_GetBrickProperty: {
+        Value: 'WireValue',
         Brick: 'BRSavedBrickRef',
         Property: 'EBRBrickProperty',
       },
@@ -2055,6 +2095,49 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         Value: 'WireValue',
         Brick: 'BRSavedBrickRef',
         Property: 'EBRBrickProperty',
+      },
+      BCSComponentVertex_Exec_Sweep: {
+        Origin: 'Vector',
+        Direction: 'Vector',
+        Distance: 'f64',
+        Radius: 'f64',
+        bRelative: 'bool',
+        bIgnoreOwningGrid: 'bool',
+        CollisionChannel: 'EBRSweepCollisionChannel',
+        bDetectBricks: 'bool',
+        bDetectPlayers1: 'bool',
+        bDetectPlayers2: 'bool',
+        bDetectPlayers3: 'bool',
+        bDetectPlayers4: 'bool',
+        bOnlyHitPlayerBodyParts: 'bool',
+        bDetectPhysics: 'bool',
+        bDetectMap: 'bool',
+        HitLocation: 'Vector',
+        HitNormal: 'Vector',
+        HitDistance: 'f64',
+        HitBrick: 'BRSavedBrickRef',
+        HitColor: 'LinearColor',
+      },
+      BCSComponentVertex_Exec_SweepSimple: {
+        Direction: 'EBrickDirection',
+        Distance: 'f64',
+        Radius: 'f64',
+        SpreadConeAngle: 'f64',
+        bSpreadBiasedTowardsCenter: 'bool',
+        CollisionChannel: 'EBRSweepCollisionChannel',
+        bDetectBricks: 'bool',
+        bDetectPlayers1: 'bool',
+        bDetectPlayers2: 'bool',
+        bDetectPlayers3: 'bool',
+        bDetectPlayers4: 'bool',
+        bOnlyHitPlayerBodyParts: 'bool',
+        bDetectPhysics: 'bool',
+        bDetectMap: 'bool',
+        HitLocation: 'Vector',
+        HitNormal: 'Vector',
+        HitDistance: 'f64',
+        HitBrick: 'BRSavedBrickRef',
+        HitColor: 'LinearColor',
       },
       BrickComponentData_ItemSpawn: {
         PickupClass: 'class',
@@ -2232,6 +2315,11 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bOutOfBounds: 'bool',
         ArrayVarRef: 'BRSavedComponentRef',
       },
+      BCSComponentVertex_Exec_BrickComponent: {
+        Component: 'BRSavedComponentRef',
+        Brick: 'BRSavedBrickRef',
+        ComponentType: 'object',
+      },
       BCSComponentVertex_Exec_Character_SetInventoryEntry: {
         Slot: 'i64',
         Entry: 'BRInventoryEntryConfig',
@@ -2245,6 +2333,7 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         ArrayVarRef: 'BRSavedComponentRef',
       },
       BCSComponentVertex_Exec_GetComponentProperty: {
+        Value: 'WireValue',
         Component: 'BRSavedComponentRef',
         PropertyName: 'str',
         ComponentType: 'object',

@@ -85,6 +85,7 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
     'BrickComponentType_Event_Gamemode_RoundStart',
     'BrickComponentData_Event_Gamemode_RoundBase',
   ],
+  ['BrickComponentType_Event_Loaded', 'BrickComponentData_Event_Loaded'],
   [
     'BrickComponentType_Event_WholeGridInteracted',
     'BrickComponentData_Event_WholeGridInteracted',
@@ -422,6 +423,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
   [
     'BrickComponentType_Exec_Entity_SetVisible',
     'BCSComponentVertex_Exec_Entity_SetVisible',
+  ],
+  [
+    'BrickComponentType_Exec_Entity_SetVisibleTo',
+    'BCSComponentVertex_Exec_Entity_SetVisibleTo',
   ],
   [
     'BrickComponentType_Exec_Entity_Teleport',
@@ -1138,6 +1143,7 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
   ],
   ['BrickComponentType_QueueSeconds', 'BrickComponentData_QueueSeconds'],
   ['BrickComponentType_QueueTicks', 'BrickComponentData_QueueTicks'],
+  ['BrickComponentType_ReadBrick', 'BrickComponentData_ReadBrick'],
   ['BrickComponentType_Stopwatch', 'BrickComponentData_Stopwatch'],
   ['BrickComponentType_Tween', 'BrickComponentData_Tween'],
   ['BrickComponentType_Var', 'BrickComponentData_Var'],
@@ -1767,6 +1773,18 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       bCond: false,
     },
     BCSComponentVertex_Exec_BrickComponent: {
+      Component: {
+        Brick: {
+          GridPersistentIndex: 0,
+          ChunkIndex: {
+            X: 0,
+            Y: 0,
+            Z: 0,
+          },
+          BrickIndexInChunk: 4294967295,
+        },
+        ComponentTypeIndex: 0,
+      },
       Brick: {
         GridPersistentIndex: 0,
         ChunkIndex: {
@@ -1807,13 +1825,34 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       bOverrideColors: false,
     },
     BCSComponentVertex_Exec_Character_GetAim: {
+      Origin: {
+        X: 0,
+        Y: 0,
+        Z: 0,
+      },
+      Direction: {
+        X: 1,
+        Y: 0,
+        Z: 0,
+      },
       bLocalAim: false,
+    },
+    BCSComponentVertex_Exec_Character_GetAmmo: {
+      Amount: 0,
+    },
+    BCSComponentVertex_Exec_Character_GetCurrentInventorySlot: {
+      Slot: -1,
+    },
+    BCSComponentVertex_Exec_Character_GetDamage: {
+      Damage: 0,
+      DamageLimit: 0,
     },
     BCSComponentVertex_Exec_Character_GetInventoryEntry: {
       Slot: 0,
     },
     BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo: {
       Slot: 0,
+      Amount: 0,
     },
     BCSComponentVertex_Exec_Character_GrantAmmo: {
       Amount: 1,
@@ -1958,6 +1997,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         Roll: 0,
       },
     },
+    BCSComponentVertex_Exec_Entity_GetSpeed: {
+      Speed: 0,
+    },
     BCSComponentVertex_Exec_Entity_GetTag: {
       Tag: '',
     },
@@ -1984,6 +2026,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         Y: 0,
         Z: 0,
       },
+    },
+    BCSComponentVertex_Exec_Entity_IsFrozen: {
+      bFrozen: false,
     },
     BCSComponentVertex_Exec_Entity_PlayAudioAt: {
       VolumeMultiplier: 1,
@@ -2110,14 +2155,22 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         ComponentTypeIndex: 0,
       },
     },
+    BCSComponentVertex_Exec_Gamemode_GetCurrentRound: {
+      RoundNumber: 0,
+    },
     BCSComponentVertex_Exec_Gamemode_GetLeaderboardValue: {
       Key: 'Score',
+      Value: 0,
     },
     BCSComponentVertex_Exec_Gamemode_GetTeamByName: {
       TeamName: '',
     },
     BCSComponentVertex_Exec_Gamemode_GetTeamLeaderboardValue: {
       Key: 'Score',
+      Value: 0,
+    },
+    BCSComponentVertex_Exec_Gamemode_GetTeamName: {
+      Name: '',
     },
     BCSComponentVertex_Exec_Gamemode_LeaderboardValue: {
       Key: 'Score',
@@ -2137,6 +2190,10 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Value: 0,
     },
     BCSComponentVertex_Exec_GetBrickProperty: {
+      Value: {
+        $variant: 'f64',
+        value: 0,
+      },
       Brick: {
         GridPersistentIndex: 0,
         ChunkIndex: {
@@ -2149,6 +2206,10 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Property: 1,
     },
     BCSComponentVertex_Exec_GetComponentProperty: {
+      Value: {
+        $variant: 'f64',
+        value: 0,
+      },
       Component: {
         Brick: {
           GridPersistentIndex: 0,
@@ -2164,8 +2225,24 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PropertyName: 'None',
     },
     BCSComponentVertex_Exec_GetEnvironmentProperty: {
+      Value: {
+        $variant: 'f64',
+        value: 0,
+      },
       Environment: 'None',
       PropertyName: 'None',
+    },
+    BCSComponentVertex_Exec_GetOwnTransform: {
+      Location: {
+        X: 0,
+        Y: 0,
+        Z: 0,
+      },
+      Rotation: {
+        Pitch: 0,
+        Yaw: 0,
+        Roll: 0,
+      },
     },
     BCSComponentVertex_Exec_MapVar_Clear: {
       MapVarRef: {
@@ -2422,11 +2499,25 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Lifetime: 5,
       TextId: 0,
     },
+    BCSComponentVertex_Exec_PlayerState_GetDisplayName: {
+      DisplayName: '',
+    },
+    BCSComponentVertex_Exec_PlayerState_GetUserId: {
+      UserId: '',
+    },
+    BCSComponentVertex_Exec_PlayerState_GetUserName: {
+      UserName: '',
+    },
     BCSComponentVertex_Exec_PlayerState_HasPermission: {
       PermissionName: 'BR.Permission.AlwaysSave',
+      bHasPermission: false,
     },
     BCSComponentVertex_Exec_PlayerState_HasRole: {
       RoleName: '',
+      bHasRole: false,
+    },
+    BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner: {
+      bIsTrusted: false,
     },
     BCSComponentVertex_Exec_PlayerState_SetCanRespawn: {
       bCanRespawn: true,
@@ -2446,6 +2537,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Message: '',
     },
     BCSComponentVertex_Exec_PlayerState_ShowTextInputBox: {
+      Text: '',
       Title: '',
       Message: '',
     },
@@ -2484,6 +2576,10 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Max: {
         $variant: 'f64',
         value: 1,
+      },
+      Output: {
+        $variant: 'f64',
+        value: 0,
       },
     },
     BCSComponentVertex_Exec_SendCustomEvent: {
@@ -2617,6 +2713,21 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         Z: 0,
       },
       HitDistance: 0,
+      HitBrick: {
+        GridPersistentIndex: 0,
+        ChunkIndex: {
+          X: 0,
+          Y: 0,
+          Z: 0,
+        },
+        BrickIndexInChunk: 4294967295,
+      },
+      HitColor: {
+        R: 0,
+        G: 0,
+        B: 0,
+        A: 0,
+      },
     },
     BCSComponentVertex_Exec_SweepSimple: {
       Direction: 4,
@@ -2644,6 +2755,21 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         Z: 0,
       },
       HitDistance: 0,
+      HitBrick: {
+        GridPersistentIndex: 0,
+        ChunkIndex: {
+          X: 0,
+          Y: 0,
+          Z: 0,
+        },
+        BrickIndexInChunk: 4294967295,
+      },
+      HitColor: {
+        R: 0,
+        G: 0,
+        B: 0,
+        A: 0,
+      },
     },
     BCSComponentVertex_Exec_Toggle: {
       Value: false,
@@ -2761,13 +2887,22 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         $variant: 'f64',
         value: 0,
       },
-      bPulseOnChange: false,
+      InputLast: {
+        $variant: 'f64',
+        value: 0,
+      },
+      bSeeded: true,
     },
     BCSComponentVertex_Expr_ChangeDetectorExec: {
       Input: {
         $variant: 'f64',
         value: 0,
       },
+      InputLast: {
+        $variant: 'f64',
+        value: 0,
+      },
+      bSeeded: true,
     },
     BCSComponentVertex_Expr_ColorBlend: {
       ColorA: {
@@ -2833,10 +2968,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         $variant: 'f64',
         value: 0,
       },
-      Output: {
-        $variant: 'f64',
-        value: 0,
-      },
       TargetType: {
         $variant: 'f64',
         value: 0,
@@ -2851,11 +2982,13 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
     },
     BCSComponentVertex_Expr_EdgeDetector: {
       Input: 0,
-      bPulseOnRisingEdge: false,
-      bPulseOnFallingEdge: false,
+      InputLast: 0,
+      bSeeded: true,
     },
     BCSComponentVertex_Expr_EdgeDetectorExec: {
       Input: 0,
+      InputLast: 0,
+      bSeeded: true,
     },
     BCSComponentVertex_Expr_EnumToInteger: {
       Input: {
@@ -2864,10 +2997,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
           $enum: 'EBrickDirection',
           value: 0,
         },
-      },
-      Output: {
-        $variant: 'i64',
-        value: 0,
       },
     },
     BCSComponentVertex_Expr_Float_Float: {
@@ -2897,13 +3026,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       TargetType: {
         $enum: 'EBrickDirection',
         value: 0,
-      },
-      Output: {
-        $variant: 'dynamic_enum',
-        value: {
-          $enum: 'EBrickDirection',
-          value: 0,
-        },
       },
     },
     BCSComponentVertex_Expr_InvertRotation: {
@@ -3391,6 +3513,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         $variant: 'f64',
         value: 0,
       },
+      bAborted: false,
+      AbortReason: 0,
+      IterationsExecuted: 0,
     },
     BrickComponentData_AerodynamicSurface: {
       bEnabled: true,
@@ -3747,13 +3872,52 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Count: 1,
       FirstIndex: 0,
       Step: 1,
+      bAborted: false,
+      AbortReason: 0,
+      IterationsExecuted: 0,
       bRunAcrossTicks: false,
+      bRunning: false,
+      RunState: {
+        Ordinal: 0,
+        Count: 0,
+        Index: 0,
+        Step: 0,
+        IterationsExecuted: 0,
+        SavedMapCursor: 0,
+        bActive: false,
+      },
     },
     BrickComponentData_Internal_Microchip_ForEachArray: {
+      bAborted: false,
+      AbortReason: 0,
+      IterationsExecuted: 0,
       bRunAcrossTicks: false,
+      bRunning: false,
+      RunState: {
+        Ordinal: 0,
+        Count: 0,
+        Index: 0,
+        Step: 0,
+        IterationsExecuted: 0,
+        SavedMapCursor: 0,
+        bActive: false,
+      },
     },
     BrickComponentData_Internal_Microchip_ForEachMap: {
+      bAborted: false,
+      AbortReason: 0,
+      IterationsExecuted: 0,
       bRunAcrossTicks: false,
+      bRunning: false,
+      RunState: {
+        Ordinal: 0,
+        Count: 0,
+        Index: 0,
+        Step: 0,
+        IterationsExecuted: 0,
+        SavedMapCursor: 0,
+        bActive: false,
+      },
     },
     BrickComponentData_ItemSpawn: {
       bPickupEnabled: true,
@@ -3784,7 +3948,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PickupSpinSpeed: 0.2,
       PickupBobSpeed: 0.1,
       PickupBobHeight: 4,
-      PickupAnimationPhase: 0.48680073,
+      PickupAnimationPhase: 0.56913966,
     },
     BrickComponentData_Joint_Wheel: {
       bDiscoverable: true,
@@ -3849,6 +4013,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       bEnabled: true,
       Speed: 60,
       Power: 10,
+      CurrentPosition: 0,
       bPositionsArePercentages: false,
       bReversed: false,
       Damping: 1,
@@ -4067,7 +4232,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       TopSpeed: 0,
     },
     BrickComponentData_Seat_V2: {
-      bIsOccupied: false,
       ExitOffset: {
         X: 0,
         Y: 0,
@@ -4104,6 +4268,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Power: 100,
       ActiveDamping: 30,
       ForceLimit: 0,
+      bStopped: false,
       bLimitAngle: false,
       LimitAngle: 0,
       CurrentAngle: 0,
@@ -4117,11 +4282,14 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       Power: 100,
       TopSpeed: 0,
       Exponent: 2,
+      bStopped: false,
+      CurrentPosition: 0,
       bPositionsArePercentages: false,
       bReversed: false,
       Damping: 1,
     },
     BrickComponentData_Slider: {
+      CurrentPosition: 0,
       bPositionsArePercentages: false,
       bReversed: false,
       Damping: 1,
@@ -4891,6 +5059,7 @@ export const WIRE_PORT_NAMES: readonly string[] = [
   'Vector.X',
   'Vector.Y',
   'Vector.Z',
+  'VisibleTo',
   'VolumeMultiplier',
   'W',
   'WaterAbsorption',
@@ -5287,6 +5456,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
         bricks: ['B_1x1_Gate_Event_Gamemode_RoundStart'],
         inputs: [],
         outputs: ['ExecOut', 'RoundNumber'],
+      },
+      BrickComponentType_Event_Loaded: {
+        bricks: ['B_1x1_Gate_Event_Loaded'],
+        inputs: [],
+        outputs: ['ExecOut'],
       },
       BrickComponentType_Event_WholeGridInteracted: {
         bricks: [],
@@ -5852,6 +6026,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
       BrickComponentType_Exec_Entity_SetVisible: {
         bricks: ['B_1x1_Gate_Exec_Entity_SetVisible'],
         inputs: ['Entity', 'Exec', 'bVisible'],
+        outputs: ['ExecOut'],
+      },
+      BrickComponentType_Exec_Entity_SetVisibleTo: {
+        bricks: ['B_1x1_Gate_Exec_Entity_SetVisibleTo'],
+        inputs: ['Entity', 'Exec', 'VisibleTo'],
         outputs: ['ExecOut'],
       },
       BrickComponentType_Exec_Entity_Teleport: {
@@ -7435,6 +7614,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
           'ExecOut',
         ],
       },
+      BrickComponentType_ReadBrick: {
+        bricks: [],
+        inputs: [],
+        outputs: ['Brick'],
+      },
       BrickComponentType_Stopwatch: {
         bricks: ['B_1x1_Gate_Stopwatch'],
         inputs: ['Limit', 'Pause', 'Restart', 'Resume'],
@@ -8218,6 +8402,7 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
           'Skew',
           'Text',
           'Typeface',
+          'VisibleTo',
           'WidthScale',
           'bAlignToWedge',
           'bEnabled',
@@ -8544,6 +8729,14 @@ export const COMPONENTS = {
     PORTS: {
       ExecOut: 'ExecOut',
       RoundNumber: 'RoundNumber',
+    },
+  },
+  Event_Loaded: {
+    NAME: 'BrickComponentType_Event_Loaded',
+    BRICK: 'B_1x1_Gate_Event_Loaded',
+    BRICKS: ['B_1x1_Gate_Event_Loaded'],
+    PORTS: {
+      ExecOut: 'ExecOut',
     },
   },
   Event_WholeGridInteracted: {
@@ -9600,6 +9793,17 @@ export const COMPONENTS = {
       Entity: 'Entity',
       Exec: 'Exec',
       bVisible: 'bVisible',
+      ExecOut: 'ExecOut',
+    },
+  },
+  Exec_Entity_SetVisibleTo: {
+    NAME: 'BrickComponentType_Exec_Entity_SetVisibleTo',
+    BRICK: 'B_1x1_Gate_Exec_Entity_SetVisibleTo',
+    BRICKS: ['B_1x1_Gate_Exec_Entity_SetVisibleTo'],
+    PORTS: {
+      Entity: 'Entity',
+      Exec: 'Exec',
+      VisibleTo: 'VisibleTo',
       ExecOut: 'ExecOut',
     },
   },
@@ -12325,6 +12529,13 @@ export const COMPONENTS = {
       ExecOut: 'ExecOut',
     },
   },
+  ReadBrick: {
+    NAME: 'BrickComponentType_ReadBrick',
+    BRICKS: [],
+    PORTS: {
+      Brick: 'Brick',
+    },
+  },
   Stopwatch: {
     NAME: 'BrickComponentType_Stopwatch',
     BRICK: 'B_1x1_Gate_Stopwatch',
@@ -13251,6 +13462,7 @@ export const COMPONENTS = {
       Skew: 'Skew',
       Text: 'Text',
       Typeface: 'Typeface',
+      VisibleTo: 'VisibleTo',
       WidthScale: 'WidthScale',
       bAlignToWedge: 'bAlignToWedge',
       bEnabled: 'bEnabled',

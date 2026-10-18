@@ -257,10 +257,6 @@ export const componentsLatestSave: WriteSaveObject = {
           data: {
             Input: 2,
             TargetType: { $enum: 'EBrickAxis', value: 0 },
-            Output: {
-              $variant: 'dynamic_enum',
-              value: { $enum: 'EBrickAxis', value: 2 },
-            },
           },
         },
       ],

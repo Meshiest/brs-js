@@ -30,6 +30,7 @@
     "B_1x1_Gate_Event_Gamemode_ControllerLeftTeam",
     "B_1x1_Gate_Event_Gamemode_RoundEnd",
     "B_1x1_Gate_Event_Gamemode_RoundStart",
+    "B_1x1_Gate_Event_Loaded",
     "B_1x1_Gate_Exec_AddComponent",
     "B_1x1_Gate_Exec_ArrayVar_Append",
     "B_1x1_Gate_Exec_ArrayVar_Average",
@@ -113,6 +114,7 @@
     "B_1x1_Gate_Exec_Entity_SetTeam",
     "B_1x1_Gate_Exec_Entity_SetVelocity",
     "B_1x1_Gate_Exec_Entity_SetVisible",
+    "B_1x1_Gate_Exec_Entity_SetVisibleTo",
     "B_1x1_Gate_Exec_Entity_Teleport",
     "B_1x1_Gate_Exec_FindPlayer",
     "B_1x1_Gate_Exec_Gamemode_BroadcastChatMessage",
@@ -860,6 +862,16 @@
       "outputs": [
         "ExecOut",
         "RoundNumber"
+      ]
+    },
+    {
+      "class": "BrickComponentType_Event_Loaded",
+      "bricks": [
+        "B_1x1_Gate_Event_Loaded"
+      ],
+      "inputs": [],
+      "outputs": [
+        "ExecOut"
       ]
     },
     {
@@ -2168,6 +2180,20 @@
         "Entity",
         "Exec",
         "bVisible"
+      ],
+      "outputs": [
+        "ExecOut"
+      ]
+    },
+    {
+      "class": "BrickComponentType_Exec_Entity_SetVisibleTo",
+      "bricks": [
+        "B_1x1_Gate_Exec_Entity_SetVisibleTo"
+      ],
+      "inputs": [
+        "Entity",
+        "Exec",
+        "VisibleTo"
       ],
       "outputs": [
         "ExecOut"
@@ -5566,6 +5592,14 @@
       ]
     },
     {
+      "class": "BrickComponentType_ReadBrick",
+      "bricks": [],
+      "inputs": [],
+      "outputs": [
+        "Brick"
+      ]
+    },
+    {
       "class": "BrickComponentType_Stopwatch",
       "bricks": [
         "B_1x1_Gate_Stopwatch"
@@ -6620,6 +6654,7 @@
         "Skew",
         "Text",
         "Typeface",
+        "VisibleTo",
         "WidthScale",
         "bAlignToWedge",
         "bEnabled",

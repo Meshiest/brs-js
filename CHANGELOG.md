@@ -3,6 +3,20 @@
 All notable changes to `brs-js` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 4.0.3 - 2026-10-17
+
+### Changed
+
+- Component data refreshed from the current game build, mirroring `brdb`
+  1.0.3: the new `Event_Loaded` and `Exec_Entity_SetVisibleTo` gates, the
+  `ReadBrick` component, a `VisibleTo` input on `Component_TextDisplay`, and
+  the matching schema, catalog and brick size entries.
+- The component schema follows the game's new vertex layouts. Change and edge
+  detectors store `InputLast` and `bSeeded` and no longer store their outputs,
+  and `Expr_Convert`, `Expr_EnumToInteger` and `Expr_IntegerToEnum` drop their
+  stored `Output`. Writing one of those removed fields now throws
+  `has no field`.
+
 ## 4.0.2 - 2026-10-17
 
 ### Changed

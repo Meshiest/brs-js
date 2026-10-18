@@ -25,17 +25,19 @@ export type BCSComponentVertex_Exec_Character_AddInventoryItem = {
   Item: number | null;
 };
 
-export type BCSComponentVertex_Exec_Character_GetAim = {
-  bLocalAim: boolean;
-};
-
 export type BCSComponentVertex_Exec_Character_GetAmmo = {
   Resource: number | null;
+  Amount: number;
 };
 
-export type BCSComponentVertex_Exec_Character_GetCurrentInventorySlot = {};
+export type BCSComponentVertex_Exec_Character_GetCurrentInventorySlot = {
+  Slot: number;
+};
 
-export type BCSComponentVertex_Exec_Character_GetDamage = {};
+export type BCSComponentVertex_Exec_Character_GetDamage = {
+  Damage: number;
+  DamageLimit: number;
+};
 
 export type BCSComponentVertex_Exec_Character_GetFromController = {};
 
@@ -46,6 +48,7 @@ export type BCSComponentVertex_Exec_Character_GetInventoryEntry = {
 export type BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo = {
   Slot: number;
   Resource: number | null;
+  Amount: number;
 };
 
 export type BCSComponentVertex_Exec_Character_GrantAmmo = {
@@ -115,7 +118,9 @@ export type BCSComponentVertex_Exec_Entity_GetCustomProperty = {
   bFound: boolean;
 };
 
-export type BCSComponentVertex_Exec_Entity_GetSpeed = {};
+export type BCSComponentVertex_Exec_Entity_GetSpeed = {
+  Speed: number;
+};
 
 export type BCSComponentVertex_Exec_Entity_GetTag = {
   Tag: string;
@@ -123,7 +128,9 @@ export type BCSComponentVertex_Exec_Entity_GetTag = {
 
 export type BCSComponentVertex_Exec_Entity_GetTeam = {};
 
-export type BCSComponentVertex_Exec_Entity_IsFrozen = {};
+export type BCSComponentVertex_Exec_Entity_IsFrozen = {
+  bFrozen: boolean;
+};
 
 export type BCSComponentVertex_Exec_Entity_PlayAudioAt = {
   AudioDescriptor: number | null;
@@ -158,6 +165,8 @@ export type BCSComponentVertex_Exec_Entity_SetVisible = {
   bVisible: boolean;
 };
 
+export type BCSComponentVertex_Exec_Entity_SetVisibleTo = {};
+
 export type BCSComponentVertex_Exec_FindPlayer = {
   Query: string;
 };
@@ -171,10 +180,13 @@ export type BCSComponentVertex_Exec_Gamemode_BroadcastStatusMessage = {
   bFlashIfUnchanged: boolean;
 };
 
-export type BCSComponentVertex_Exec_Gamemode_GetCurrentRound = {};
+export type BCSComponentVertex_Exec_Gamemode_GetCurrentRound = {
+  RoundNumber: number;
+};
 
 export type BCSComponentVertex_Exec_Gamemode_GetLeaderboardValue = {
   Key: string;
+  Value: number;
 };
 
 export type BCSComponentVertex_Exec_Gamemode_GetTeam = {};
@@ -185,9 +197,12 @@ export type BCSComponentVertex_Exec_Gamemode_GetTeamByName = {
 
 export type BCSComponentVertex_Exec_Gamemode_GetTeamLeaderboardValue = {
   Key: string;
+  Value: number;
 };
 
-export type BCSComponentVertex_Exec_Gamemode_GetTeamName = {};
+export type BCSComponentVertex_Exec_Gamemode_GetTeamName = {
+  Name: string;
+};
 
 export type BCSComponentVertex_Exec_Gamemode_LeaderboardValue = {
   Key: string;
@@ -214,13 +229,12 @@ export type BCSComponentVertex_Exec_Gamemode_TeamLeaderboardValue = {
 export type BCSComponentVertex_Exec_Gamemode_TeamWins = {};
 
 export type BCSComponentVertex_Exec_GetEnvironmentProperty = {
+  Value: BrdbVariant;
   Environment: string;
   PropertyName: string;
 };
 
 export type BCSComponentVertex_Exec_GetInputs = {};
-
-export type BCSComponentVertex_Exec_GetOwnTransform = {};
 
 export type BCSComponentVertex_Exec_PlayClientAudio = {
   AudioDescriptor: number | null;
@@ -230,23 +244,33 @@ export type BCSComponentVertex_Exec_PlayClientAudio = {
 
 export type BCSComponentVertex_Exec_PlayerState_ForceRespawn = {};
 
-export type BCSComponentVertex_Exec_PlayerState_GetDisplayName = {};
+export type BCSComponentVertex_Exec_PlayerState_GetDisplayName = {
+  DisplayName: string;
+};
 
 export type BCSComponentVertex_Exec_PlayerState_GetFromEntity = {};
 
-export type BCSComponentVertex_Exec_PlayerState_GetUserId = {};
+export type BCSComponentVertex_Exec_PlayerState_GetUserId = {
+  UserId: string;
+};
 
-export type BCSComponentVertex_Exec_PlayerState_GetUserName = {};
+export type BCSComponentVertex_Exec_PlayerState_GetUserName = {
+  UserName: string;
+};
 
 export type BCSComponentVertex_Exec_PlayerState_HasPermission = {
   PermissionName: string;
+  bHasPermission: boolean;
 };
 
 export type BCSComponentVertex_Exec_PlayerState_HasRole = {
   RoleName: string;
+  bHasRole: boolean;
 };
 
-export type BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner = {};
+export type BCSComponentVertex_Exec_PlayerState_IsTrustedByBrickOwner = {
+  bIsTrusted: boolean;
+};
 
 export type BCSComponentVertex_Exec_PlayerState_SetCanRespawn = {
   bCanRespawn: boolean;
@@ -271,6 +295,7 @@ export type BCSComponentVertex_Exec_PlayerState_ShowStatusMessage = {
 };
 
 export type BCSComponentVertex_Exec_PlayerState_ShowTextInputBox = {
+  Text: string;
   Title: string;
   Message: string;
 };
@@ -293,6 +318,7 @@ export type BCSComponentVertex_Exec_PrintToConsole = {
 export type BCSComponentVertex_Exec_Random = {
   Min: BrdbVariant;
   Max: BrdbVariant;
+  Output: BrdbVariant;
 };
 
 export type BCSComponentVertex_Exec_SendCustomEvent = {
@@ -339,11 +365,14 @@ export type BCSComponentVertex_Expr_BoolBool_Bool = {
 
 export type BCSComponentVertex_Expr_ChangeDetector = {
   Input: BrdbVariant;
-  bPulseOnChange: boolean;
+  InputLast: BrdbVariant;
+  bSeeded: boolean;
 };
 
 export type BCSComponentVertex_Expr_ChangeDetectorExec = {
   Input: BrdbVariant;
+  InputLast: BrdbVariant;
+  bSeeded: boolean;
 };
 
 export type BCSComponentVertex_Expr_Compare = {
@@ -353,7 +382,6 @@ export type BCSComponentVertex_Expr_Compare = {
 
 export type BCSComponentVertex_Expr_Convert = {
   Input: BrdbVariant;
-  Output: BrdbVariant;
   TargetType: BrdbVariant;
 };
 
@@ -361,17 +389,18 @@ export type BCSComponentVertex_Expr_DeltaTime = {};
 
 export type BCSComponentVertex_Expr_EdgeDetector = {
   Input: number;
-  bPulseOnRisingEdge: boolean;
-  bPulseOnFallingEdge: boolean;
+  InputLast: number;
+  bSeeded: boolean;
 };
 
 export type BCSComponentVertex_Expr_EdgeDetectorExec = {
   Input: number;
+  InputLast: number;
+  bSeeded: boolean;
 };
 
 export type BCSComponentVertex_Expr_EnumToInteger = {
   Input: BrdbVariant;
-  Output: BrdbVariant;
 };
 
 export type BCSComponentVertex_Expr_Float_Float = {
@@ -400,7 +429,6 @@ export type BCSComponentVertex_Expr_IntegerToEnum = {
   Input: number;
   bWrap: boolean;
   TargetType: BrdbDynamicEnum;
-  Output: BrdbVariant;
 };
 
 export type BCSComponentVertex_Expr_IntInt_Int = {
@@ -632,6 +660,19 @@ export type BCSComponentVertex_FunctionCall = {
   Output6: BrdbVariant;
   Output7: BrdbVariant;
   InputSources: number[];
+  bAborted: boolean;
+  AbortReason: number;
+  IterationsExecuted: number;
+};
+
+export type BRCallableRunState = {
+  Ordinal: number;
+  Count: number;
+  Index: number;
+  Step: number;
+  IterationsExecuted: number;
+  SavedMapCursor: number;
+  bActive: boolean;
 };
 
 export type BrickComponentData_ArrayVar = {
@@ -763,6 +804,8 @@ export type BrickComponentData_Event_Gamemode_RoundBase = {
   RoundNumber: number;
 };
 
+export type BrickComponentData_Event_Loaded = {};
+
 export type BrickComponentData_Event_WholeGridInteracted = {
   bAllowNearbyInteraction: boolean;
   bHiddenInteraction: boolean;
@@ -815,21 +858,6 @@ export type BrickComponentData_Internal_InputSplitter_V2 = {};
 
 export type BrickComponentData_Internal_Microchip = {};
 
-export type BrickComponentData_Internal_Microchip_CountFor = {
-  Count: number;
-  FirstIndex: number;
-  Step: number;
-  bRunAcrossTicks: boolean;
-};
-
-export type BrickComponentData_Internal_Microchip_ForEachArray = {
-  bRunAcrossTicks: boolean;
-};
-
-export type BrickComponentData_Internal_Microchip_ForEachMap = {
-  bRunAcrossTicks: boolean;
-};
-
 export type BrickComponentData_Internal_Microchip_FunctionDefinition = {};
 
 export type BrickComponentData_Internal_MicrochipInput = {
@@ -874,6 +902,7 @@ export type BrickComponentData_MotorSlider = {
   bEnabled: boolean;
   Speed: number;
   Power: number;
+  CurrentPosition: number;
   bPositionsArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
@@ -926,6 +955,8 @@ export type BrickComponentData_ProjectileSpawner = {
   ScaleMultiplier: number;
 };
 
+export type BrickComponentData_ReadBrick = {};
+
 export type BrickComponentData_Rerouter = {};
 
 export type BrickComponentData_RigidBearing = {
@@ -954,6 +985,7 @@ export type BrickComponentData_Servo = {
   Power: number;
   ActiveDamping: number;
   ForceLimit: number;
+  bStopped: boolean;
   bLimitAngle: boolean;
   LimitAngle: number;
   CurrentAngle: number;
@@ -968,12 +1000,15 @@ export type BrickComponentData_ServoSlider = {
   Power: number;
   TopSpeed: number;
   Exponent: number;
+  bStopped: boolean;
+  CurrentPosition: number;
   bPositionsArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
 };
 
 export type BrickComponentData_Slider = {
+  CurrentPosition: number;
   bPositionsArePercentages: boolean;
   bReversed: boolean;
   Damping: number;
@@ -1162,6 +1197,12 @@ export type BCSComponentVertex_Exec_Character_AddInventoryEntry = {
   Entry: BRInventoryEntryConfig;
 };
 
+export type BCSComponentVertex_Exec_Character_GetAim = {
+  Origin: Vector;
+  Direction: Vector;
+  bLocalAim: boolean;
+};
+
 export type BCSComponentVertex_Exec_Character_SetInventoryBrick = {
   Slot: number;
   BrickAsset: number | null;
@@ -1248,6 +1289,11 @@ export type BCSComponentVertex_Exec_Entity_Teleport = {
   Destination: BrickComponentWirePortControl_TeleportDestination;
 };
 
+export type BCSComponentVertex_Exec_GetOwnTransform = {
+  Location: Vector;
+  Rotation: Rotator;
+};
+
 export type BCSComponentVertex_Exec_PlayerState_DisplayText = {
   Text: string;
   Font: number | null;
@@ -1299,47 +1345,6 @@ export type BCSComponentVertex_Exec_SpawnExplosionAt = {
   WorldPosition: Vector;
   ScaleMultiplier: number;
   DamageMultiplier: number;
-};
-
-export type BCSComponentVertex_Exec_Sweep = {
-  Origin: Vector;
-  Direction: Vector;
-  Distance: number;
-  Radius: number;
-  bRelative: boolean;
-  bIgnoreOwningGrid: boolean;
-  CollisionChannel: number;
-  bDetectBricks: boolean;
-  bDetectPlayers1: boolean;
-  bDetectPlayers2: boolean;
-  bDetectPlayers3: boolean;
-  bDetectPlayers4: boolean;
-  bOnlyHitPlayerBodyParts: boolean;
-  bDetectPhysics: boolean;
-  bDetectMap: boolean;
-  HitLocation: Vector;
-  HitNormal: Vector;
-  HitDistance: number;
-};
-
-export type BCSComponentVertex_Exec_SweepSimple = {
-  Direction: number;
-  Distance: number;
-  Radius: number;
-  SpreadConeAngle: number;
-  bSpreadBiasedTowardsCenter: boolean;
-  CollisionChannel: number;
-  bDetectBricks: boolean;
-  bDetectPlayers1: boolean;
-  bDetectPlayers2: boolean;
-  bDetectPlayers3: boolean;
-  bDetectPlayers4: boolean;
-  bOnlyHitPlayerBodyParts: boolean;
-  bDetectPhysics: boolean;
-  bDetectMap: boolean;
-  HitLocation: Vector;
-  HitNormal: Vector;
-  HitDistance: number;
 };
 
 export type BCSComponentVertex_Expr_ColorBlend = {
@@ -1544,6 +1549,36 @@ export type BrickComponentData_Internal_AttachedZone = {
   ZoneWindForce: number;
 };
 
+export type BrickComponentData_Internal_Microchip_CountFor = {
+  Count: number;
+  FirstIndex: number;
+  Step: number;
+  bAborted: boolean;
+  AbortReason: number;
+  IterationsExecuted: number;
+  bRunAcrossTicks: boolean;
+  bRunning: boolean;
+  RunState: BRCallableRunState;
+};
+
+export type BrickComponentData_Internal_Microchip_ForEachArray = {
+  bAborted: boolean;
+  AbortReason: number;
+  IterationsExecuted: number;
+  bRunAcrossTicks: boolean;
+  bRunning: boolean;
+  RunState: BRCallableRunState;
+};
+
+export type BrickComponentData_Internal_Microchip_ForEachMap = {
+  bAborted: boolean;
+  AbortReason: number;
+  IterationsExecuted: number;
+  bRunAcrossTicks: boolean;
+  bRunning: boolean;
+  RunState: BRCallableRunState;
+};
+
 export type BrickComponentData_Joint_Wheel = {
   Control_DriveAndSteer: BrickComponentWireControl_DriveAndSteer;
   bDiscoverable: boolean;
@@ -1653,7 +1688,6 @@ export type BrickComponentData_QueueTicks = {
 };
 
 export type BrickComponentData_Seat_V2 = {
-  bIsOccupied: boolean;
   ExitOffset: IntVector;
   bRollCameraInThirdPerson: boolean;
   CameraOrigin: number;
@@ -1837,11 +1871,6 @@ export type BRSavedComponentChunkSoA = {
   MicrochipBrickGridReferences: number[];
 };
 
-export type BCSComponentVertex_Exec_BrickComponent = {
-  Brick: BRSavedBrickRef;
-  ComponentType: number | null;
-};
-
 export type BCSComponentVertex_Exec_BrickComponentBase = {
   Brick: BRSavedBrickRef;
   ComponentType: number | null;
@@ -1875,6 +1904,7 @@ export type BCSComponentVertex_Exec_Character_SetInventoryItemAdv = {
 };
 
 export type BCSComponentVertex_Exec_GetBrickProperty = {
+  Value: BrdbVariant;
   Brick: BRSavedBrickRef;
   Property: number;
 };
@@ -1883,6 +1913,51 @@ export type BCSComponentVertex_Exec_SetBrickProperty = {
   Value: BrdbVariant;
   Brick: BRSavedBrickRef;
   Property: number;
+};
+
+export type BCSComponentVertex_Exec_Sweep = {
+  Origin: Vector;
+  Direction: Vector;
+  Distance: number;
+  Radius: number;
+  bRelative: boolean;
+  bIgnoreOwningGrid: boolean;
+  CollisionChannel: number;
+  bDetectBricks: boolean;
+  bDetectPlayers1: boolean;
+  bDetectPlayers2: boolean;
+  bDetectPlayers3: boolean;
+  bDetectPlayers4: boolean;
+  bOnlyHitPlayerBodyParts: boolean;
+  bDetectPhysics: boolean;
+  bDetectMap: boolean;
+  HitLocation: Vector;
+  HitNormal: Vector;
+  HitDistance: number;
+  HitBrick: BRSavedBrickRef;
+  HitColor: LinearColor;
+};
+
+export type BCSComponentVertex_Exec_SweepSimple = {
+  Direction: number;
+  Distance: number;
+  Radius: number;
+  SpreadConeAngle: number;
+  bSpreadBiasedTowardsCenter: boolean;
+  CollisionChannel: number;
+  bDetectBricks: boolean;
+  bDetectPlayers1: boolean;
+  bDetectPlayers2: boolean;
+  bDetectPlayers3: boolean;
+  bDetectPlayers4: boolean;
+  bOnlyHitPlayerBodyParts: boolean;
+  bDetectPhysics: boolean;
+  bDetectMap: boolean;
+  HitLocation: Vector;
+  HitNormal: Vector;
+  HitDistance: number;
+  HitBrick: BRSavedBrickRef;
+  HitColor: LinearColor;
 };
 
 export type BrickComponentData_ItemSpawn = {
@@ -2091,6 +2166,12 @@ export type BCSComponentVertex_Exec_ArrayVar_Swap = {
   ArrayVarRef: BRSavedComponentRef;
 };
 
+export type BCSComponentVertex_Exec_BrickComponent = {
+  Component: BRSavedComponentRef;
+  Brick: BRSavedBrickRef;
+  ComponentType: number | null;
+};
+
 export type BCSComponentVertex_Exec_Character_SetInventoryEntry = {
   Slot: number;
   Entry: BRInventoryEntryConfig;
@@ -2107,6 +2188,7 @@ export type BCSComponentVertex_Exec_Gamemode_FillArrayFromTeamMembers = {
 };
 
 export type BCSComponentVertex_Exec_GetComponentProperty = {
+  Value: BrdbVariant;
   Component: BRSavedComponentRef;
   PropertyName: string;
   ComponentType: number | null;
@@ -2262,6 +2344,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Event_Gamemode_ControllerLeftTeam: BrickComponentData_Event_Gamemode_ControllerTeamBase;
   BrickComponentType_Event_Gamemode_RoundEnd: BrickComponentData_Event_Gamemode_RoundBase;
   BrickComponentType_Event_Gamemode_RoundStart: BrickComponentData_Event_Gamemode_RoundBase;
+  BrickComponentType_Event_Loaded: BrickComponentData_Event_Loaded;
   BrickComponentType_Event_WholeGridInteracted: BrickComponentData_Event_WholeGridInteracted;
   BrickComponentType_Event_WholeGridTargeted: BrickComponentData_Event_WholeGridTargeted;
   BrickComponentType_Exec_AddComponent: BCSComponentVertex_Exec_BrickComponent;
@@ -2348,6 +2431,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Exec_Entity_SetTeam: BCSComponentVertex_Exec_Entity_SetTeam;
   BrickComponentType_Exec_Entity_SetVelocity: BCSComponentVertex_Exec_Entity_SetVelocity;
   BrickComponentType_Exec_Entity_SetVisible: BCSComponentVertex_Exec_Entity_SetVisible;
+  BrickComponentType_Exec_Entity_SetVisibleTo: BCSComponentVertex_Exec_Entity_SetVisibleTo;
   BrickComponentType_Exec_Entity_Teleport: BCSComponentVertex_Exec_Entity_Teleport;
   BrickComponentType_Exec_FindPlayer: BCSComponentVertex_Exec_FindPlayer;
   BrickComponentType_Exec_Gamemode_BroadcastChatMessage: BCSComponentVertex_Exec_Gamemode_BroadcastChatMessage;
@@ -2577,6 +2661,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_ProjectileReference: BrickComponentData_ProjectileReference;
   BrickComponentType_QueueSeconds: BrickComponentData_QueueSeconds;
   BrickComponentType_QueueTicks: BrickComponentData_QueueTicks;
+  BrickComponentType_ReadBrick: BrickComponentData_ReadBrick;
   BrickComponentType_Stopwatch: BrickComponentData_Stopwatch;
   BrickComponentType_Tween: BrickComponentData_Tween;
   BrickComponentType_Var: BrickComponentData_Var;
