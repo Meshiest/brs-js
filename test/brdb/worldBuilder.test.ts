@@ -194,6 +194,80 @@ describe('World builder', () => {
     }
   );
 
+  test('addJoint links a joint brick to its attached grid entity', () => {
+    const w = new World();
+    w.addBrick({ position: [0, 0, 6] });
+    const slider = w.addBrick({
+      asset: 'PB_SliderJoint',
+      size: [20, 1, 5],
+      position: [40, 0, 6],
+    });
+    const grid = w.addBrickGrid({ location: { X: 40, Y: 0, Z: 20 } });
+    w.addBrick({ position: [0, 0, 3] }, grid);
+    const offset = { X: 1, Y: 2, Z: 3 };
+    const rotation = { X: 0, Y: 0, Z: Math.SQRT1_2, W: Math.SQRT1_2 };
+    w.addJoint(slider, grid, { offset, rotation });
+
+    const reader = WorldReader.from(w.toBrz());
+    const [ref] = reader.brickChunkIndex(1);
+    const { soa } = reader.componentChunk(1, ref.index);
+    // the joint brick is index 1 in its chunk; the grid entity is the
+    // first entity, persistent index 2
+    expect(soa.JointBrickIndices).toEqual([1]);
+    expect(soa.JointEntityReferences).toEqual([2]);
+    expect(soa.JointInitialRelativeOffsets).toEqual([offset]);
+    expect(soa.JointInitialRelativeRotations[0].Z).toBeCloseTo(Math.SQRT1_2);
+    expect(soa.JointInitialRelativeRotations[0].W).toBeCloseTo(Math.SQRT1_2);
+    expect([...reader.entities()][0].persistentIndex).toBe(2);
+  });
+
+  test('prefab bounds turn each brick by its direction and rotation', () => {
+    // a tile standing on its edge, facing Y+ (direction 2): local
+    // [90, 175, 2] spans 175 along X, 2 along Y and 90 up
+    const w = new World();
+    w.addBrick({
+      asset: 'PB_DefaultTile',
+      size: [90, 175, 2],
+      position: [0, 0, 90],
+      direction: 2,
+      rotation: 0,
+    });
+    // an odd rotation about Z swaps local X and Y
+    w.addBrick({
+      asset: 'PB_DefaultBrick',
+      size: [20, 5, 6],
+      position: [0, 300, 6],
+      direction: 4,
+      rotation: 1,
+    });
+    w.makePrefab();
+    const bz = BrzReader.from(w.toBrz());
+    const prefab = JSON.parse(
+      new TextDecoder().decode(bz.readFile('Meta/Prefab.json'))
+    );
+    expect(prefab.pivots.boundsPivot).toEqual({
+      center: { x: 0, y: 159, z: 90 },
+      halfExtent: { x: 175, y: 161, z: 90 },
+    });
+  });
+
+  test('makePrefab snap rounds the X/Y bounds outward to the grid', () => {
+    const w = new World();
+    // a microbrick border 3 off the stud grid on both sides
+    w.addBrick({ asset: 'PB_DefaultMicroBrick', size: [1, 1, 1], position: [-2, 4, 1] });
+    w.addBrick({ asset: 'PB_DefaultMicroBrick', size: [1, 1, 1], position: [26, 14, 1] });
+    w.makePrefab({ snap: 10 });
+    const bz = BrzReader.from(w.toBrz());
+    const prefab = JSON.parse(
+      new TextDecoder().decode(bz.readFile('Meta/Prefab.json'))
+    );
+    // x -3..27 -> -10..30, y 3..15 -> 0..20; z stays exact (0..2)
+    expect(prefab.pivots.boundsPivot).toEqual({
+      center: { x: 10, y: 10, z: 1 },
+      halfExtent: { x: 20, y: 10, z: 1 },
+    });
+  });
+
   test('owner table counts entities; wires validate handles', () => {
     const w = new World();
     const owner = w.addOwner({

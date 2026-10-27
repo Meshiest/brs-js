@@ -3,6 +3,22 @@
 All notable changes to `brs-js` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 4.0.4 - 2026-10-27
+
+### Added
+
+- `World.addJoint(brick, entity, { offset, rotation })` attaches an entity,
+  usually a sub-grid, to a joint brick (slider, servo, motor, bearing),
+  mirroring `brdb` 1.0.4. The offset and rotation default to identity.
+- `WorldPrefabOptions.snap` rounds the prefab pivots' X/Y outward to a
+  multiple of that many units (10 is one stud), so a template whose edge
+  bricks sit off the stud grid still pastes onto it.
+
+### Fixed
+
+- Prefab bounds apply each brick's direction and rotation, so a turned
+  brick's footprint is measured in grid axes.
+
 ## 4.0.3 - 2026-10-17
 
 ### Changed

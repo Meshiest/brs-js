@@ -538,6 +538,12 @@ class ComponentChunkBuilder {
   // outer-microchip-brick <-> inner-grid-entity pairings on this chunk
   private microchipBrickIndices: number[] = [];
   private microchipGridReferences: number[] = [];
+  // joint-brick <-> attached-entity pairings on this chunk
+  private jointBrickIndices: number[] = [];
+  private jointEntityReferences: number[] = [];
+  private jointOffsets: { X: number; Y: number; Z: number }[] = [];
+  private jointRotations: { X: number; Y: number; Z: number; W: number }[] =
+    [];
 
   get numComponents(): number {
     return this.instances.length;
@@ -555,6 +561,18 @@ class ComponentChunkBuilder {
   addMicrochipLink(brickIndex: number, gridReference: number) {
     this.microchipBrickIndices.push(brickIndex);
     this.microchipGridReferences.push(gridReference);
+  }
+
+  addJointLink(
+    brickIndex: number,
+    entityReference: number,
+    offset: { X: number; Y: number; Z: number },
+    rotation: { X: number; Y: number; Z: number; W: number }
+  ) {
+    this.jointBrickIndices.push(brickIndex);
+    this.jointEntityReferences.push(entityReference);
+    this.jointOffsets.push(offset);
+    this.jointRotations.push(rotation);
   }
 
   private runsOf(list: typeof this.instances) {
@@ -623,10 +641,10 @@ class ComponentChunkBuilder {
     const soa: BrdbValue = {
       ComponentTypeCounters: counters,
       ComponentBrickIndices: instances.map(i => i.brickIndex),
-      JointBrickIndices: [],
-      JointEntityReferences: [],
-      JointInitialRelativeOffsets: [],
-      JointInitialRelativeRotations: [],
+      JointBrickIndices: this.jointBrickIndices,
+      JointEntityReferences: this.jointEntityReferences,
+      JointInitialRelativeOffsets: this.jointOffsets,
+      JointInitialRelativeRotations: this.jointRotations,
       MicrochipBrickIndices: this.microchipBrickIndices,
       MicrochipBrickGridReferences: this.microchipGridReferences,
     };
@@ -696,6 +714,15 @@ interface WorldModel {
     gridSlot: number;
     brickIndex: number;
     gridReference: number;
+  }[];
+  /** joint-brick -> attached-entity pairings (sliders, motors, bearings…);
+   * entityReference is the attached entity's persistent index */
+  jointLinks?: {
+    gridSlot: number;
+    brickIndex: number;
+    entityReference: number;
+    offset: { X: number; Y: number; Z: number };
+    rotation: { X: number; Y: number; Z: number; W: number };
   }[];
   /** Meta/Prefab.json content; non-null switches the bundle to a prefab
    * (Bundle.json type "Prefab" + Prefab.json, no World.json) */
@@ -934,6 +961,25 @@ function modelToPendingFs(
     if (!cb)
       pack.componentChunks.set(loc.key, (cb = new ComponentChunkBuilder()));
     cb.addMicrochipLink(loc.localIndex, link.gridReference);
+  }
+
+  // Joint links likewise land on the chunk holding the joint brick.
+  for (const link of model.jointLinks ?? []) {
+    const pack = packs[link.gridSlot];
+    const loc = pack?.brickLocations[link.brickIndex];
+    if (!loc)
+      throw new Error(
+        `brdb: joint link brick index ${link.brickIndex} out of range`
+      );
+    let cb = pack.componentChunks.get(loc.key);
+    if (!cb)
+      pack.componentChunks.set(loc.key, (cb = new ComponentChunkBuilder()));
+    cb.addJointLink(
+      loc.localIndex,
+      link.entityReference,
+      link.offset,
+      link.rotation
+    );
   }
 
   // Wires live in the TARGET's grid + chunk. Local rows are
@@ -1381,6 +1427,10 @@ export interface WorldPrefabOptions {
   freezePhysicsGrid?: boolean;
   freezeGlobalGrid?: boolean;
   addedGlobalGridOffset?: { x: number; y: number; z: number };
+  /** round the bounds pivots' X/Y outward to multiples of this many units
+   * (10 = one stud), so a template whose edge bricks sit off the stud grid
+   * still pastes onto it; default: the exact brick bounds */
+  snap?: number;
 }
 
 export interface WorldMicrochipOptions {
@@ -1464,6 +1514,25 @@ function serializePrefabJson(prefab: Record<string, unknown>): string {
   );
 }
 
+/** A brick's local half-extent turned by its direction (the axis its local
+ * Z points along, 0..5 = X+ X- Y+ Y- Z+ Z-) and rotation (quarter turns
+ * about that axis), as world [x, y, z]. An odd rotation swaps local X/Y. */
+function orientedHalfExtent(
+  [sx, sy, sz]: readonly number[],
+  direction: number,
+  rotation: number
+): [number, number, number] {
+  const [a, b] = rotation & 1 ? [sy, sx] : [sx, sy];
+  switch (direction >> 1) {
+    case 0:
+      return [sz, b, a];
+    case 1:
+      return [b, sz, a];
+    default:
+      return [a, b, sz];
+  }
+}
+
 /** Meta/Prefab.json from the main-grid brick bounding box: all four pivots
  * are the bounds box (in brick units), like the reference crate's
  * PrefabJson::from_bounds. Sub-grids are excluded because their bricks
@@ -1478,11 +1547,12 @@ function computePrefabJson(
     // A brick's local bounds: procedural size, the 1x1 plate footprint for
     // the collapsed microchip shell, the asset's authored half-extent from the
     // dump-derived table, or a 1x1 brick footprint fallback.
-    const half: readonly number[] = b.procedural
+    const local: readonly number[] = b.procedural
       ? b.size
       : b.assetName === 'B_1x1_Microchip'
       ? [5, 5, 2]
       : BRICK_HALF_EXTENTS.get(b.assetName) ?? [5, 5, 6];
+    const half = orientedHalfExtent(local, b.direction, b.rotation);
     for (let ax = 0; ax < 3; ax++) {
       const lo = b.position[ax] - half[ax];
       const hi = b.position[ax] + half[ax];
@@ -1490,6 +1560,13 @@ function computePrefabJson(
       if (i === 0 || hi > max[ax]) max[ax] = hi;
     }
   });
+  // round the footprint outward to the grid, so the template pastes on it
+  // even when an edge brick (a trim strip, a sign border) sits off it
+  if (opts.snap)
+    for (const ax of [0, 1]) {
+      min[ax] = Math.floor(min[ax] / opts.snap) * opts.snap;
+      max[ax] = Math.ceil(max[ax] / opts.snap) * opts.snap;
+    }
   // f64 pivot components (serde formatting handled by serializePrefabJson).
   const pivot = {
     center: f64vec(
@@ -1543,6 +1620,12 @@ export class World {
   private wireList: { source: WorldWireEndpoint; target: WorldWireEndpoint }[] =
     [];
   private chipLinks: { brick: WorldBrickHandle; grid: WorldGridHandle }[] = [];
+  private jointLinks: {
+    brick: WorldBrickHandle;
+    entity: WorldEntityHandle;
+    offset: { X: number; Y: number; Z: number };
+    rotation: { X: number; Y: number; Z: number; W: number };
+  }[] = [];
   private ownerList: NonNullable<WriteSaveObject['brick_owners']> = [];
   private prefabOptions: WorldPrefabOptions | null = null;
   private prefabList: [string, Uint8Array][] = [];
@@ -1601,6 +1684,27 @@ export class World {
    * grids (the writer emits remote wire rows for cross-grid sources). */
   addWire(source: WorldWireEndpoint, target: WorldWireEndpoint): void {
     this.wireList.push({ source, target });
+  }
+
+  /** Attach an entity (usually a sub-grid from `addBrickGrid`) to a joint
+   * brick: the slider/servo/motor/bearing whose moving side carries it.
+   * `offset`/`rotation` are the joint's initial relative transform as the
+   * game saves it (JointInitialRelativeOffsets/Rotations); both default to
+   * identity. */
+  addJoint(
+    brick: WorldBrickHandle,
+    entity: WorldEntityHandle,
+    opts: {
+      offset?: { X: number; Y: number; Z: number };
+      rotation?: { X: number; Y: number; Z: number; W: number };
+    } = {}
+  ): void {
+    this.jointLinks.push({
+      brick,
+      entity,
+      offset: opts.offset ?? { X: 0, Y: 0, Z: 0 },
+      rotation: opts.rotation ?? { X: 0, Y: 0, Z: 0, W: 1 },
+    });
   }
 
   /** Pair an outer microchip shell brick with its inner grid. Most callers
@@ -1714,6 +1818,13 @@ export class World {
             componentType: w.target.component_type,
             port: w.target.port,
           },
+        })),
+        jointLinks: this.jointLinks.map(l => ({
+          gridSlot: l.brick.grid,
+          brickIndex: l.brick.index,
+          entityReference: 2 + l.entity.entityOrder,
+          offset: l.offset,
+          rotation: l.rotation,
         })),
         microchipLinks: this.chipLinks.map(l => ({
           gridSlot: l.brick.grid,
