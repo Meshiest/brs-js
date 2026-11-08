@@ -68,6 +68,7 @@
     "B_1x1_Gate_Exec_Character_GetDamage",
     "B_1x1_Gate_Exec_Character_GetFromController",
     "B_1x1_Gate_Exec_Character_GetInventoryEntry",
+    "B_1x1_Gate_Exec_Character_GetScale",
     "B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo",
     "B_1x1_Gate_Exec_Character_GrantAmmo",
     "B_1x1_Gate_Exec_Character_IncDamage",
@@ -78,6 +79,7 @@
     "B_1x1_Gate_Exec_Character_SetInventoryEntity",
     "B_1x1_Gate_Exec_Character_SetInventoryEntry",
     "B_1x1_Gate_Exec_Character_SetInventoryItem",
+    "B_1x1_Gate_Exec_Character_SetScale",
     "B_1x1_Gate_Exec_Character_SetTempPermission",
     "B_1x1_Gate_Exec_Character_SetWeaponChamberAmmo",
     "B_1x1_Gate_Exec_Character_ShowHint",
@@ -1466,6 +1468,20 @@
       ]
     },
     {
+      "class": "BrickComponentType_Exec_Character_GetScale",
+      "bricks": [
+        "B_1x1_Gate_Exec_Character_GetScale"
+      ],
+      "inputs": [
+        "Character",
+        "Exec"
+      ],
+      "outputs": [
+        "ExecOut",
+        "Scale"
+      ]
+    },
+    {
       "class": "BrickComponentType_Exec_Character_GetWeaponChamberAmmo",
       "bricks": [
         "B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo"
@@ -1635,6 +1651,20 @@
         "Slot",
         "WeaponSpeedMultiplier",
         "bOverrideColors"
+      ],
+      "outputs": [
+        "ExecOut"
+      ]
+    },
+    {
+      "class": "BrickComponentType_Exec_Character_SetScale",
+      "bricks": [
+        "B_1x1_Gate_Exec_Character_SetScale"
+      ],
+      "inputs": [
+        "Character",
+        "Exec",
+        "Scale"
       ],
       "outputs": [
         "ExecOut"

@@ -45,6 +45,10 @@ export type BCSComponentVertex_Exec_Character_GetInventoryEntry = {
   Slot: number;
 };
 
+export type BCSComponentVertex_Exec_Character_GetScale = {
+  Scale: number;
+};
+
 export type BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo = {
   Slot: number;
   Resource: number | null;
@@ -83,6 +87,10 @@ export type BCSComponentVertex_Exec_Character_SetInventoryEntity = {
 export type BCSComponentVertex_Exec_Character_SetInventoryItem = {
   Slot: number;
   Item: number | null;
+};
+
+export type BCSComponentVertex_Exec_Character_SetScale = {
+  Scale: number;
 };
 
 export type BCSComponentVertex_Exec_Character_SetTempPermission = {
@@ -1928,7 +1936,6 @@ export type BCSComponentVertex_Exec_Sweep = {
   bDetectPlayers2: boolean;
   bDetectPlayers3: boolean;
   bDetectPlayers4: boolean;
-  bOnlyHitPlayerBodyParts: boolean;
   bDetectPhysics: boolean;
   bDetectMap: boolean;
   HitLocation: Vector;
@@ -1950,7 +1957,6 @@ export type BCSComponentVertex_Exec_SweepSimple = {
   bDetectPlayers2: boolean;
   bDetectPlayers3: boolean;
   bDetectPlayers4: boolean;
-  bOnlyHitPlayerBodyParts: boolean;
   bDetectPhysics: boolean;
   bDetectMap: boolean;
   HitLocation: Vector;
@@ -2385,6 +2391,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Exec_Character_GetDamage: BCSComponentVertex_Exec_Character_GetDamage;
   BrickComponentType_Exec_Character_GetFromController: BCSComponentVertex_Exec_Character_GetFromController;
   BrickComponentType_Exec_Character_GetInventoryEntry: BCSComponentVertex_Exec_Character_GetInventoryEntry;
+  BrickComponentType_Exec_Character_GetScale: BCSComponentVertex_Exec_Character_GetScale;
   BrickComponentType_Exec_Character_GetWeaponChamberAmmo: BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo;
   BrickComponentType_Exec_Character_GrantAmmo: BCSComponentVertex_Exec_Character_GrantAmmo;
   BrickComponentType_Exec_Character_IncDamage: BCSComponentVertex_Exec_Character_IncDamage;
@@ -2396,6 +2403,7 @@ export type ComponentTypeDataMap = {
   BrickComponentType_Exec_Character_SetInventoryEntry: BCSComponentVertex_Exec_Character_SetInventoryEntry;
   BrickComponentType_Exec_Character_SetInventoryItem: BCSComponentVertex_Exec_Character_SetInventoryItem;
   BrickComponentType_Exec_Character_SetInventoryItemAdv: BCSComponentVertex_Exec_Character_SetInventoryItemAdv;
+  BrickComponentType_Exec_Character_SetScale: BCSComponentVertex_Exec_Character_SetScale;
   BrickComponentType_Exec_Character_SetTempPermission: BCSComponentVertex_Exec_Character_SetTempPermission;
   BrickComponentType_Exec_Character_SetWeaponChamberAmmo: BCSComponentVertex_Exec_Character_SetWeaponChamberAmmo;
   BrickComponentType_Exec_Character_ShowHint: BCSComponentVertex_Exec_Character_ShowHint;

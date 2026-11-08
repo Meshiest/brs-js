@@ -214,6 +214,7 @@ export const BASIC_BRICK_ASSETS: readonly string[] = [
   'B_1x1_Gate_Exec_Character_GetDamage',
   'B_1x1_Gate_Exec_Character_GetFromController',
   'B_1x1_Gate_Exec_Character_GetInventoryEntry',
+  'B_1x1_Gate_Exec_Character_GetScale',
   'B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo',
   'B_1x1_Gate_Exec_Character_GrantAmmo',
   'B_1x1_Gate_Exec_Character_IncDamage',
@@ -224,6 +225,7 @@ export const BASIC_BRICK_ASSETS: readonly string[] = [
   'B_1x1_Gate_Exec_Character_SetInventoryEntity',
   'B_1x1_Gate_Exec_Character_SetInventoryEntry',
   'B_1x1_Gate_Exec_Character_SetInventoryItem',
+  'B_1x1_Gate_Exec_Character_SetScale',
   'B_1x1_Gate_Exec_Character_SetTempPermission',
   'B_1x1_Gate_Exec_Character_SetWeaponChamberAmmo',
   'B_1x1_Gate_Exec_Character_ShowHint',
@@ -689,6 +691,7 @@ export const BRICK_ASSETS = {
     'B_1x1_Gate_Exec_Character_GetFromController',
   B_1x1_Gate_Exec_Character_GetInventoryEntry:
     'B_1x1_Gate_Exec_Character_GetInventoryEntry',
+  B_1x1_Gate_Exec_Character_GetScale: 'B_1x1_Gate_Exec_Character_GetScale',
   B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo:
     'B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo',
   B_1x1_Gate_Exec_Character_GrantAmmo: 'B_1x1_Gate_Exec_Character_GrantAmmo',
@@ -705,6 +708,7 @@ export const BRICK_ASSETS = {
     'B_1x1_Gate_Exec_Character_SetInventoryEntry',
   B_1x1_Gate_Exec_Character_SetInventoryItem:
     'B_1x1_Gate_Exec_Character_SetInventoryItem',
+  B_1x1_Gate_Exec_Character_SetScale: 'B_1x1_Gate_Exec_Character_SetScale',
   B_1x1_Gate_Exec_Character_SetTempPermission:
     'B_1x1_Gate_Exec_Character_SetTempPermission',
   B_1x1_Gate_Exec_Character_SetWeaponChamberAmmo:

@@ -526,6 +526,9 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Character_GetInventoryEntry: {
         Slot: 'i64',
       },
+      BCSComponentVertex_Exec_Character_GetScale: {
+        Scale: 'f64',
+      },
       BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo: {
         Slot: 'i64',
         Resource: 'object',
@@ -557,6 +560,9 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       BCSComponentVertex_Exec_Character_SetInventoryItem: {
         Slot: 'i64',
         Item: 'class',
+      },
+      BCSComponentVertex_Exec_Character_SetScale: {
+        Scale: 'f64',
       },
       BCSComponentVertex_Exec_Character_SetTempPermission: {
         PermissionTagStr: 'str',
@@ -2109,7 +2115,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bDetectPlayers2: 'bool',
         bDetectPlayers3: 'bool',
         bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
         bDetectPhysics: 'bool',
         bDetectMap: 'bool',
         HitLocation: 'Vector',
@@ -2130,7 +2135,6 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
         bDetectPlayers2: 'bool',
         bDetectPlayers3: 'bool',
         bDetectPlayers4: 'bool',
-        bOnlyHitPlayerBodyParts: 'bool',
         bDetectPhysics: 'bool',
         bDetectMap: 'bool',
         HitLocation: 'Vector',
@@ -2474,17 +2478,17 @@ export const SCHEMAS: Record<EmbeddedSchemaName, SchemaSource> = {
       'EBRSweepCollisionChannel',
       'EBRReverbEffect',
       'EWireKind',
-      'f64',
       'i64',
+      'str',
+      'weak_object',
+      'brick_handle',
+      'component_handle',
+      'f64',
       'Bool',
       'Vector',
       'Rotator',
       'Quat',
       'LinearColor',
-      'str',
-      'weak_object',
-      'brick_handle',
-      'component_handle',
       'WireValue',
     ],
   },

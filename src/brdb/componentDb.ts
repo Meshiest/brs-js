@@ -244,6 +244,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
     'BCSComponentVertex_Exec_Character_GetInventoryEntry',
   ],
   [
+    'BrickComponentType_Exec_Character_GetScale',
+    'BCSComponentVertex_Exec_Character_GetScale',
+  ],
+  [
     'BrickComponentType_Exec_Character_GetWeaponChamberAmmo',
     'BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo',
   ],
@@ -286,6 +290,10 @@ export const COMPONENT_TYPE_STRUCTS: ReadonlyMap<string, string> = new Map([
   [
     'BrickComponentType_Exec_Character_SetInventoryItemAdv',
     'BCSComponentVertex_Exec_Character_SetInventoryItemAdv',
+  ],
+  [
+    'BrickComponentType_Exec_Character_SetScale',
+    'BCSComponentVertex_Exec_Character_SetScale',
   ],
   [
     'BrickComponentType_Exec_Character_SetTempPermission',
@@ -1850,6 +1858,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
     BCSComponentVertex_Exec_Character_GetInventoryEntry: {
       Slot: 0,
     },
+    BCSComponentVertex_Exec_Character_GetScale: {
+      Scale: 1,
+    },
     BCSComponentVertex_Exec_Character_GetWeaponChamberAmmo: {
       Slot: 0,
       Amount: 0,
@@ -1908,6 +1919,9 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         bOverrideStartingAmmo: false,
       },
       bOverrideColors: false,
+    },
+    BCSComponentVertex_Exec_Character_SetScale: {
+      Scale: 1,
     },
     BCSComponentVertex_Exec_Character_SetTempPermission: {
       PermissionTagStr: 'BR.Permission.Building',
@@ -2699,7 +2713,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       bDetectPlayers2: true,
       bDetectPlayers3: true,
       bDetectPlayers4: true,
-      bOnlyHitPlayerBodyParts: false,
       bDetectPhysics: true,
       bDetectMap: true,
       HitLocation: {
@@ -2741,7 +2754,6 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       bDetectPlayers2: true,
       bDetectPlayers3: true,
       bDetectPlayers4: true,
-      bOnlyHitPlayerBodyParts: false,
       bDetectPhysics: true,
       bDetectMap: true,
       HitLocation: {
@@ -3595,7 +3607,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
         Z: 0,
       },
       BotName: '',
-      bColorsAreLinear: true,
+      bColorsAreLinear: false,
       TeamCollisionChannel: 0,
       bTeamCollision: true,
       bTeamCollision1: true,
@@ -3948,7 +3960,7 @@ export const COMPONENT_STRUCT_DEFAULTS: ReadonlyMap<
       PickupSpinSpeed: 0.2,
       PickupBobSpeed: 0.1,
       PickupBobHeight: 4,
-      PickupAnimationPhase: 0.56913966,
+      PickupAnimationPhase: 0.9038972,
     },
     BrickComponentData_Joint_Wheel: {
       bDiscoverable: true,
@@ -5698,6 +5710,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
         inputs: ['Character', 'Exec', 'Slot'],
         outputs: ['BrickAsset', 'EntityType', 'ExecOut', 'Item'],
       },
+      BrickComponentType_Exec_Character_GetScale: {
+        bricks: ['B_1x1_Gate_Exec_Character_GetScale'],
+        inputs: ['Character', 'Exec'],
+        outputs: ['ExecOut', 'Scale'],
+      },
       BrickComponentType_Exec_Character_GetWeaponChamberAmmo: {
         bricks: ['B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo'],
         inputs: ['Character', 'Exec', 'Resource', 'Slot'],
@@ -5772,6 +5789,11 @@ export const COMPONENT_WIRE_PORTS: ReadonlyMap<string, ComponentPortInfo> =
           'WeaponSpeedMultiplier',
           'bOverrideColors',
         ],
+        outputs: ['ExecOut'],
+      },
+      BrickComponentType_Exec_Character_SetScale: {
+        bricks: ['B_1x1_Gate_Exec_Character_SetScale'],
+        inputs: ['Character', 'Exec', 'Scale'],
         outputs: ['ExecOut'],
       },
       BrickComponentType_Exec_Character_SetTempPermission: {
@@ -9214,6 +9236,17 @@ export const COMPONENTS = {
       Item: 'Item',
     },
   },
+  Exec_Character_GetScale: {
+    NAME: 'BrickComponentType_Exec_Character_GetScale',
+    BRICK: 'B_1x1_Gate_Exec_Character_GetScale',
+    BRICKS: ['B_1x1_Gate_Exec_Character_GetScale'],
+    PORTS: {
+      Character: 'Character',
+      Exec: 'Exec',
+      ExecOut: 'ExecOut',
+      Scale: 'Scale',
+    },
+  },
   Exec_Character_GetWeaponChamberAmmo: {
     NAME: 'BrickComponentType_Exec_Character_GetWeaponChamberAmmo',
     BRICK: 'B_1x1_Gate_Exec_Character_GetWeaponChamberAmmo',
@@ -9353,6 +9386,17 @@ export const COMPONENTS = {
       Slot: 'Slot',
       WeaponSpeedMultiplier: 'WeaponSpeedMultiplier',
       bOverrideColors: 'bOverrideColors',
+      ExecOut: 'ExecOut',
+    },
+  },
+  Exec_Character_SetScale: {
+    NAME: 'BrickComponentType_Exec_Character_SetScale',
+    BRICK: 'B_1x1_Gate_Exec_Character_SetScale',
+    BRICKS: ['B_1x1_Gate_Exec_Character_SetScale'],
+    PORTS: {
+      Character: 'Character',
+      Exec: 'Exec',
+      Scale: 'Scale',
       ExecOut: 'ExecOut',
     },
   },
